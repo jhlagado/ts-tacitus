@@ -18,7 +18,14 @@
  */
 
 import { Op } from '../ops/opcodes';
-import { type VM, getStackData } from '../core/vm';
+import {
+  type VM,
+  getStackData,
+  emitOpcode,
+  emitUint16,
+  emitUserWordCall,
+  ensureReserveEmitted,
+} from '../core/vm';
 import { type Token, type Tokenizer, TokenType } from './tokenizer';
 import {
   isSpecialChar,
@@ -59,7 +66,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
 
     validateFinalState(vm);
 
-    vm.compiler.compileOpcode(Op.Abort);
+    emitOpcode(vm, Op.Abort);
   } finally {
     vm.currentDefinition = null;
   }
@@ -160,11 +167,7 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a block is expected but not found, or if a word is undefined
  */
-export function emitWord(
-  vm: VM,
-  value: string,
-  tokenizer: Tokenizer,
-): void {
+export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
   if (value === 'var') {
     emitVarDecl(vm, tokenizer);
     return;
@@ -195,12 +198,7 @@ export function emitWord(
   const isImmediate = info.meta === 1;
 
   if (isImmediate) {
-    executeImmediateWord(
-      vm,
-      value,
-      { taggedValue: tval, isImmediate },
-      tokenizer,
-    );
+    executeImmediateWord(vm, value, { taggedValue: tval, isImmediate }, tokenizer);
     return;
   }
 
@@ -211,26 +209,26 @@ export function emitWord(
     // If encoded value < 128, it's invalid X1516 format, so treat as builtin opcode
     if (tagValue < 128) {
       // Use encoded value directly as opcode (0-127), emit single byte
-      vm.compiler.compileOpcode(tagValue);
+      emitOpcode(vm, tagValue);
       return;
     }
     // Otherwise, decode X1516 and compile as user word call (two bytes)
     const decodedAddress = decodeX1516(tagValue);
-    vm.compiler.compileUserWordCall(decodedAddress);
+    emitUserWordCall(vm, decodedAddress);
     return;
   }
 
   if (tag === Tag.LOCAL) {
-    vm.compiler.compileOpcode(Op.VarRef);
-    vm.compiler.compile16(tagValue);
-    vm.compiler.compileOpcode(Op.Load);
+    emitOpcode(vm, Op.VarRef);
+    emitUint16(vm, tagValue);
+    emitOpcode(vm, Op.Load);
 
     const nextToken = tokenizer.nextToken();
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
       compileBracketPathAsList(vm, tokenizer);
-      vm.compiler.compileOpcode(Op.Select);
-      vm.compiler.compileOpcode(Op.Load);
-      vm.compiler.compileOpcode(Op.Nip);
+      emitOpcode(vm, Op.Select);
+      emitOpcode(vm, Op.Load);
+      emitOpcode(vm, Op.Nip);
     } else {
       tokenizer.pushBack(nextToken);
     }
@@ -246,18 +244,18 @@ export function emitWord(
     const cellIndex = getCellFromRef(entryValue);
     const offset = cellIndex - GLOBAL_BASE;
 
-    vm.compiler.compileOpcode(Op.GlobalRef);
-    vm.compiler.compile16(offset);
+    emitOpcode(vm, Op.GlobalRef);
+    emitUint16(vm, offset);
 
     const nextToken = tokenizer.nextToken();
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
       compileBracketPathAsList(vm, tokenizer);
-      vm.compiler.compileOpcode(Op.Select);
-      vm.compiler.compileOpcode(Op.Load);
-      vm.compiler.compileOpcode(Op.Nip);
+      emitOpcode(vm, Op.Select);
+      emitOpcode(vm, Op.Load);
+      emitOpcode(vm, Op.Nip);
     } else {
       tokenizer.pushBack(nextToken);
-      vm.compiler.compileOpcode(Op.Load);
+      emitOpcode(vm, Op.Load);
     }
     return;
   }
@@ -279,16 +277,12 @@ export function emitWord(
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
-export function emitAtSymbol(
-  vm: VM,
-  symbolName: string,
-  _tokenizer: Tokenizer,
-): void {
-  vm.compiler.compileOpcode(Op.LiteralString);
+export function emitAtSymbol(vm: VM, symbolName: string, _tokenizer: Tokenizer): void {
+  emitOpcode(vm, Op.LiteralString);
   const stringAddress = vm.digest.add(symbolName);
-  vm.compiler.compile16(stringAddress);
+  emitUint16(vm, stringAddress);
 
-  vm.compiler.compileOpcode(Op.PushSymbolRef);
+  emitOpcode(vm, Op.PushSymbolRef);
 }
 
 /**
@@ -301,11 +295,7 @@ export function emitAtSymbol(
  * @param {ParserState} state - The current parser state
  * @throws {Error} If variable is undefined or not a local variable
  */
-export function emitRefSigil(
-  vm: VM,
-  varName: string,
-  _tokenizer: Tokenizer,
-): void {
+export function emitRefSigil(vm: VM, varName: string, _tokenizer: Tokenizer): void {
   const tval = lookup(vm, varName);
   if (isNIL(tval)) {
     throw new UndefinedWordError(varName, getStackData(vm));
@@ -315,8 +305,8 @@ export function emitRefSigil(
 
   // NEW: Handle code references (unified Tag.CODE)
   if (tag === Tag.CODE) {
-    vm.compiler.compileOpcode(Op.LiteralCode);
-    vm.compiler.compile16(value); // Tag.CODE value (builtin < 128 or X1516 encoded >= 128)
+    emitOpcode(vm, Op.LiteralCode);
+    emitUint16(vm, value); // Tag.CODE value (builtin < 128 or X1516 encoded >= 128)
     return;
   }
 
@@ -325,9 +315,9 @@ export function emitRefSigil(
   // &buf compiles to VarRef + Fetch, where Fetch returns a REF (does NOT materialize)
   if (vm.currentDefinition) {
     if (tag === Tag.LOCAL) {
-      vm.compiler.compileOpcode(Op.VarRef);
-      vm.compiler.compile16(value);
-      vm.compiler.compileOpcode(Op.Fetch);
+      emitOpcode(vm, Op.VarRef);
+      emitUint16(vm, value);
+      emitOpcode(vm, Op.Fetch);
       return;
     }
     if (tag === Tag.REF) {
@@ -337,9 +327,9 @@ export function emitRefSigil(
       // Calculate offset from absolute cell index
       const absoluteCellIndex = getCellFromRef(tval);
       const offset = absoluteCellIndex - GLOBAL_BASE;
-      vm.compiler.compileOpcode(Op.GlobalRef);
-      vm.compiler.compile16(offset);
-      vm.compiler.compileOpcode(Op.Fetch);
+      emitOpcode(vm, Op.GlobalRef);
+      emitUint16(vm, offset);
+      emitOpcode(vm, Op.Fetch);
       return;
     }
     throw new Error(`${varName} is not a variable or function`);
@@ -350,9 +340,9 @@ export function emitRefSigil(
     // Calculate offset from absolute cell index
     const absoluteCellIndex = getCellFromRef(tval);
     const offset = absoluteCellIndex - GLOBAL_BASE;
-    vm.compiler.compileOpcode(Op.GlobalRef);
-    vm.compiler.compile16(offset);
-    vm.compiler.compileOpcode(Op.Fetch);
+    emitOpcode(vm, Op.GlobalRef);
+    emitUint16(vm, offset);
+    emitOpcode(vm, Op.Fetch);
     return;
   }
   throw new Error(`${varName} is not a variable or function`);
@@ -367,10 +357,7 @@ export function emitRefSigil(
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-export function emitVarDecl(
-  vm: VM,
-  tokenizer: Tokenizer,
-): void {
+export function emitVarDecl(vm: VM, tokenizer: Tokenizer): void {
   if (!vm.currentDefinition) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
@@ -394,13 +381,13 @@ export function emitVarDecl(
     throw new SyntaxError('Expected variable name after var', getStackData(vm));
   }
 
-  vm.compiler.emitReserveIfNeeded();
+  ensureReserveEmitted(vm);
 
   const slotNumber = vm.localCount++;
   define(vm, varName, Tagged(slotNumber, Tag.LOCAL));
 
-  vm.compiler.compileOpcode(Op.InitVar);
-  vm.compiler.compile16(slotNumber);
+  emitOpcode(vm, Op.InitVar);
+  emitUint16(vm, slotNumber);
 }
 
 /**
@@ -419,10 +406,7 @@ export function emitVarDecl(
  * 7. Register in dictionary: define(vm, name, createGlobalRef(offset))
  * 8. Increment vm.gp after successful declaration
  */
-export function emitGlobalDecl(
-  vm: VM,
-  tokenizer: Tokenizer,
-): void {
+export function emitGlobalDecl(vm: VM, tokenizer: Tokenizer): void {
   // Top-level restriction: must NOT be inside function
   if (vm.currentDefinition) {
     throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
@@ -467,8 +451,8 @@ export function emitGlobalDecl(
 
   // Emit InitGlobal opcode (matches InitVar pattern for locals)
   // Directly writes to global cell without Store opcode compatibility checks
-  vm.compiler.compileOpcode(Op.InitGlobal);
-  vm.compiler.compile16(offset);
+  emitOpcode(vm, Op.InitGlobal);
+  emitUint16(vm, offset);
 }
 
 /**
@@ -481,10 +465,7 @@ export function emitGlobalDecl(
  * @param {ParserState} state - The current parser state
  * @throws {Error} If not inside a function definition or invalid variable name
  */
-export function emitAssignment(
-  vm: VM,
-  tokenizer: Tokenizer,
-): void {
+export function emitAssignment(vm: VM, tokenizer: Tokenizer): void {
   const nameToken = tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
     throw new SyntaxError('Expected variable name after ->', getStackData(vm));
@@ -512,23 +493,23 @@ export function emitAssignment(
     const maybeBracket = tokenizer.nextToken();
     if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       // Compile &x semantics for path-based assignment
-      vm.compiler.compileOpcode(Op.VarRef);
-      vm.compiler.compile16(slotNumber);
-      vm.compiler.compileOpcode(Op.Fetch);
+      emitOpcode(vm, Op.VarRef);
+      emitUint16(vm, slotNumber);
+      emitOpcode(vm, Op.Fetch);
       compileBracketPathAsList(vm, tokenizer);
       // Inline update: select → nip → store
-      vm.compiler.compileOpcode(Op.Select);
-      vm.compiler.compileOpcode(Op.Nip);
-      vm.compiler.compileOpcode(Op.Store);
+      emitOpcode(vm, Op.Select);
+      emitOpcode(vm, Op.Nip);
+      emitOpcode(vm, Op.Store);
       return;
     } else {
       // No bracket; put the token back
       tokenizer.pushBack(maybeBracket);
     }
     // Simple variable assignment
-    vm.compiler.compileOpcode(Op.VarRef);
-    vm.compiler.compile16(slotNumber);
-    vm.compiler.compileOpcode(Op.Store);
+    emitOpcode(vm, Op.VarRef);
+    emitUint16(vm, slotNumber);
+    emitOpcode(vm, Op.Store);
     return;
   }
   if (tag === Tag.REF) {
@@ -544,20 +525,20 @@ export function emitAssignment(
 
     const maybeBracket = tokenizer.nextToken();
     if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-      vm.compiler.compileOpcode(Op.GlobalRef);
-      vm.compiler.compile16(offset);
-      vm.compiler.compileOpcode(Op.Fetch);
+      emitOpcode(vm, Op.GlobalRef);
+      emitUint16(vm, offset);
+      emitOpcode(vm, Op.Fetch);
       compileBracketPathAsList(vm, tokenizer);
-      vm.compiler.compileOpcode(Op.Select);
-      vm.compiler.compileOpcode(Op.Nip);
-      vm.compiler.compileOpcode(Op.Store);
+      emitOpcode(vm, Op.Select);
+      emitOpcode(vm, Op.Nip);
+      emitOpcode(vm, Op.Store);
       return;
     } else {
       tokenizer.pushBack(maybeBracket);
     }
-    vm.compiler.compileOpcode(Op.GlobalRef);
-    vm.compiler.compile16(offset);
-    vm.compiler.compileOpcode(Op.Store);
+    emitOpcode(vm, Op.GlobalRef);
+    emitUint16(vm, offset);
+    emitOpcode(vm, Op.Store);
     return;
   }
   // Otherwise, not a recognized assignable
@@ -580,10 +561,7 @@ export function emitAssignment(
  *   Swap
  *   Store
  */
-export function emitIncrement(
-  vm: VM,
-  tokenizer: Tokenizer,
-): void {
+export function emitIncrement(vm: VM, tokenizer: Tokenizer): void {
   if (!vm.currentDefinition) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
@@ -612,20 +590,20 @@ export function emitIncrement(
   const maybeBracket = tokenizer.nextToken();
   if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
     // Build destination sub-address from local list slot: &x fetch [path] select nip
-    vm.compiler.compileOpcode(Op.VarRef);
-    vm.compiler.compile16(slotNumber);
-    vm.compiler.compileOpcode(Op.Fetch);
+    emitOpcode(vm, Op.VarRef);
+    emitUint16(vm, slotNumber);
+    emitOpcode(vm, Op.Fetch);
     compileBracketPathAsList(vm, tokenizer);
-    vm.compiler.compileOpcode(Op.Select);
-    vm.compiler.compileOpcode(Op.Nip);
+    emitOpcode(vm, Op.Select);
+    emitOpcode(vm, Op.Nip);
 
     // Now perform RMW on that address: swap, over, fetch, add, swap, store
-    vm.compiler.compileOpcode(Op.Swap);
-    vm.compiler.compileOpcode(Op.Over);
-    vm.compiler.compileOpcode(Op.Fetch);
-    vm.compiler.compileOpcode(Op.Add);
-    vm.compiler.compileOpcode(Op.Swap);
-    vm.compiler.compileOpcode(Op.Store);
+    emitOpcode(vm, Op.Swap);
+    emitOpcode(vm, Op.Over);
+    emitOpcode(vm, Op.Fetch);
+    emitOpcode(vm, Op.Add);
+    emitOpcode(vm, Op.Swap);
+    emitOpcode(vm, Op.Store);
     return;
   } else {
     // No bracket; put the token back for outer parsing
@@ -634,14 +612,14 @@ export function emitIncrement(
 
   // Simple locals-only increment sugar: value x add -> x
   // Start: [..., inc]
-  vm.compiler.compileOpcode(Op.VarRef);
-  vm.compiler.compile16(slotNumber); // [..., inc, addr]
-  vm.compiler.compileOpcode(Op.Swap); // [..., addr, inc]
-  vm.compiler.compileOpcode(Op.Over); // [..., addr, inc, addr]
-  vm.compiler.compileOpcode(Op.Fetch); // [..., addr, inc, value]
-  vm.compiler.compileOpcode(Op.Add); // [..., addr, sum]
-  vm.compiler.compileOpcode(Op.Swap); // [..., sum, addr]
-  vm.compiler.compileOpcode(Op.Store); // []
+  emitOpcode(vm, Op.VarRef);
+  emitUint16(vm, slotNumber); // [..., inc, addr]
+  emitOpcode(vm, Op.Swap); // [..., addr, inc]
+  emitOpcode(vm, Op.Over); // [..., addr, inc, addr]
+  emitOpcode(vm, Op.Fetch); // [..., addr, inc, value]
+  emitOpcode(vm, Op.Add); // [..., addr, sum]
+  emitOpcode(vm, Op.Swap); // [..., sum, addr]
+  emitOpcode(vm, Op.Store); // []
 }
 
 /**
@@ -650,7 +628,7 @@ export function emitIncrement(
  */
 function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
   // Build list: OpenList, emit elements, CloseList
-  vm.compiler.compileOpcode(Op.OpenList);
+  emitOpcode(vm, Op.OpenList);
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const tok = tokenizer.nextToken();
@@ -670,7 +648,7 @@ function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
       getStackData(vm),
     );
   }
-  vm.compiler.compileOpcode(Op.CloseList);
+  emitOpcode(vm, Op.CloseList);
 }
 
 /**
@@ -697,9 +675,9 @@ export function handleSpecial(vm: VM, value: string, tokenizer: Tokenizer): void
     // General postfix bracket path for any expression on stack: expr[ ... ]
     // Compile path list and then value-by-default retrieval via select→load→nip
     compileBracketPathAsList(vm, tokenizer);
-    vm.compiler.compileOpcode(Op.Select);
-    vm.compiler.compileOpcode(Op.Load);
-    vm.compiler.compileOpcode(Op.Nip);
+    emitOpcode(vm, Op.Select);
+    emitOpcode(vm, Op.Load);
+    emitOpcode(vm, Op.Nip);
   }
 }
 
@@ -737,7 +715,7 @@ function parseApostropheString(vm: VM, tokenizer: Tokenizer): void {
  */
 export function beginList(vm: VM): void {
   vm.listDepth++;
-  vm.compiler.compileOpcode(Op.OpenList);
+  emitOpcode(vm, Op.OpenList);
 }
 
 /**
@@ -749,7 +727,7 @@ export function endList(vm: VM): void {
     throw new SyntaxError('Unexpected closing parenthesis', getStackData(vm));
   }
 
-  vm.compiler.compileOpcode(Op.CloseList);
+  emitOpcode(vm, Op.CloseList);
   vm.listDepth--;
 }
 
