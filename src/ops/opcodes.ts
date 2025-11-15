@@ -312,4 +312,6 @@ export enum Op {
   ClauseDoImmediate,
   /** Begin capsule definition (immediate) */
   BeginCapsuleImmediate,
+  /** Fetch next token for Tacit compile loop */
+  TokenNext,
 }

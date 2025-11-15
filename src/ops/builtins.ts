@@ -48,6 +48,7 @@ import {
   endOfOp,
   endCaseOp,
 } from './core';
+import { tokenNextOp } from '../lang/meta/token-bridge';
 import {
   addOp,
   subtractOp,
@@ -285,6 +286,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.BufPop]: unwriteOp,
     [Op.BufShift]: readOp,
     [Op.BufUnshift]: unreadOp,
+  [Op.TokenNext]: tokenNextOp,
   };
 
   const impl = OPCODE_TO_VERB[opcode];

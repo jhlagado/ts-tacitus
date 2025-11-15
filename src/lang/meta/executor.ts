@@ -1,38 +1,31 @@
 import { SyntaxError, Tag, getTaggedInfo, RSTACK_BASE, STACK_BASE } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
-import { Op } from '../../ops/opcodes';
+import type { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
-import { type VM, nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
+import { nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
+import type { VM } from '../../core/vm';
 import { decodeX1516 } from '../../core/code-ref';
-import { type Tokenizer } from '../tokenizer';
+import type { Tokenizer } from '../tokenizer';
 // SymbolTableEntry interface moved inline (symbol table removed)
 type SymbolTableEntry = {
   taggedValue: number;
   isImmediate: boolean;
 };
-import { beginDefinitionImmediate } from './definitions';
-import { beginIfImmediate, beginElseImmediate } from './conditionals';
-import { beginMatchImmediate, beginWithImmediate } from './match-with';
-import { beginCaseImmediate, clauseDoImmediate, defaultImmediate, nilImmediate } from './case';
-import { beginCapsuleImmediate } from './capsules';
+import { defaultImmediate, nilImmediate } from './case';
 
-type ImmediateHandler = (vm: VM, tokenizer: Tokenizer) => void;
+export type ImmediateHandler = (vm: VM, tokenizer: Tokenizer) => void;
 
-const IMMEDIATE_HANDLERS: Partial<Record<Op, ImmediateHandler>> = {
-  [Op.BeginDefinitionImmediate]: beginDefinitionImmediate,
-  [Op.SemicolonImmediate]: semicolonImmediate,
-  [Op.BeginIfImmediate]: beginIfImmediate,
-  [Op.BeginElseImmediate]: beginElseImmediate,
-  [Op.BeginMatchImmediate]: beginMatchImmediate,
-  [Op.BeginWithImmediate]: beginWithImmediate,
-  [Op.BeginCaseImmediate]: beginCaseImmediate,
-  [Op.ClauseDoImmediate]: clauseDoImmediate,
-  [Op.BeginCapsuleImmediate]: beginCapsuleImmediate,
-};
+const immediateHandlers = new Map<number, ImmediateHandler>();
 
+export function registerImmediateHandler(opcode: number, handler: ImmediateHandler): void {
+  immediateHandlers.set(opcode, handler);
+}
 
-function semicolonImmediate(vm: VM, _tokenizer: Tokenizer): void {
+export function resetImmediateHandlers(): void {
+  immediateHandlers.clear();
+}
+export function semicolonImmediate(vm: VM, _tokenizer: Tokenizer): void {
   if (vm.sp - STACK_BASE === 0) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
@@ -59,7 +52,7 @@ export function executeImmediateWord(
     // If encoded value < 128, it's invalid X1516 format, so treat as builtin immediate word
     if (value < 128) {
       const opcode = value as Op;
-      const handler = IMMEDIATE_HANDLERS[opcode];
+      const handler = immediateHandlers.get(opcode);
       if (name === 'DEFAULT') {
         defaultImmediate(vm, tokenizer);
         return;
