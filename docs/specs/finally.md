@@ -133,6 +133,34 @@ The `finally` construct is handled entirely by the compiler as a **post-definiti
 
 This process adds zero runtime overhead and ensures that `finally` functions are indistinguishable from ordinary functions at call time.
 
+### 4.1 Example Bytecode Layout
+
+For the source:
+
+```
+: foo
+  A B C
+finally
+  cleanup1 cleanup2
+;
+```
+
+the compiler emits the following structure (addresses illustrative):
+
+```
+0000: Branch +??              ; jump over wrapper while compiling body
+0003: ...A B C bytecode...    ; main body of foo
+00NN: Exit                    ; terminate body
+
+00NN+1: set_in_finally        ; new opcode: IN_FINALLY := true
+00NN+2: Call foo_body         ; call original body entry point
+00NN+5: cleanup1 bytecode
+...  : cleanup2 bytecode
+00MM: Exit                    ; clears IN_FINALLY and returns
+```
+
+After emitting the wrapper, the compiler rebinds the dictionary entry for `foo` so its payload points at `00NN+1`. Because colon definitions are hidden until `;`, no call sites exist until the wrapper address is final; explicit recursion will require a dedicated helper that emits the wrapper address.
+
 ---
 
 ### 5. Dictionary Representation
@@ -157,9 +185,28 @@ The rebinding occurs immediately after the cleanup code is emitted, requiring no
 
 ---
 
+### 5.5 Opcode Summary
+
+| Opcode           | Stack effect  | Description                                                                                 |
+|------------------|---------------|---------------------------------------------------------------------------------------------|
+| `set_err`        | `( value -- )`| Pops a tagged value and stores it in `ERR`. Does not alter `IN_FINALLY`.                    |
+| `set_in_finally` | `( -- )`      | Sets `IN_FINALLY := true`. Intended for compiler-emitted wrapper prologues.                 |
+| `exit`           | `( -- )`      | Existing opcode; additionally clears `IN_FINALLY` before returning.                         |
+| `exitCapsule`    | `( -- )`      | Existing opcode; additionally clears `IN_FINALLY` before returning.                         |
+
+All other opcodes must respect the unwind rule defined in §6.
+
+---
+
 ### 6. Cleanup and Error Interaction
 
-Tacit’s runtime cleanup behavior is defined entirely by two global conditions:
+After every opcode executes the interpreter performs the following check:
+
+1. If `ERR == NIL`, dispatch continues normally.
+2. If `ERR != NIL` and `IN_FINALLY == true`, dispatch continues until the cleanup block finishes (or raises another error).
+3. If `ERR != NIL` and `IN_FINALLY == false`, the interpreter stops executing further instructions in the current frame, pops frames until it encounters a wrapper, sets `IN_FINALLY := true`, and resumes execution at that wrapper’s cleanup entry. If no wrapper remains, unwinding continues to the top-level where the VM terminates with the recorded error.
+
+The runtime conditions below summarise the possible states:
 
 | State                                | Description          | Effect                                                    |
 | ------------------------------------ | -------------------- | --------------------------------------------------------- |
@@ -168,7 +215,7 @@ Tacit’s runtime cleanup behavior is defined entirely by two global conditions:
 | `ERR != NIL and IN_FINALLY == true`  | Error inside cleanup | Clear `IN_FINALLY`, return immediately, keep existing `ERR` |
 | `ERR == NIL and IN_FINALLY == true`  | Normal cleanup       | Cleanup continues to completion, then resets `IN_FINALLY` |
 
-Exit instructions (`exit`, `exitDef`, `exitCapsule`, etc.) always clear `IN_FINALLY` before returning.
+Exit instructions (`exit`, `exitCapsule`) always clear `IN_FINALLY` before returning.
 
 This makes cleanup behavior both predictable and idempotent: `IN_FINALLY` never leaks beyond the block that set it, and normal exit instructions always restore the flag to `false`.
 
@@ -211,7 +258,7 @@ Errors propagate upward through the call chain until all wrappers have executed.
 Each wrapper guarantees that:
 
 * Cleanup runs exactly once per function invocation.
-* Errors during cleanup replace prior ones.
+* Errors during cleanup abort the current cleanup but do not overwrite the original `ERR` value.
 * The call chain terminates when no further wrappers exist.
 
 This establishes **flat, composable unwinding semantics** — a single active error state, deterministic propagation, and total cleanup coverage.
@@ -233,14 +280,15 @@ To ensure correctness, the following invariants hold:
 
 ### 11. Verification Strategy
 
-To ensure the implementation matches this specification, the following test coverage is required:
+To ensure the implementation matches this specification, the following coverage is required:
 
-- **Wrapper rebinding:** unit tests that confirm a function defined with `finally` invokes the wrapper and that direct invocations of the body are no longer reachable through the dictionary.
-- **Single-level cleanup:** cases where the body succeeds, fails, and the cleanup runs without mutating `ERR`.
-- **Nested wrappers:** scenarios where an inner `finally` fails and the outer cleanup still executes, verifying `IN_FINALLY` transitions.
-- **Cleanup failure:** tests that throw inside `finally` and ensure the original `ERR` persists while the cleanup aborts.
-- **Termination propagation:** integration tests that let `ERR` reach the top of the stack so the VM halts with the flagged error.
-- **Optional recovery (if used):** demonstrations that a cleanup can clear `ERR` intentionally and that this restores normal execution.
+1. **Wrapper rebinding** – compile a function with `finally` and assert that looking it up in the dictionary yields the wrapper address; confirm the body’s address is unreachable via normal lookup.
+2. **Body success path** – execute a function whose body completes without setting `ERR` and confirm cleanup still runs and the return value is preserved.
+3. **Body failure path** – execute a function whose body invokes `set_err` and verify that cleanup runs, `IN_FINALLY` toggles (`false → true → false`), and the VM ultimately terminates with the recorded error.
+4. **Cleanup failure** – force an error inside the cleanup sequence and check that `IN_FINALLY` is cleared immediately, remaining cleanup instructions are skipped, and `ERR` retains the original value.
+5. **Nested wrappers** – construct `foo` calling `bar`, each with `finally`, trigger errors at different depths, and ensure the unwind order matches the rules in §6.
+6. **Opcode exemptions** – ensure `set_in_finally` executes even when `ERR` is set, while ordinary opcodes abort immediately.
+7. **Optional recovery** (if used) – demonstrate a cleanup that sets `ERR := NIL`, restoring normal execution; include a counterpart test showing that omitting this step still terminates.
 
 ### 12. Advantages
 
