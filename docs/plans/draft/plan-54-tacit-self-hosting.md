@@ -53,9 +53,22 @@
 
 ### Phase 5 — Tacit Compile Loop
 
-- Write Tacit words that encapsulate “compile line, execute, decide preserve”.
-- Replace TS REPL loop with Tacit entrypoint invoked from JS (JS still feeds strings/tokens).
-- Introduce diagnostics / error propagation for Tacit compiler failures.
+- Identify the exact TS routines currently orchestrating "tokenize → emit → execute" and document the minimal surface Tacit must own.
+  - `parse(vm, tokenizer)`, `parseProgram`, `processToken`, `executeImmediateWord` for compilation.
+  - `execute(vm, start)` for evaluation plus its error paths/reset semantics.
+- Specify kernel hooks that Tacit code will call:
+  - Token acquisition (stepper over `Tokenizer.nextToken()` or an equivalent callback).
+  - Dictionary lookup (`lookup`, `define`) and emit helpers (already VM-scoped) for bytecode generation.
+  - Control for `vm.currentDefinition`, list depth, and compiler reset/preserve toggles.
+- Introduce a TS bridge that seeds a Tacit word with the structures it needs but otherwise yields control:
+  - Provide a `beginCompileLoop(vm, tokenizer, entryWord)` helper that sets up the tokenizer and hands off.
+  - Expose callable kernels (`nextTokenBuiltin`, `emitOpcode`, `setPreserve`, etc.) so the Tacit loop manipulates state without touching TS internals directly.
+- Prototype the Tacit compile loop as a colon definition that mirrors the current TS logic:
+  - Read token → dispatch immediate vs literal vs word.
+  - Terminate on EOF or unrecoverable error, surfacing status via stack sentinels.
+- Maintain symmetry with `execute(vm, start)` by ensuring Tacit loop invokes `Abort` emission and final validation helpers before returning.
+- Extend regression coverage: Tacit-driven loop must pass existing parser/compiler suites plus targeted cases for error recovery, nested conditionals, and dictionary mutations mid-compile.
+- Launch behind a feature flag (TS fallback) so we can switch between TS/Tacit loops during bring-up.
 
 ### Phase 6 — Bootstrapping & Reduction
 

@@ -45,8 +45,47 @@ import {
 import { emitNumber, emitString } from './literals';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
-import { lookup, define } from '../core/dictionary';
+import { lookup, define, findEntry } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
+import { MIN_USER_OPCODE } from '@src/core';
+import { callTacit } from './interpreter';
+
+const TACIT_COMPILE_LOOP_WORD = 'compile-loop';
+
+let activeTokenizer: Tokenizer | null = null;
+
+function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
+  const entry = findEntry(vm, TACIT_COMPILE_LOOP_WORD);
+  if (!entry) {
+    return false;
+  }
+
+  const { taggedValue } = entry;
+  const info = getTaggedInfo(taggedValue);
+  if (info.tag !== Tag.CODE || info.meta !== 0) {
+    return false;
+  }
+
+  if (info.value < MIN_USER_OPCODE) {
+    // Builtin opcodes cannot drive the Tacit compile loop.
+    return false;
+  }
+
+  const entryAddress = decodeX1516(info.value);
+
+  activeTokenizer = tokenizer;
+  try {
+    callTacit(vm, entryAddress);
+  } finally {
+    activeTokenizer = null;
+  }
+
+  return true;
+}
+
+export function getActiveTokenizer(): Tokenizer | null {
+  return activeTokenizer;
+}
 
 /**
  * Main parse function - entry point for parsing Tacit code.
@@ -63,11 +102,14 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.currentDefinition = null;
 
   try {
-    parseProgram(vm, tokenizer);
+    const handledByTacit = tryRunTacitCompileLoop(vm, tokenizer);
+    if (!handledByTacit) {
+      parseProgram(vm, tokenizer);
 
-    validateFinalState(vm);
+      validateFinalState(vm);
 
-    emitOpcode(vm, Op.Abort);
+      emitOpcode(vm, Op.Abort);
+    }
   } finally {
     vm.currentDefinition = null;
   }

@@ -20,7 +20,22 @@ import type { VM, Verb } from '@src/core';
 import { Op } from './opcodes';
 import { evalOp } from './core';
 
-// Immediate word functions are handled in executeImmediateWord, not here
+import {
+  beginDefinitionImmediate,
+  beginIfImmediate,
+  beginElseImmediate,
+  beginMatchImmediate,
+  beginWithImmediate,
+  beginCaseImmediate,
+  clauseDoImmediate,
+  beginCapsuleImmediate,
+  registerImmediateHandler,
+  resetImmediateHandlers,
+  semicolonImmediate,
+  type ImmediateHandler,
+} from '../lang/meta';
+import { tokenNextOp } from '../lang/meta/token-bridge';
+
 import { gpushOp, gpopOp, gpeekOp } from './heap';
 import {
   defineOp,
@@ -50,11 +65,21 @@ import { Tagged, Tag } from '@src/core';
  * @param enableAnalytics - Whether to print analytics (default: true, set to false in tests)
  */
 export function registerBuiltins(vm: VM): void {
+  resetImmediateHandlers();
   // All registration goes directly to dictionary
-  function reg(name: string, opcode: number, _implementation?: Verb, isImmediate = false): void {
+  function reg(
+    name: string,
+    opcode: number,
+    _implementation?: Verb,
+    isImmediate = false,
+    immediateHandler?: ImmediateHandler,
+  ): void {
     // Use Tag.CODE instead of Tag.BUILTIN for unified dispatch
     // Values < 128 are stored directly and treated as builtin opcodes
     define(vm, name, Tagged(opcode, Tag.CODE, isImmediate ? 1 : 0));
+    if (isImmediate && immediateHandler) {
+      registerImmediateHandler(opcode, immediateHandler);
+    }
   }
 
   reg('eval', Op.Eval, evalOp);
@@ -126,6 +151,7 @@ export function registerBuiltins(vm: VM): void {
   reg('dict-first-off', Op.DictFirstOff, dictFirstOffOp);
   // Debug
   reg('dump-dict', Op.DumpDict, dumpDictOp);
+  reg('token-next', Op.TokenNext, tokenNextOp);
 
   reg('add', Op.Add);
   reg('sub', Op.Minus);
@@ -167,25 +193,20 @@ export function registerBuiltins(vm: VM): void {
   reg('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  reg('if', Op.BeginIfImmediate, undefined, true);
-  reg('else', Op.BeginElseImmediate, undefined, true);
-  reg('match', Op.BeginMatchImmediate, undefined, true);
-  reg('with', Op.BeginWithImmediate, undefined, true);
-  reg('case', Op.BeginCaseImmediate, undefined, true);
-  reg('do', Op.ClauseDoImmediate, undefined, true);
+  reg('if', Op.BeginIfImmediate, undefined, true, beginIfImmediate);
+  reg('else', Op.BeginElseImmediate, undefined, true, beginElseImmediate);
+  reg('match', Op.BeginMatchImmediate, undefined, true, beginMatchImmediate);
+  reg('with', Op.BeginWithImmediate, undefined, true, beginWithImmediate);
+  reg('case', Op.BeginCaseImmediate, undefined, true, beginCaseImmediate);
+  reg('do', Op.ClauseDoImmediate, undefined, true, clauseDoImmediate);
   reg('DEFAULT', Op.Nop, undefined, true);
   reg('NIL', Op.Nop, undefined, true);
   // Capsule opener: 'capsule'
-  reg('capsule', Op.BeginCapsuleImmediate, undefined, true);
+  reg('capsule', Op.BeginCapsuleImmediate, undefined, true, beginCapsuleImmediate);
 
   reg('select', Op.Select);
   reg('makeList', Op.MakeList);
 
-  reg(':', Op.BeginDefinitionImmediate, undefined, true);
-  reg(
-    ';',
-    Op.SemicolonImmediate,
-    undefined,
-    true,
-  );
+  reg(':', Op.BeginDefinitionImmediate, undefined, true, beginDefinitionImmediate);
+  reg(';', Op.SemicolonImmediate, undefined, true, semicolonImmediate);
 }
