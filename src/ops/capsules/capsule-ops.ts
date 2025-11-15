@@ -1,4 +1,5 @@
-import { type VM, Tag, Tagged, getTaggedInfo, RSTACK_BASE, createRef } from '@src/core';
+import { type VM, RSTACK_BASE, Tagged, Tag, createRef, getTaggedInfo } from '@src/core';
+import { emitOpcode } from '../../core/vm';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 import { Op } from '../opcodes';
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
@@ -62,7 +63,7 @@ export function dispatchOp(vm: VM): void {
 
 export function endCapsuleOp(vm: VM): void {
   // Emit the capsule-specific epilogue for the dispatch body
-  vm.compiler.compileOpcode(Op.ExitDispatch);
+  emitOpcode(vm, Op.ExitDispatch);
   // Finalise the surrounding colon definition (replaces EndDefinition closer)
   invokeEndDefinitionHandler(vm);
 }

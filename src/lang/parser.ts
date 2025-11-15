@@ -25,6 +25,7 @@ import {
   emitUint16,
   emitUserWordCall,
   ensureReserveEmitted,
+  resetCompiler,
 } from '../core/vm';
 import { type Token, type Tokenizer, TokenType } from './tokenizer';
 import {
@@ -57,7 +58,7 @@ import { decodeX1516 } from '../core/code-ref';
  * @param {Tokenizer} tokenizer - The tokenizer that provides the stream of tokens to parse
  */
 export function parse(vm: VM, tokenizer: Tokenizer): void {
-  vm.compiler.reset();
+  resetCompiler(vm);
 
   vm.currentDefinition = null;
 

@@ -224,7 +224,7 @@ const config = [
     },
   },
 
-  // Exception: VM owns the Compiler, so it's allowed to import it
+  // Exception: VM owns the compiler state, so it's allowed to import it
   {
     files: ['src/core/vm.ts'],
     rules: {

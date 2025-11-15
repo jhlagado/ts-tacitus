@@ -8,6 +8,11 @@ import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
 import { markWithLocalReset, forget, define } from '../../core/dictionary';
 import { Tagged, Tag } from '../../core';
+import {
+  compilerEnterFunction,
+  compilerEmitReserveIfNeeded,
+  compilerExitFunction,
+} from '../../lang/compiler';
 
 describe('Compiler Function Context', () => {
   let vm: VM;
@@ -20,11 +25,11 @@ describe('Compiler Function Context', () => {
     test('should track function compilation state', () => {
       expect(vm.compiler.isInFunction).toBe(false);
 
-      vm.compiler.enterFunction();
+      compilerEnterFunction(vm.compiler);
       expect(vm.compiler.isInFunction).toBe(true);
       expect(vm.compiler.reservePatchAddr).toBe(-1); // No Reserve emitted yet
 
-      vm.compiler.exitFunction();
+      compilerExitFunction(vm, vm.compiler);
       expect(vm.compiler.isInFunction).toBe(false);
       expect(vm.compiler.reservePatchAddr).toBe(-1);
     });
@@ -32,12 +37,12 @@ describe('Compiler Function Context', () => {
     test('should emit Reserve opcode only when needed', () => {
       const initialCP = vm.compiler.CP;
 
-      vm.compiler.enterFunction();
+      compilerEnterFunction(vm.compiler);
 
       // Should not have emitted anything yet
       expect(vm.compiler.CP).toBe(initialCP);
 
-      vm.compiler.emitReserveIfNeeded();
+      compilerEmitReserveIfNeeded(vm, vm.compiler);
 
       // Now should have emitted Reserve opcode (1 byte) + placeholder slot count (2 bytes)
       expect(vm.compiler.CP).toBe(initialCP + 3);
@@ -56,14 +61,14 @@ describe('Compiler Function Context', () => {
       define(vm, 'y', Tagged(slotY, Tag.LOCAL));
       expect(vm.localCount).toBe(2);
 
-      vm.compiler.enterFunction();
-      vm.compiler.emitReserveIfNeeded(); // Emit the Reserve opcode
+      compilerEnterFunction(vm.compiler);
+      compilerEmitReserveIfNeeded(vm, vm.compiler); // Emit the Reserve opcode
       const patchAddr = vm.compiler.reservePatchAddr;
 
       // Initial placeholder should be 0
       expect(vm.memory.read16(SEG_CODE, patchAddr)).toBe(0);
 
-      vm.compiler.exitFunction();
+      compilerExitFunction(vm, vm.compiler);
 
       // Should be patched with actual local count (2)
       expect(vm.memory.read16(SEG_CODE, patchAddr)).toBe(2);
@@ -145,18 +150,18 @@ describe('Compiler Function Context', () => {
     test('should handle exitFunction without enterFunction', () => {
       // Should not crash
       expect(() => {
-        vm.compiler.exitFunction();
+        compilerExitFunction(vm, vm.compiler);
       }).not.toThrow();
     });
 
     test('should handle multiple enterFunction calls', () => {
-      vm.compiler.enterFunction();
+      compilerEnterFunction(vm.compiler);
       expect(vm.compiler.reservePatchAddr).toBe(-1); // No Reserve emitted yet
 
-      vm.compiler.emitReserveIfNeeded();
+      compilerEmitReserveIfNeeded(vm, vm.compiler);
 
       // Second call should reset state
-      vm.compiler.enterFunction();
+      compilerEnterFunction(vm.compiler);
       expect(vm.compiler.reservePatchAddr).toBe(-1); // Reset to no Reserve
       expect(vm.compiler.isInFunction).toBe(true);
     });

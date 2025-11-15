@@ -1,6 +1,6 @@
 import { SyntaxError, Tag, getTaggedInfo, RSTACK_BASE, STACK_BASE } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
-import { type Op } from '../../ops/opcodes';
+import { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
 import { type VM, nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
@@ -11,18 +11,33 @@ type SymbolTableEntry = {
   taggedValue: number;
   isImmediate: boolean;
 };
-import {
-  beginDefinitionImmediate,
-  beginIfImmediate,
-  beginElseImmediate,
-  beginMatchImmediate,
-  beginWithImmediate,
-  beginCaseImmediate,
-  clauseDoImmediate,
-  defaultImmediate,
-  nilImmediate,
-  beginCapsuleImmediate,
-} from './index';
+import { beginDefinitionImmediate } from './definitions';
+import { beginIfImmediate, beginElseImmediate } from './conditionals';
+import { beginMatchImmediate, beginWithImmediate } from './match-with';
+import { beginCaseImmediate, clauseDoImmediate, defaultImmediate, nilImmediate } from './case';
+import { beginCapsuleImmediate } from './capsules';
+
+type ImmediateHandler = (vm: VM, tokenizer: Tokenizer) => void;
+
+const IMMEDIATE_HANDLERS: Partial<Record<Op, ImmediateHandler>> = {
+  [Op.BeginDefinitionImmediate]: beginDefinitionImmediate,
+  [Op.SemicolonImmediate]: semicolonImmediate,
+  [Op.BeginIfImmediate]: beginIfImmediate,
+  [Op.BeginElseImmediate]: beginElseImmediate,
+  [Op.BeginMatchImmediate]: beginMatchImmediate,
+  [Op.BeginWithImmediate]: beginWithImmediate,
+  [Op.BeginCaseImmediate]: beginCaseImmediate,
+  [Op.ClauseDoImmediate]: clauseDoImmediate,
+  [Op.BeginCapsuleImmediate]: beginCapsuleImmediate,
+};
+
+
+function semicolonImmediate(vm: VM, _tokenizer: Tokenizer): void {
+  if (vm.sp - STACK_BASE === 0) {
+    throw new SyntaxError('Unexpected semicolon', getStackData(vm));
+  }
+  evalOp(vm);
+}
 
 /**
  * Executes an immediate word during parsing.
@@ -43,49 +58,23 @@ export function executeImmediateWord(
   if (tag === Tag.CODE) {
     // If encoded value < 128, it's invalid X1516 format, so treat as builtin immediate word
     if (value < 128) {
-      // Dispatch by name
-      switch (name) {
-        case ':':
-          beginDefinitionImmediate(vm, tokenizer);
-          return;
-        case 'if':
-          beginIfImmediate(vm, tokenizer);
-          return;
-        case ';':
-          if (vm.sp - STACK_BASE === 0) {
-            throw new SyntaxError('Unexpected semicolon', getStackData(vm));
-          }
-          evalOp(vm);
-          return;
-        case 'else':
-          beginElseImmediate(vm, tokenizer);
-          return;
-        case 'match':
-          beginMatchImmediate(vm, tokenizer);
-          return;
-        case 'with':
-          beginWithImmediate(vm, tokenizer);
-          return;
-        case 'case':
-          beginCaseImmediate(vm, tokenizer);
-          return;
-        case 'do':
-          clauseDoImmediate(vm, tokenizer);
-          return;
-        case 'DEFAULT':
-          defaultImmediate(vm, tokenizer);
-          return;
-        case 'NIL':
-          nilImmediate(vm, tokenizer);
-          return;
-        case 'capsule':
-          beginCapsuleImmediate(vm, tokenizer);
-          return;
-        default:
-          // Immediate builtin with runtime semantics (e.g., immdup)
-          executeOp(vm, value as Op);
-          return;
+      const opcode = value as Op;
+      const handler = IMMEDIATE_HANDLERS[opcode];
+      if (name === 'DEFAULT') {
+        defaultImmediate(vm, tokenizer);
+        return;
       }
+      if (name === 'NIL') {
+        nilImmediate(vm, tokenizer);
+        return;
+      }
+      if (handler) {
+        handler(vm, tokenizer);
+        return;
+      }
+      // Immediate builtin with runtime semantics (e.g., immdup)
+      executeOp(vm, opcode);
+      return;
     }
     // Otherwise, decode X1516 and run as immediate code block
     const decodedAddress = decodeX1516(value);

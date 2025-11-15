@@ -26,6 +26,7 @@ import {
 import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
 import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
+import { emitOpcode, emitUint16 } from '../../core/vm';
 
 import { formatValue } from '@src/core';
 import {
@@ -306,7 +307,7 @@ export const endIfOp: Verb = (vm: VM) => {
 
   const prevCP = vm.compiler.CP;
   vm.compiler.CP = branchPos;
-  vm.compiler.compile16(branchOffset);
+  emitUint16(vm, branchOffset);
   vm.compiler.CP = prevCP;
 };
 
@@ -331,16 +332,16 @@ export const endWithOp: Verb = (vm: VM) => {
     throw new SyntaxError('endwith invalid predicate placeholder', getStackData(vm));
   }
 
-  vm.compiler.compileOpcode(Op.Branch);
+  emitOpcode(vm, Op.Branch);
   const exitOperandPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  emitUint16(vm, 0);
 
   rpush(vm, exitOperandPos);
 
   const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
   const prevCP = vm.compiler.CP;
   vm.compiler.CP = skipPos;
-  vm.compiler.compile16(fallthroughOffset);
+  emitUint16(vm, fallthroughOffset);
   vm.compiler.CP = prevCP;
 };
 
@@ -376,16 +377,16 @@ export const endOfOp: Verb = (vm: VM) => {
     throw new SyntaxError('clause closer without do', getStackData(vm));
   }
 
-  vm.compiler.compileOpcode(Op.Branch);
+  emitOpcode(vm, Op.Branch);
   const exitOperandPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  emitUint16(vm, 0);
 
   rpush(vm, exitOperandPos);
 
   const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
   const prevCP = vm.compiler.CP;
   vm.compiler.CP = skipPos;
-  vm.compiler.compile16(fallthroughOffset);
+  emitUint16(vm, fallthroughOffset);
   vm.compiler.CP = prevCP;
 };
 
@@ -419,7 +420,7 @@ export const endMatchOp: Verb = (vm: VM) => {
 
     const prevCP = vm.compiler.CP;
     vm.compiler.CP = exitPos;
-    vm.compiler.compile16(exitOffset);
+    emitUint16(vm, exitOffset);
     vm.compiler.CP = prevCP;
   }
 
@@ -447,7 +448,7 @@ export const endCaseOp: Verb = (vm: VM) => {
   const savedRSPRel = Math.trunc(rawSavedRSP);
   const savedRSPAbs = RSTACK_BASE + savedRSPRel;
 
-  vm.compiler.compileOpcode(Op.Drop);
+  emitOpcode(vm, Op.Drop);
   const exitTarget = vm.compiler.CP;
 
   while (vm.rsp > savedRSPAbs) {
@@ -461,7 +462,7 @@ export const endCaseOp: Verb = (vm: VM) => {
 
     const prevCP = vm.compiler.CP;
     vm.compiler.CP = exitPos;
-    vm.compiler.compile16(exitOffset);
+    emitUint16(vm, exitOffset);
     vm.compiler.CP = prevCP;
   }
 

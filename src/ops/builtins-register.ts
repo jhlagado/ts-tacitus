@@ -17,11 +17,7 @@
  * - Conditional operations (if)
  */
 import type { VM, Verb } from '@src/core';
-import { SyntaxError } from '@src/core';
-import { getStackData } from '../core/vm';
 import { Op } from './opcodes';
-
-import { STACK_BASE } from '@src/core';
 import { evalOp } from './core';
 
 // Immediate word functions are handled in executeImmediateWord, not here
@@ -171,30 +167,25 @@ export function registerBuiltins(vm: VM): void {
   reg('pow', Op.Pow);
   /** Non-core math ops not included. */
 
-  reg('if', Op.Nop, undefined, true);
-  reg('else', Op.Nop, undefined, true);
-  reg('match', Op.Nop, undefined, true);
-  reg('with', Op.Nop, undefined, true);
-  reg('case', Op.Nop, undefined, true);
-  reg('do', Op.Nop, undefined, true);
+  reg('if', Op.BeginIfImmediate, undefined, true);
+  reg('else', Op.BeginElseImmediate, undefined, true);
+  reg('match', Op.BeginMatchImmediate, undefined, true);
+  reg('with', Op.BeginWithImmediate, undefined, true);
+  reg('case', Op.BeginCaseImmediate, undefined, true);
+  reg('do', Op.ClauseDoImmediate, undefined, true);
   reg('DEFAULT', Op.Nop, undefined, true);
   reg('NIL', Op.Nop, undefined, true);
   // Capsule opener: 'capsule'
-  reg('capsule', Op.Nop, undefined, true);
+  reg('capsule', Op.BeginCapsuleImmediate, undefined, true);
 
   reg('select', Op.Select);
   reg('makeList', Op.MakeList);
 
-  reg(':', Op.Nop, undefined, true);
+  reg(':', Op.BeginDefinitionImmediate, undefined, true);
   reg(
     ';',
-    Op.Nop,
-    vmInstance => {
-      if (vmInstance.sp - STACK_BASE === 0) {
-        throw new SyntaxError('Unexpected semicolon', getStackData(vmInstance));
-      }
-      evalOp(vmInstance);
-    },
+    Op.SemicolonImmediate,
+    undefined,
     true,
   );
 }

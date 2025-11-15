@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, Tag, getTaggedInfo } from '../../core';
 import { STACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
-import { createVM, type VM } from '../../core/vm';
+import { createVM, type VM, emitOpcode } from '../../core/vm';
 import { peekAt, push, peek } from '../../core/vm';
 import { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from '../../lang/meta';
 import { Tokenizer } from '../../lang/tokenizer';
@@ -59,7 +59,7 @@ describe('conditional immediates', () => {
     beginIfImmediate(vm, tokenizer);
     const falseBranchPos = peekAt(vm, 1);
 
-    vm.compiler.compileOpcode(Op.Nop);
+    emitOpcode(vm, Op.Nop);
     const cpBeforeElse = vm.compiler.CP;
 
     beginElseImmediate(vm, tokenizer);

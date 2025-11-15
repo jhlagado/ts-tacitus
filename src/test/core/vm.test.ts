@@ -1,9 +1,19 @@
 import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
-import { Compiler } from '../../lang/compiler';
+import {
+  nextAddress,
+  nextInt16,
+  push,
+  pop,
+  getStackData,
+  rpush,
+  rpop,
+  emitUint16,
+  emitTaggedAddress,
+  emitOpcode,
+} from '../../core/vm';
 // Symbol table is now a function-based facade; verify presence by surface
 import { getTaggedInfo, Tagged, Tag } from '../../core';
-import { nextAddress, nextInt16, push, pop, getStackData, rpush, rpop } from '../../core/vm';
 
 describe('VM', () => {
   let vm: VM;
@@ -81,21 +91,21 @@ describe('VM', () => {
 
   describe('Instruction pointer operations', () => {
     test('should read values from memory using the instruction pointer', () => {
-      vm.compiler.compile16(5);
-      vm.compiler.compile16(10);
-      vm.compiler.compile16(15);
+      emitUint16(vm, 5);
+      emitUint16(vm, 10);
+      emitUint16(vm, 15);
       expect(nextInt16(vm)).toBe(5);
       expect(nextInt16(vm)).toBe(10);
       expect(nextInt16(vm)).toBe(15);
     });
     test('should increment the instruction pointer after reading', () => {
-      vm.compiler.compile16(42);
+      emitUint16(vm, 42);
       nextInt16(vm);
       expect(vm.IP).toBe(2);
     });
     test('should handle nextAddress correctly', () => {
       const addr = 0x2345;
-      vm.compiler.compileAddress(addr); // compileAddress encodes using X1516
+      emitTaggedAddress(vm, addr); // encode using X1516
       vm.IP = 0;
       expect(nextAddress(vm)).toBe(addr); // nextAddress decodes it
     });
@@ -104,16 +114,17 @@ describe('VM', () => {
   describe('Compiler and dictionary initialization', () => {
     test('should initialize the compiler with the VM instance', () => {
       expect(vm.compiler).toBeDefined();
-      expect(vm.compiler instanceof Compiler).toBe(true);
+      expect(typeof vm.compiler).toBe('object');
+      expect(vm.compiler).toHaveProperty('CP');
     });
     test('should initialize the dictionary with builtins', () => {
       // Builtins are registered during VM initialization, so head should be > 0
       expect(vm.head).toBeGreaterThan(0);
     });
     test('should expose compiled bytes in code segment', () => {
-      vm.compiler.compile8(0x12);
-      vm.compiler.compile8(0x34);
-      vm.compiler.compile8(0x56);
+      emitOpcode(vm, 0x12);
+      emitOpcode(vm, 0x34);
+      emitOpcode(vm, 0x56);
       const bytes: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
         bytes.push(vm.memory.read8(SEG_CODE, i));

@@ -19,7 +19,7 @@ import { parse } from './parser';
 import { Tagged, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 import { Tokenizer } from './tokenizer';
-import { type VM, nextOpcode, getStackData, rpush } from '../core/vm';
+import { type VM, nextOpcode, getStackData, rpush, resetCompiler } from '../core/vm';
 
 // SEG_CODE imported from @src/core
 
@@ -73,13 +73,13 @@ export function execute(vm: VM, start: number): void {
         // eslint-disable-next-line no-console
         console.log((error as Error).stack);
       }
-      vm.compiler.reset();
+      resetCompiler(vm);
       vm.compiler.preserve = false;
       throw new Error(errorMessage);
     }
   }
 
-  vm.compiler.reset();
+  resetCompiler(vm);
   vm.compiler.preserve = false;
 }
 

@@ -8,7 +8,7 @@ import { getStackData } from '../../core/vm';
 import { SEG_CODE, Tag, getTaggedInfo, Sentinel } from '../../core';
 import { STACK_BASE, RSTACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
-import { peekAt, peek, rpush, rpop, push, pop } from '../../core/vm';
+import { peekAt, peek, rpush, rpop, push, pop, emitOpcode, emitFloat32 } from '../../core/vm';
 import {
   beginCaseImmediate,
   clauseDoImmediate,
@@ -146,8 +146,8 @@ describe('case immediates', () => {
   test('clauseDoImmediate emits comparison sequence and records placeholder', () => {
     beginCaseImmediate(vm, tokenizer);
 
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(42);
+    emitOpcode(vm, Op.LiteralNumber);
+    emitFloat32(vm, 42);
 
     clauseDoImmediate(vm, tokenizer);
 
@@ -211,14 +211,14 @@ describe('case immediates', () => {
   test('endOfOp patches predicate skip and records exit branch', () => {
     beginCaseImmediate(vm, tokenizer);
 
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(10);
+    emitOpcode(vm, Op.LiteralNumber);
+    emitFloat32(vm, 10);
 
     clauseDoImmediate(vm, tokenizer);
 
     const skipPos = peekAt(vm, 1);
 
-    vm.compiler.compileOpcode(Op.Nop);
+    emitOpcode(vm, Op.Nop);
 
     evalOp(vm); // executes EndOf
 
@@ -238,8 +238,8 @@ describe('case immediates', () => {
   test('endOfOp guards against missing predicate placeholder', () => {
     beginCaseImmediate(vm, tokenizer);
 
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(20);
+    emitOpcode(vm, Op.LiteralNumber);
+    emitFloat32(vm, 20);
 
     clauseDoImmediate(vm, tokenizer);
     const endOfRef = pop(vm);
@@ -262,14 +262,14 @@ describe('case immediates', () => {
   test('endCaseOp emits final drop and patches exits', () => {
     beginCaseImmediate(vm, tokenizer);
 
-    vm.compiler.compileOpcode(Op.LiteralNumber);
-    vm.compiler.compileFloat32(1);
+    emitOpcode(vm, Op.LiteralNumber);
+    emitFloat32(vm, 1);
 
     clauseDoImmediate(vm, tokenizer);
     const skipPos = peekAt(vm, 1);
     expect(vm.memory.read8(SEG_CODE, skipPos + 2)).toBe(Op.Drop);
 
-    vm.compiler.compileOpcode(Op.Nop);
+    emitOpcode(vm, Op.Nop);
 
     evalOp(vm); // EndOf
 

@@ -5,7 +5,7 @@ import { Tag, Tagged } from '../../../core/tagged';
 import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
 import { RSTACK_BASE, RSTACK_TOP, STACK_BASE } from '../../../core/constants';
-import { rpush, push, rpop, getStackData, pop } from '../../../core/vm';
+import { rpush, push, rpop, getStackData, pop, emitUint16, emitFloat32 } from '../../../core/vm';
 import { encodeX1516 } from '../../../core/code-ref';
 
 import {
@@ -58,7 +58,7 @@ describe('Built-in Words', () => {
     });
     test('branchOp should jump relative', () => {
       const initialIP = vm.IP;
-      vm.compiler.compile16(10);
+      emitUint16(vm, 10);
       skipDefOp(vm);
       expect(vm.IP).toBe(initialIP + 12);
     });
@@ -66,7 +66,7 @@ describe('Built-in Words', () => {
       const originalIP = vm.IP;
       const originalBP = vm.bp;
       const testAddress = 0x12345;
-      vm.compiler.compile16(testAddress);
+      emitUint16(vm, testAddress);
       callOp(vm);
       expect(vm.IP).toBe(toUnsigned16(testAddress));
       expect(vm.bp).toBe(vm.rsp);
@@ -116,13 +116,13 @@ describe('Built-in Words', () => {
   });
   describe('Literal Operations', () => {
     test('literalNumberOp should push numbers', () => {
-      vm.compiler.compileFloat32(42);
+      emitFloat32(vm, 42);
       literalNumberOp(vm);
       expect(pop(vm)).toBe(42);
     });
     test('should handle tagged pointers', () => {
       const addr = Tagged(encodeX1516(0x2345), Tag.CODE);
-      vm.compiler.compileFloat32(addr);
+      emitFloat32(vm, addr);
       literalNumberOp(vm);
       expect(pop(vm)).toBe(addr);
     });

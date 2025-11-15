@@ -4,7 +4,7 @@
  */
 
 import { Op } from '../ops/opcodes';
-import type { VM } from '../core/vm';
+import { type VM, emitOpcode, emitFloat32, emitUint16 } from '../core/vm';
 
 /**
  * Emits bytecode for a numeric literal.
@@ -12,8 +12,8 @@ import type { VM } from '../core/vm';
  * @param value - Numeric value to emit
  */
 export function emitNumber(vm: VM, value: number): void {
-  vm.compiler.compileOpcode(Op.LiteralNumber);
-  vm.compiler.compileFloat32(value);
+  emitOpcode(vm, Op.LiteralNumber);
+  emitFloat32(vm, value);
 }
 
 /**
@@ -22,7 +22,7 @@ export function emitNumber(vm: VM, value: number): void {
  * @param value - String value to emit
  */
 export function emitString(vm: VM, value: string): void {
-  vm.compiler.compileOpcode(Op.LiteralString);
+  emitOpcode(vm, Op.LiteralString);
   const address = vm.digest.intern(value);
-  vm.compiler.compile16(address);
+  emitUint16(vm, address);
 }
