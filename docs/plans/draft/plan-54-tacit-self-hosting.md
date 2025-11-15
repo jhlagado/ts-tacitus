@@ -44,11 +44,12 @@
 - Verify dictionary snapshots/preserve handling remain unchanged after each refactor.
 - Maintain debug assertions to surface state mismatches early while JS implementations stay authoritative.
 
-### Phase 3 — Kernel Hardening (Optional Near-Term)
+### Phase 3 — Compiler Struct Refactor
 
-- Fill any gaps in exposed primitives discovered during Phase 2 (e.g., additional mark/patch helpers).
-- Stabilize parser pathways (error messaging, meta-bit handling) before expanding scope.
-- Document the callable surface for builtins so later Tacit rewrites have a clear contract.
+- Convert the existing `Compiler` class into a plain data struct (no methods); functions operate on it by taking `(compiler, vm, …)` parameters.
+- Expose VM-scoped helper functions (`emitOpcode`, `emitU16`, `beginDefinitionCompile`, etc.) that wrap the new compiler functions and keep all state access centralized.
+- Ensure parser/immediate code paths use only these helpers, eliminating direct field mutations on the compiler object.
+- Document the public helper set so both JS builtins and future Tacit code share the same contract.
 
 ### Phase 5 — Tacit Compile Loop
 
