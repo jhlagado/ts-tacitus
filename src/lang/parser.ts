@@ -35,7 +35,6 @@ import {
   Tagged,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
-import { type ActiveDefinition } from './state';
 import { ensureNoOpenDefinition } from './definitions';
 import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
 import { lookup, define } from '../core/dictionary';
@@ -53,19 +52,16 @@ import { decodeX1516 } from '../core/code-ref';
 export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.compiler.reset();
 
-  const currentDefinition: { current: ActiveDefinition | null } = { current: null };
-  (vm as VM & { _currentDefinition: { current: ActiveDefinition | null } })._currentDefinition =
-    currentDefinition;
+  vm.currentDefinition = null;
 
   try {
-    parseProgram(vm, tokenizer, currentDefinition);
+    parseProgram(vm, tokenizer);
 
-    validateFinalState(vm, currentDefinition);
+    validateFinalState(vm);
 
     vm.compiler.compileOpcode(Op.Abort);
   } finally {
-    delete (vm as VM & { _currentDefinition?: { current: ActiveDefinition | null } })
-      ._currentDefinition;
+    vm.currentDefinition = null;
   }
 }
 
@@ -77,11 +73,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
  *
  * @param {ParserState} state - The current parser state
  */
-export function parseProgram(
-  vm: VM,
-  tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
-): void {
+export function parseProgram(vm: VM, tokenizer: Tokenizer): void {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const token = tokenizer.nextToken();
@@ -89,7 +81,7 @@ export function parseProgram(
       break;
     }
 
-    processToken(vm, token, tokenizer, currentDefinition);
+    processToken(vm, token, tokenizer);
   }
 }
 
@@ -102,11 +94,8 @@ export function parseProgram(
  * @param {ParserState} state - The current parser state
  * @throws {Error} If there are any unclosed definitions
  */
-export function validateFinalState(
-  vm: VM,
-  currentDefinition: { current: ActiveDefinition | null },
-): void {
-  ensureNoOpenDefinition(currentDefinition);
+export function validateFinalState(vm: VM): void {
+  ensureNoOpenDefinition(vm.currentDefinition);
   ensureNoOpenConditionals(vm);
 
   if (vm.listDepth !== 0) {
@@ -128,12 +117,7 @@ export function validateFinalState(
  * @param {ParserState} state - The current parser state
  * @throws {Error} If a quoted word is undefined
  */
-export function processToken(
-  vm: VM,
-  token: Token,
-  tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
-): void {
+export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
   switch (token.type) {
     case TokenType.NUMBER:
       emitNumber(vm, token.value as number);
@@ -142,16 +126,16 @@ export function processToken(
       emitString(vm, token.value as string);
       break;
     case TokenType.SPECIAL:
-      handleSpecial(vm, token.value as string, tokenizer, currentDefinition);
+      handleSpecial(vm, token.value as string, tokenizer);
       break;
     case TokenType.WORD:
-      emitWord(vm, token.value as string, tokenizer, currentDefinition);
+      emitWord(vm, token.value as string, tokenizer);
       break;
     case TokenType.SYMBOL:
-      emitAtSymbol(vm, token.value as string, tokenizer, currentDefinition);
+      emitAtSymbol(vm, token.value as string, tokenizer);
       break;
     case TokenType.REF_SIGIL:
-      emitRefSigil(vm, token.value as string, tokenizer, currentDefinition);
+      emitRefSigil(vm, token.value as string, tokenizer);
       break;
     // WORD_QUOTE removed: backtick word-address literals no longer supported
   }
@@ -180,25 +164,24 @@ export function emitWord(
   vm: VM,
   value: string,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
   if (value === 'var') {
-    emitVarDecl(vm, tokenizer, currentDefinition);
+    emitVarDecl(vm, tokenizer);
     return;
   }
 
   if (value === '->') {
-    emitAssignment(vm, tokenizer, currentDefinition);
+    emitAssignment(vm, tokenizer);
     return;
   }
 
   if (value === 'global') {
-    emitGlobalDecl(vm, tokenizer, currentDefinition);
+    emitGlobalDecl(vm, tokenizer);
     return;
   }
 
   if (value === '+>') {
-    emitIncrement(vm, tokenizer, currentDefinition);
+    emitIncrement(vm, tokenizer);
     return;
   }
 
@@ -217,7 +200,6 @@ export function emitWord(
       value,
       { taggedValue: tval, isImmediate },
       tokenizer,
-      currentDefinition,
     );
     return;
   }
@@ -245,7 +227,7 @@ export function emitWord(
 
     const nextToken = tokenizer.nextToken();
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
-      compileBracketPathAsList(vm, tokenizer, currentDefinition);
+      compileBracketPathAsList(vm, tokenizer);
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Load);
       vm.compiler.compileOpcode(Op.Nip);
@@ -269,7 +251,7 @@ export function emitWord(
 
     const nextToken = tokenizer.nextToken();
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
-      compileBracketPathAsList(vm, tokenizer, currentDefinition);
+      compileBracketPathAsList(vm, tokenizer);
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Load);
       vm.compiler.compileOpcode(Op.Nip);
@@ -301,7 +283,6 @@ export function emitAtSymbol(
   vm: VM,
   symbolName: string,
   _tokenizer: Tokenizer,
-  _currentDefinition: { current: ActiveDefinition | null },
 ): void {
   vm.compiler.compileOpcode(Op.LiteralString);
   const stringAddress = vm.digest.add(symbolName);
@@ -324,7 +305,6 @@ export function emitRefSigil(
   vm: VM,
   varName: string,
   _tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
   const tval = lookup(vm, varName);
   if (isNIL(tval)) {
@@ -343,7 +323,7 @@ export function emitRefSigil(
   // Existing variable reference logic...
   // Inside function: allow locals and globals
   // &buf compiles to VarRef + Fetch, where Fetch returns a REF (does NOT materialize)
-  if (currentDefinition.current) {
+  if (vm.currentDefinition) {
     if (tag === Tag.LOCAL) {
       vm.compiler.compileOpcode(Op.VarRef);
       vm.compiler.compile16(value);
@@ -390,9 +370,8 @@ export function emitRefSigil(
 export function emitVarDecl(
   vm: VM,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
-  if (!currentDefinition.current) {
+  if (!vm.currentDefinition) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
       getStackData(vm),
@@ -417,9 +396,8 @@ export function emitVarDecl(
 
   vm.compiler.emitReserveIfNeeded();
 
-  const slot = vm.localCount++;
-  define(vm, varName, Tagged(slot, Tag.LOCAL));
-  const slotNumber = slot;
+  const slotNumber = vm.localCount++;
+  define(vm, varName, Tagged(slotNumber, Tag.LOCAL));
 
   vm.compiler.compileOpcode(Op.InitVar);
   vm.compiler.compile16(slotNumber);
@@ -444,10 +422,9 @@ export function emitVarDecl(
 export function emitGlobalDecl(
   vm: VM,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
   // Top-level restriction: must NOT be inside function
-  if (currentDefinition.current) {
+  if (vm.currentDefinition) {
     throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
   }
 
@@ -507,7 +484,6 @@ export function emitGlobalDecl(
 export function emitAssignment(
   vm: VM,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
   const nameToken = tokenizer.nextToken();
   if (nameToken.type !== TokenType.WORD) {
@@ -539,7 +515,7 @@ export function emitAssignment(
       vm.compiler.compileOpcode(Op.VarRef);
       vm.compiler.compile16(slotNumber);
       vm.compiler.compileOpcode(Op.Fetch);
-      compileBracketPathAsList(vm, tokenizer, currentDefinition);
+      compileBracketPathAsList(vm, tokenizer);
       // Inline update: select → nip → store
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Nip);
@@ -571,7 +547,7 @@ export function emitAssignment(
       vm.compiler.compileOpcode(Op.GlobalRef);
       vm.compiler.compile16(offset);
       vm.compiler.compileOpcode(Op.Fetch);
-      compileBracketPathAsList(vm, tokenizer, currentDefinition);
+      compileBracketPathAsList(vm, tokenizer);
       vm.compiler.compileOpcode(Op.Select);
       vm.compiler.compileOpcode(Op.Nip);
       vm.compiler.compileOpcode(Op.Store);
@@ -607,9 +583,8 @@ export function emitAssignment(
 export function emitIncrement(
   vm: VM,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
-  if (!currentDefinition.current) {
+  if (!vm.currentDefinition) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
       getStackData(vm),
@@ -640,7 +615,7 @@ export function emitIncrement(
     vm.compiler.compileOpcode(Op.VarRef);
     vm.compiler.compile16(slotNumber);
     vm.compiler.compileOpcode(Op.Fetch);
-    compileBracketPathAsList(vm, tokenizer, currentDefinition);
+    compileBracketPathAsList(vm, tokenizer);
     vm.compiler.compileOpcode(Op.Select);
     vm.compiler.compileOpcode(Op.Nip);
 
@@ -673,11 +648,7 @@ export function emitIncrement(
  * Compiles a bracket path like [0 1] into a list literal on the stack.
  * Supports numeric indices; closes on ']'.
  */
-function compileBracketPathAsList(
-  vm: VM,
-  tokenizer: Tokenizer,
-  _currentDefinition: { current: ActiveDefinition | null },
-): void {
+function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
   // Build list: OpenList, emit elements, CloseList
   vm.compiler.compileOpcode(Op.OpenList);
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -714,12 +685,7 @@ function compileBracketPathAsList(
  * @param {string} value - The special token value
  * @param {ParserState} state - The current parser state
  */
-export function handleSpecial(
-  vm: VM,
-  value: string,
-  tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
-): void {
+export function handleSpecial(vm: VM, value: string, tokenizer: Tokenizer): void {
   if (value === '(') {
     beginList(vm);
   } else if (value === ')') {
@@ -730,7 +696,7 @@ export function handleSpecial(
   } else if (value === '[') {
     // General postfix bracket path for any expression on stack: expr[ ... ]
     // Compile path list and then value-by-default retrieval via select→load→nip
-    compileBracketPathAsList(vm, tokenizer, currentDefinition);
+    compileBracketPathAsList(vm, tokenizer);
     vm.compiler.compileOpcode(Op.Select);
     vm.compiler.compileOpcode(Op.Load);
     vm.compiler.compileOpcode(Op.Nip);

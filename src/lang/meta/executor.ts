@@ -6,7 +6,6 @@ import { evalOp } from '../../ops/core';
 import { type VM, nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
 import { decodeX1516 } from '../../core/code-ref';
 import { type Tokenizer } from '../tokenizer';
-import { type ActiveDefinition } from '../state';
 // SymbolTableEntry interface moved inline (symbol table removed)
 type SymbolTableEntry = {
   taggedValue: number;
@@ -32,14 +31,12 @@ import {
  * @param name - Name of the immediate word
  * @param entry - Symbol table entry for the word
  * @param tokenizer - Tokenizer instance
- * @param currentDefinition - Current definition context
  */
 export function executeImmediateWord(
   vm: VM,
   name: string,
   entry: SymbolTableEntry,
   tokenizer: Tokenizer,
-  currentDefinition: { current: ActiveDefinition | null },
 ): void {
   const { tag, value } = getTaggedInfo(entry.taggedValue);
 
@@ -49,10 +46,10 @@ export function executeImmediateWord(
       // Dispatch by name
       switch (name) {
         case ':':
-          beginDefinitionImmediate(vm, tokenizer, currentDefinition);
+          beginDefinitionImmediate(vm, tokenizer);
           return;
         case 'if':
-          beginIfImmediate(vm, tokenizer, currentDefinition);
+          beginIfImmediate(vm, tokenizer);
           return;
         case ';':
           if (vm.sp - STACK_BASE === 0) {
@@ -61,28 +58,28 @@ export function executeImmediateWord(
           evalOp(vm);
           return;
         case 'else':
-          beginElseImmediate(vm, tokenizer, currentDefinition);
+          beginElseImmediate(vm, tokenizer);
           return;
         case 'match':
-          beginMatchImmediate(vm, tokenizer, currentDefinition);
+          beginMatchImmediate(vm, tokenizer);
           return;
         case 'with':
-          beginWithImmediate(vm, tokenizer, currentDefinition);
+          beginWithImmediate(vm, tokenizer);
           return;
         case 'case':
-          beginCaseImmediate(vm, tokenizer, currentDefinition);
+          beginCaseImmediate(vm, tokenizer);
           return;
         case 'do':
-          clauseDoImmediate(vm, tokenizer, currentDefinition);
+          clauseDoImmediate(vm, tokenizer);
           return;
         case 'DEFAULT':
-          defaultImmediate(vm, tokenizer, currentDefinition);
+          defaultImmediate(vm, tokenizer);
           return;
         case 'NIL':
-          nilImmediate(vm, tokenizer, currentDefinition);
+          nilImmediate(vm, tokenizer);
           return;
         case 'capsule':
-          beginCapsuleImmediate(vm, tokenizer, currentDefinition);
+          beginCapsuleImmediate(vm, tokenizer);
           return;
         default:
           // Immediate builtin with runtime semantics (e.g., immdup)

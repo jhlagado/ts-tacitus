@@ -11,10 +11,7 @@ describe('compiler-hooks (Isolated)', () => {
       branchPos: 0,
       checkpoint: 0, // Dictionary mark (heap position)
     };
-    const currentDefinition: { current: ActiveDefinition | null } = { current: mockDefinition };
-    (
-      vm as typeof vm & { _currentDefinition: { current: ActiveDefinition | null } }
-    )._currentDefinition = currentDefinition;
+  vm.currentDefinition = mockDefinition;
 
     const { invokeEndDefinitionHandler } = require('../../lang/compiler-hooks');
     // Should not throw when currentDefinition is set with a valid definition

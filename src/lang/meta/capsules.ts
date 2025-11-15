@@ -3,7 +3,6 @@ import { type VM, getStackData, peek, pop, push, depth } from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
 import { type Tokenizer } from '../tokenizer';
-import { type ActiveDefinition } from '../state';
 
 /**
  * `capsule` opener (immediate):
@@ -11,11 +10,7 @@ import { type ActiveDefinition } from '../state';
  * - Swaps the definition closer with EndCapsule so the shared `;` will close the capsule body
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
-export function beginCapsuleImmediate(
-  vm: VM,
-  _tokenizer: Tokenizer,
-  _currentDefinition: { current: ActiveDefinition | null },
-): void {
+export function beginCapsuleImmediate(vm: VM, _tokenizer: Tokenizer): void {
   if (depth(vm) === 0) {
     throw new SyntaxError('`capsule` must appear inside a colon definition', getStackData(vm));
   }

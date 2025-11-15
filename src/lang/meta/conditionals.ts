@@ -3,7 +3,6 @@ import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { type VM, peekAt, depth, getStackData, pop, push } from '../../core/vm';
 import { type Tokenizer } from '../tokenizer';
-import { type ActiveDefinition } from '../state';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
 
@@ -29,7 +28,6 @@ function patchPlaceholder(vm: VM, rawPos: number, word: string): void {
 export function beginIfImmediate(
   vm: VM,
   _tokenizer: Tokenizer,
-  _currentDefinition: { current: ActiveDefinition | null },
 ): void {
   vm.compiler.compileOpcode(Op.IfFalseBranch);
   const falseBranchPos = vm.compiler.CP;
@@ -42,7 +40,6 @@ export function beginIfImmediate(
 export function beginElseImmediate(
   vm: VM,
   _tokenizer: Tokenizer,
-  _currentDefinition: { current: ActiveDefinition | null },
 ): void {
   if (depth(vm) < 2) {
     throw new SyntaxError('ELSE without IF', getStackData(vm));
