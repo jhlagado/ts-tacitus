@@ -1,7 +1,17 @@
 import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { type VM, rdepth, depth, getStackData, peek, push } from '../../core/vm';
+import {
+  type VM,
+  rdepth,
+  depth,
+  getStackData,
+  peek,
+  push,
+  emitOpcode,
+  emitUint16,
+  getCompilePointer,
+} from '../../core/vm';
 import { type Tokenizer } from '../tokenizer';
 
 const ENDMATCH_CODE_REF = createBuiltinRef(Op.EndMatch);
@@ -25,9 +35,9 @@ export function beginWithImmediate(vm: VM, _tokenizer: Tokenizer): void {
     throw new SyntaxError('with without match', getStackData(vm));
   }
 
-  vm.compiler.compileOpcode(Op.IfFalseBranch);
-  const skipPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  emitOpcode(vm, Op.IfFalseBranch);
+  const skipPos = getCompilePointer(vm);
+  emitUint16(vm, 0);
 
   push(vm, skipPos);
   push(vm, ENDWITH_CODE_REF);

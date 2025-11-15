@@ -1,7 +1,18 @@
 import { SyntaxError, Tag, getTaggedInfo, Tagged, Sentinel } from '@src/core';
 import { createBuiltinRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
-import { type VM, depth, rdepth, getStackData, peek, push } from '../../core/vm';
+import {
+  type VM,
+  depth,
+  rdepth,
+  getStackData,
+  peek,
+  push,
+  emitOpcode,
+  emitUint16,
+  emitFloat32,
+  getCompilePointer,
+} from '../../core/vm';
 import { type Tokenizer } from '../tokenizer';
 
 const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
@@ -28,21 +39,21 @@ export function beginCaseImmediate(vm: VM, _tokenizer: Tokenizer): void {
 export function clauseDoImmediate(vm: VM, _tokenizer: Tokenizer): void {
   assertOpenCase(vm, "'do'");
 
-  vm.compiler.compileOpcode(Op.Over);
-  vm.compiler.compileOpcode(Op.Equal);
-  vm.compiler.compileOpcode(Op.IfFalseBranch);
-  const skipPos = vm.compiler.CP;
-  vm.compiler.compile16(0);
+  emitOpcode(vm, Op.Over);
+  emitOpcode(vm, Op.Equal);
+  emitOpcode(vm, Op.IfFalseBranch);
+  const skipPos = getCompilePointer(vm);
+  emitUint16(vm, 0);
 
   push(vm, skipPos);
   push(vm, ENDOF_CODE_REF);
 
-  vm.compiler.compileOpcode(Op.Drop);
+  emitOpcode(vm, Op.Drop);
 }
 
 function compileSentinelLiteral(vm: VM, value: Sentinel): void {
-  vm.compiler.compileOpcode(Op.LiteralNumber);
-  vm.compiler.compileFloat32(Tagged(value, Tag.SENTINEL));
+  emitOpcode(vm, Op.LiteralNumber);
+  emitFloat32(vm, Tagged(value, Tag.SENTINEL));
 }
 
 export function defaultImmediate(vm: VM, _tokenizer: Tokenizer): void {

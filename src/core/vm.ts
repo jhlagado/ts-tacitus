@@ -570,3 +570,94 @@ export function ensureInvariants(vm: VM): void {
     throw new Error(`Invariant violation: BP (${vm.bp}) > RSP (${vm.rsp})`);
   }
 }
+
+/**
+ * Emits an opcode to the current compilation buffer.
+ */
+export function emitOpcode(vm: VM, opcode: number): void {
+  vm.compiler.compileOpcode(opcode);
+}
+
+/**
+ * Emits a 16-bit unsigned value to the code buffer.
+ */
+export function emitUint16(vm: VM, value: number): void {
+  vm.compiler.compile16(value);
+}
+
+/**
+ * Emits a 32-bit float to the code buffer.
+ */
+export function emitFloat32(vm: VM, value: number): void {
+  vm.compiler.compileFloat32(value);
+}
+
+/**
+ * Emits a user word call using X1516 encoding regardless of address range.
+ */
+export function emitUserWordCall(vm: VM, address: number): void {
+  vm.compiler.compileUserWordCall(address);
+}
+
+/**
+ * Emits a tagged address literal into the code buffer.
+ */
+export function emitTaggedAddress(vm: VM, address: number): void {
+  vm.compiler.compileAddress(address);
+}
+
+/**
+ * Ensures a Reserve opcode has been emitted for locals in the current function.
+ */
+export function ensureReserveEmitted(vm: VM): void {
+  vm.compiler.emitReserveIfNeeded();
+}
+
+/**
+ * Marks the beginning of a function body for compilation.
+ */
+export function beginFunctionCompile(vm: VM): void {
+  vm.compiler.enterFunction();
+}
+
+/**
+ * Marks the end of a function body for compilation.
+ */
+export function finishFunctionCompile(vm: VM): void {
+  vm.compiler.exitFunction();
+}
+
+/**
+ * Sets whether the current compilation should preserve the generated code.
+ */
+export function setCompilerPreserve(vm: VM, preserve: boolean): void {
+  vm.compiler.preserve = preserve;
+}
+
+/**
+ * Returns the current compile pointer.
+ */
+export function getCompilePointer(vm: VM): number {
+  return vm.compiler.CP;
+}
+
+/**
+ * Sets the compile pointer to a specific address.
+ */
+export function setCompilePointer(vm: VM, address: number): void {
+  vm.compiler.CP = address;
+}
+
+/**
+ * Patches a 16-bit value at the specified code address.
+ */
+export function patchUint16(vm: VM, address: number, value: number): void {
+  vm.compiler.patch16(address, value);
+}
+
+/**
+ * Patches an opcode at the specified code address.
+ */
+export function patchOpcode(vm: VM, address: number, opcode: number): void {
+  vm.compiler.patchOpcode(address, opcode);
+}
