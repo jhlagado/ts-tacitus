@@ -5,6 +5,14 @@ import { installLangBridgeHandlers } from '../ops/lang-bridge';
 import { shouldUseTacitCompileLoop } from './feature-flags';
 import { parse } from './parser';
 import { Tokenizer } from './tokenizer';
+
+function resetCompilerState(vm: VM): void {
+  vm.compiler.CP = 0;
+  vm.compiler.BCP = 0;
+  vm.compiler.preserve = false;
+  vm.compiler.isInFunction = false;
+  vm.compiler.reservePatchAddr = -1;
+}
 import {
   beginDefinitionImmediate,
   beginIfImmediate,
@@ -29,6 +37,7 @@ import {
   emitRefSigilOp,
   finalizeCompileOp,
   unexpectedTokenOp,
+  runTacitCompileLoopOp,
 } from './meta/compiler-bridge';
 
 type ImmediateSpec = {
@@ -91,16 +100,14 @@ export function registerLanguageBuiltins(vm: VM): void {
     emitRefSigil: emitRefSigilOp,
     finalizeCompile: finalizeCompileOp,
     unexpectedToken: unexpectedTokenOp,
+    runCompileLoop: runTacitCompileLoopOp,
   });
 
   if (shouldUseTacitCompileLoop()) {
-    parse(
-      vm,
-      new Tokenizer(`
-: compile-loop
-  0
-;
-`),
-    );
+    defineBuiltin(vm, 'compile-loop', Op.RunTacitCompileLoop);
+  } else {
+    parse(vm, new Tokenizer(': compile-loop 0 ;'));
   }
+
+  resetCompilerState(vm);
 }

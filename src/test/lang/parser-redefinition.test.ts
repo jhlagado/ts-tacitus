@@ -48,6 +48,23 @@ describe('Forth-style word redefinition (shadowing)', () => {
     expect(getStackData(vm)).toEqual([120]);
   });
 
+  test('recurse works inside case dispatch', () => {
+    executeProgram(
+      vm,
+      `
+        : countdown
+          dup case
+            0 do drop 0 ;
+            DEFAULT do 1 sub recurse ;
+          ;
+        ;
+        4 countdown
+      `,
+    );
+
+    expect(getStackData(vm)).toEqual([0]);
+  });
+
   test('tail-recursive definition unwinds stack', () => {
     executeProgram(
       vm,

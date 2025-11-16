@@ -75,6 +75,11 @@
   4. Flip the feature flag branch so `parse` invokes Tacit `compile-loop` end-to-end; fallback to TS loop on failure.
 - Extend regression coverage: Tacit-driven loop must pass existing parser/compiler suites plus targeted cases for error recovery, nested conditionals, and dictionary mutations mid-compile.
 - Launch behind a feature flag (TS fallback) so we can switch between TS/Tacit loops during bring-up.
+- Add a validation harness before touching the parser:
+  - Write pure Tacit snippets (outside the real compile loop) that use `case/do` and `match/with` with literal discriminants/tokens.
+  - Execute them via `executeProgram` and assert stack results to prove the immediate words behave exactly as the spec describes (stack snapshots, discriminant drops, default handling).
+  - Capture the emitted bytecode (`vm.compiler` snapshots) and compare with the existing TS parser output for identical programs to guarantee parity.
+  - Only after those tests pass should we wire the Tacit `compile-loop` behind the feature flag.
 
 ### Phase 6 — Bootstrapping & Reduction
 

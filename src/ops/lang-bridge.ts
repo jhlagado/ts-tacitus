@@ -9,6 +9,7 @@ type LangBridgeHandlers = {
   emitRefSigil: Verb;
   finalizeCompile: Verb;
   unexpectedToken: Verb;
+  runCompileLoop: Verb;
 };
 
 function createMissingHandler(name: string): Verb {
@@ -26,6 +27,7 @@ const missingHandlers: LangBridgeHandlers = {
   emitRefSigil: createMissingHandler('emit-ref-sigil'),
   finalizeCompile: createMissingHandler('finalize-compile'),
   unexpectedToken: createMissingHandler('unexpected-token'),
+  runCompileLoop: createMissingHandler('run-compile-loop'),
 };
 
 let activeHandlers: LangBridgeHandlers = missingHandlers;
