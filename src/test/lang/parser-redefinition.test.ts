@@ -47,4 +47,49 @@ describe('Forth-style word redefinition (shadowing)', () => {
 
     expect(getStackData(vm)).toEqual([120]);
   });
+
+  test('tail-recursive definition unwinds stack', () => {
+    executeProgram(
+      vm,
+      `
+        : countdown
+          dup 0 gt
+          if
+            1 sub
+            recurse
+          else
+            drop
+          ;
+        ;
+        10 countdown
+      `,
+    );
+
+    expect(getStackData(vm)).toEqual([]);
+  });
+
+  test('recurse targets most recent definition after redefinition', () => {
+    executeProgram(
+      vm,
+      `
+        : pulse
+          dup 0 gt
+          if 1 sub recurse else drop ;
+        ;
+        : pulse
+          dup 0 gt
+          if
+            1 sub
+            recurse
+            1 add
+          else
+            drop 0
+          ;
+        ;
+        4 pulse
+      `,
+    );
+
+    expect(getStackData(vm)).toEqual([4]);
+  });
 });

@@ -65,8 +65,14 @@
   - Expose callable kernels (`nextTokenBuiltin`, `emitOpcode`, `setPreserve`, etc.) so the Tacit loop manipulates state without touching TS internals directly.
 - Prototype the Tacit compile loop as a colon definition that mirrors the current TS logic:
   - Read token → dispatch immediate vs literal vs word.
-  - Terminate on EOF or unrecoverable error, surfacing status via stack sentinels.
-- Maintain symmetry with `execute(vm, start)` by ensuring Tacit loop invokes `Abort` emission and final validation helpers before returning.
+  - Terminate on EOF by routing through `finalize-compile` (which runs validation + emits `Abort`). On unrecoverable errors, invoke the kernel error helpers so TS unwinds exactly as today.
+  - Ensure partial colon definitions / control structures trigger the same `UnclosedDefinitionError` paths before the loop returns.
+- Define the execution hand-off contract so the host still calls `execute(vm, vm.compiler.BCP)` once the Tacit loop exits, keeping runtime semantics identical.
+- Plan incremental bring-up:
+  1. Implement a Tacit stub that loops over `token-next`, then immediately returns to TS (feature flagged).
+  2. Migrate literal emission (`emit-number`, `emit-string`, specials) into Tacit while leaving word dispatch in TS; compare bytecode snapshots.
+  3. Move word dispatch + immediate evaluation into Tacit, using dictionary lookup/eval; extend tests to cover meta words.
+  4. Flip the feature flag branch so `parse` invokes Tacit `compile-loop` end-to-end; fallback to TS loop on failure.
 - Extend regression coverage: Tacit-driven loop must pass existing parser/compiler suites plus targeted cases for error recovery, nested conditionals, and dictionary mutations mid-compile.
 - Launch behind a feature flag (TS fallback) so we can switch between TS/Tacit loops during bring-up.
 
