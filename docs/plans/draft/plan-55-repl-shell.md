@@ -62,5 +62,3 @@ Tacit already compiles and executes one submitted “line” (string) at a time.
 - Need to ensure multiline accumulation doesn’t break existing scripts that pipe input.
 - Watch for memory growth if history is unbounded (set a cap / LRU).
 - Make sure exit paths reset the compiler state even after aborted multiline submissions.
-
-
