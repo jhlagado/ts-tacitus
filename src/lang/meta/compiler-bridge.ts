@@ -1,9 +1,9 @@
-import { Tagged, Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
+import { Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
 import type { VM } from '@src/core';
-import { ensureStackSize, pop, push, getStackData, emitOpcode } from '../../core/vm';
+import { ensureStackSize, pop, getStackData, emitOpcode } from '../../core/vm';
 import { Op } from '../../ops/opcodes';
 import { emitNumber, emitString } from '../literals';
-import { handleSpecial, emitWord, emitAtSymbol, emitRefSigil, validateFinalState } from '../parser';
+import { handleSpecial, emitWord, emitRefSigil, validateFinalState } from '../parser';
 import { getActiveTokenizer } from '../parser';
 
 function decodeString(vm: VM, raw: number, context: string): string {
@@ -12,13 +12,6 @@ function decodeString(vm: VM, raw: number, context: string): string {
     throw new Error(`${context}: expected STRING`);
   }
   return vm.digest.get(info.value);
-}
-
-export function sentinelOp(vm: VM): void {
-  ensureStackSize(vm, 1, 'sentinel');
-  const raw = pop(vm);
-  const value = Math.trunc(raw);
-  push(vm, Tagged(value, Tag.SENTINEL));
 }
 
 export function emitNumberOp(vm: VM): void {
@@ -105,4 +98,3 @@ export function unexpectedTokenOp(vm: VM): void {
   const tokenLexeme = formatTokenValue(vm, rawValue);
   throw new UnexpectedTokenError(`${typeName} ${tokenLexeme}`, getStackData(vm));
 }
-

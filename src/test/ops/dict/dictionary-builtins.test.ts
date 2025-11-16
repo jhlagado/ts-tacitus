@@ -1,7 +1,15 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
-import { Tag, getTaggedInfo, Tagged } from '../../../core';
-import { define, lookup, mark, forget } from '../../../core/dictionary';
+import { Tag, getTaggedInfo, Tagged, isNIL } from '../../../core';
+import {
+  define,
+  lookup,
+  mark,
+  forget,
+  hideDictionaryHead,
+  unhideDictionaryHead,
+  getDictionaryHeadInfo,
+} from '../../../core/dictionary';
 
 describe('dictionary-only builtins', () => {
   let vm: VM;
@@ -63,6 +71,32 @@ describe('dictionary-only builtins', () => {
     info = getTaggedInfo(tv!);
     expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(a.opcode);
+    forget(vm, scope);
+  });
+
+  test('hidden head entry is skipped by lookup until unhidden', () => {
+    const scope = mark(vm);
+    // @ts-ignore test-only
+    vm.head = 0;
+    define(vm, 'hidden', Tagged(5, Tag.CODE, 0));
+
+    let tv = lookup(vm, 'hidden');
+    expect(isNIL(tv)).toBe(false);
+
+    hideDictionaryHead(vm);
+    tv = lookup(vm, 'hidden');
+    expect(isNIL(tv)).toBe(true);
+
+    const headInfo = getDictionaryHeadInfo(vm);
+    expect(headInfo).toBeDefined();
+    expect(headInfo?.hidden).toBe(true);
+
+    unhideDictionaryHead(vm);
+    tv = lookup(vm, 'hidden');
+    expect(isNIL(tv)).toBe(false);
+
+    const unhiddenInfo = getDictionaryHeadInfo(vm);
+    expect(unhiddenInfo?.hidden).toBe(false);
     forget(vm, scope);
   });
 });

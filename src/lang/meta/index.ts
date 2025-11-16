@@ -1,4 +1,4 @@
-export { beginDefinitionImmediate } from './definitions';
+export { beginDefinitionImmediate, recurseImmediate } from './definitions';
 export { beginIfImmediate, beginElseImmediate, ensureNoOpenConditionals } from './conditionals';
 export {
   executeImmediateWord,
