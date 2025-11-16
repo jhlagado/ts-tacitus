@@ -153,12 +153,10 @@ export function registerBuiltins(vm: VM): void {
   // Debug
   reg('dump-dict', Op.DumpDict, dumpDictOp);
   reg('token-next', Op.TokenNext, tokenNextOp);
-  reg('sentinel', Op.SentinelEncode);
   reg('emit-number', Op.EmitNumberWord);
   reg('emit-string', Op.EmitStringWord);
   reg('handle-special', Op.HandleSpecialWord);
   reg('emit-word', Op.EmitWordCall);
-  reg('emit-symbol', Op.EmitSymbolWord);
   reg('emit-ref-sigil', Op.EmitRefSigilWord);
   reg('finalize-compile', Op.FinalizeCompile);
   reg('unexpected-token', Op.UnexpectedTokenWord);

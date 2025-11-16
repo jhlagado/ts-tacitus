@@ -11,30 +11,28 @@ export function tokenNextOp(vm: VM): void {
   }
 
   const token = tokenizer.nextToken();
-  push(vm, Tagged(token.type, Tag.SENTINEL));
+  let payload: number;
 
   switch (token.type) {
-    case TokenType.NUMBER: {
-      const value = typeof token.value === 'number' ? token.value : Number(token.value ?? 0);
-      push(vm, value);
-      return;
-    }
+    case TokenType.NUMBER:
+      payload = typeof token.value === 'number' ? token.value : Number(token.value ?? 0);
+      break;
     case TokenType.STRING:
     case TokenType.WORD:
     case TokenType.SPECIAL:
-    case TokenType.SYMBOL:
     case TokenType.REF_SIGIL: {
-      const str = token.value ?? '';
-      const addr = vm.digest.intern(String(str));
-      push(vm, Tagged(addr, Tag.STRING));
-      return;
+      const str = String(token.value ?? '');
+      const addr = vm.digest.intern(str);
+      payload = Tagged(addr, Tag.STRING);
+      break;
     }
-    case TokenType.EOF: {
-      push(vm, NIL);
-      return;
-    }
-    default: {
-      push(vm, NIL);
-    }
+    case TokenType.EOF:
+      payload = NIL;
+      break;
+    default:
+      payload = NIL;
   }
+
+  push(vm, payload);
+  push(vm, token.type);
 }
