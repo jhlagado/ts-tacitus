@@ -172,7 +172,7 @@ Code references
 &add           # ( — code-ref )
 ```
 
-- `&symbol` emits a string literal and `PushSymbolRef`; at runtime the VM pushes `Tag.CODE` (value < 128 for builtins, ≥ 128 with X1516 address for compiled code). Use `eval` to execute the reference.
+- `&symbol` emits a string literal and `PushSymbolRef`; at runtime the VM pushes `Tag.CODE` (via `&name` and other code-ref forms). Use `eval` to execute the reference.
 
 ### Pitfalls (Quick)
 

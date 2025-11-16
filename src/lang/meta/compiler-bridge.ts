@@ -56,15 +56,8 @@ export function emitWordOp(vm: VM): void {
   emitWord(vm, text, tokenizer);
 }
 
-export function emitSymbolOp(vm: VM): void {
-  ensureStackSize(vm, 1, 'emit-symbol');
-  const raw = pop(vm);
-  const text = decodeString(vm, raw, 'emit-symbol');
-  const tokenizer = getActiveTokenizer();
-  if (!tokenizer) {
-    throw new Error('emit-symbol: no active tokenizer');
-  }
-  emitAtSymbol(vm, text, tokenizer);
+export function emitSymbolOp(): void {
+  throw new Error('emit-symbol removed; use ref sigil helpers instead.');
 }
 
 export function emitRefSigilOp(vm: VM): void {
@@ -88,9 +81,8 @@ const TOKEN_TYPE_NAMES: Record<number, string> = {
   1: 'WORD',
   2: 'STRING',
   3: 'SPECIAL',
-  4: 'SYMBOL',
-  5: 'REF_SIGIL',
-  6: 'EOF',
+  4: 'REF_SIGIL',
+  5: 'EOF',
 };
 
 function formatTokenValue(vm: VM, raw: number): string {
@@ -107,13 +99,9 @@ function formatTokenValue(vm: VM, raw: number): string {
 
 export function unexpectedTokenOp(vm: VM): void {
   ensureStackSize(vm, 2, 'unexpected-token');
+  const tokenType = Math.trunc(pop(vm));
   const rawValue = pop(vm);
-  const typeTagged = pop(vm);
-  const info = getTaggedInfo(typeTagged);
-  if (info.tag !== Tag.SENTINEL) {
-    throw new Error('unexpected-token: expected sentinel type descriptor');
-  }
-  const typeName = TOKEN_TYPE_NAMES[info.value] ?? `type-${info.value}`;
+  const typeName = TOKEN_TYPE_NAMES[tokenType] ?? `type-${tokenType}`;
   const tokenLexeme = formatTokenValue(vm, rawValue);
   throw new UnexpectedTokenError(`${typeName} ${tokenLexeme}`, getStackData(vm));
 }
