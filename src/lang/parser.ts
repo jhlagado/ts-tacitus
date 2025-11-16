@@ -26,6 +26,8 @@ import {
   emitUserWordCall,
   ensureReserveEmitted,
   resetCompiler,
+  depth,
+  pop,
 } from '../core/vm';
 import { type Token, type Tokenizer, TokenType } from './tokenizer';
 import {
@@ -49,12 +51,17 @@ import { lookup, define, findEntry } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
 import { MIN_USER_OPCODE } from '@src/core';
 import { callTacit } from './interpreter';
+import { shouldUseTacitCompileLoop } from './feature-flags';
 
 const TACIT_COMPILE_LOOP_WORD = 'compile-loop';
 
 let activeTokenizer: Tokenizer | null = null;
 
 function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
+  if (!shouldUseTacitCompileLoop()) {
+    return false;
+  }
+
   const entry = findEntry(vm, TACIT_COMPILE_LOOP_WORD);
   if (!entry) {
     return false;
@@ -74,13 +81,24 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
   const entryAddress = decodeX1516(info.value);
 
   activeTokenizer = tokenizer;
+  const stackDepthBefore = depth(vm);
   try {
     callTacit(vm, entryAddress);
   } finally {
     activeTokenizer = null;
   }
 
-  return true;
+  const stackDepthAfter = depth(vm);
+  if (stackDepthAfter < stackDepthBefore + 1) {
+    throw new Error('Tacit compile loop must push handled flag');
+  }
+
+  const handledFlag = pop(vm);
+  if (depth(vm) !== stackDepthBefore) {
+    throw new Error('Tacit compile loop must leave stack depth unchanged');
+  }
+
+  return handledFlag !== 0;
 }
 
 export function getActiveTokenizer(): Tokenizer | null {
