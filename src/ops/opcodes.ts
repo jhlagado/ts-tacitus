@@ -334,4 +334,6 @@ export enum Op {
   FinalizeCompile,
   /** Raise unexpected token error */
   UnexpectedTokenWord,
+  /** Run Tacit compile loop (builtin prototype) */
+  RunTacitCompileLoop,
 }

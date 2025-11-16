@@ -1,7 +1,3 @@
-/**
- * @file src/ops/builtins.ts
- * Central dispatcher for built-in operations. Maps opcodes to implementation functions.
- */
 import {
   type VM,
   type Verb,
@@ -322,6 +318,9 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     },
     [Op.UnexpectedTokenWord]: vm => {
       getLangBridgeHandlers().unexpectedToken(vm);
+    },
+    [Op.RunTacitCompileLoop]: vm => {
+      getLangBridgeHandlers().runCompileLoop(vm);
     },
   };
 

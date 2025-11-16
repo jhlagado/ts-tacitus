@@ -1,10 +1,59 @@
 import { Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
 import type { VM } from '@src/core';
-import { ensureStackSize, pop, getStackData, emitOpcode } from '../../core/vm';
+import { ensureStackSize, pop, getStackData, emitOpcode, push } from '../../core/vm';
 import { Op } from '../../ops/opcodes';
 import { emitNumber, emitString } from '../literals';
-import { handleSpecial, emitWord, emitRefSigil, validateFinalState } from '../parser';
-import { getActiveTokenizer } from '../parser';
+import {
+  handleSpecial,
+  emitWord,
+  emitRefSigil,
+  validateFinalState,
+  getActiveTokenizer,
+} from '../parser';
+import { TokenType } from '../tokenizer';
+import { tokenNextOp } from './token-bridge';
+export function runTacitCompileLoopOp(vm: VM): void {
+  for (;;) {
+    tokenNextOp(vm);
+    const tokenType = pop(vm);
+    const payload = pop(vm);
+    const { tag, value } = getTaggedInfo(tokenType);
+    if (tag !== Tag.NUMBER) {
+      throw new Error('runTacitCompileLoopOp: token type must be numeric');
+    }
+
+    switch (value) {
+      case TokenType.EOF:
+        finalizeCompileOp(vm);
+        push(vm, 1);
+        return;
+      case TokenType.NUMBER:
+        push(vm, payload);
+        emitNumberOp(vm);
+        break;
+      case TokenType.STRING:
+        push(vm, payload);
+        emitStringOp(vm);
+        break;
+      case TokenType.SPECIAL:
+        push(vm, payload);
+        handleSpecialOp(vm);
+        break;
+      case TokenType.WORD:
+        push(vm, payload);
+        emitWordOp(vm);
+        break;
+      case TokenType.REF_SIGIL:
+        push(vm, payload);
+        emitRefSigilOp(vm);
+        break;
+      default:
+        push(vm, payload);
+        push(vm, tokenType);
+        unexpectedTokenOp(vm);
+    }
+  }
+}
 
 function decodeString(vm: VM, raw: number, context: string): string {
   const info = getTaggedInfo(raw);
