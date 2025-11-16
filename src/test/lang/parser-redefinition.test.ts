@@ -1,5 +1,5 @@
 import { executeProgram } from '../../lang/interpreter';
-import { createVM, type VM } from '../../core/vm';
+import { createVM, getStackData, type VM } from '../../core/vm';
 
 function captureOutput(run: () => void): string[] {
   const logs: string[] = [];
@@ -25,5 +25,26 @@ describe('Forth-style word redefinition (shadowing)', () => {
   test('redefinition shadows previous and new body can call old one', () => {
     const out = captureOutput(() => executeProgram(vm, ': x 123 . ; x : x x x ; x'));
     expect(out).toEqual(['123', '123', '123']);
+  });
+
+  test('recurse emits self-call within active definition', () => {
+    executeProgram(
+      vm,
+      `
+        : fact
+          dup 1 le
+          if
+            drop 1
+          else
+            dup 1 sub
+            recurse
+            mul
+          ;
+        ;
+        5 fact
+      `,
+    );
+
+    expect(getStackData(vm)).toEqual([120]);
   });
 });

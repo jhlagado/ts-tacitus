@@ -4,15 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import {
-  createVM,
-  VM,
-  Tag,
-  getTaggedInfo,
-  getListLength,
-  getListBounds,
-  isList,
-} from '../../../core';
+import { createVM, VM, Tag, getTaggedInfo, getListLength, getListBounds } from '../../../core';
 import { executeTacitCode, testTacitCode } from '../../utils/vm-test-utils';
 import { STACK_BASE } from '../../../core/constants';
 

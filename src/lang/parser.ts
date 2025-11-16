@@ -145,7 +145,7 @@ export function parseProgram(vm: VM, tokenizer: Tokenizer): void {
  * @throws {Error} If there are any unclosed definitions
  */
 export function validateFinalState(vm: VM): void {
-  ensureNoOpenDefinition(vm.currentDefinition);
+  ensureNoOpenDefinition(vm);
   ensureNoOpenConditionals(vm);
 
   if (vm.listDepth !== 0) {

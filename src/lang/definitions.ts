@@ -13,7 +13,14 @@ import {
 import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import { type ActiveDefinition } from './state';
-import { markWithLocalReset, define, forget } from '../core/dictionary';
+import {
+  markWithLocalReset,
+  define,
+  forget,
+  hideDictionaryHead,
+  unhideDictionaryHead,
+  getDictionaryEntryInfo,
+} from '../core/dictionary';
 import { encodeX1516 } from '../core/code-ref';
 
 export function beginDefinition(
@@ -39,11 +46,15 @@ export function beginDefinition(
   const branchPos = getCompilePointer(vm);
   emitUint16(vm, 0);
 
+  const definitionStart = branchPos + 2;
+  define(vm, wordName, Tagged(encodeX1516(definitionStart), Tag.CODE, 0));
+  hideDictionaryHead(vm);
+
   const checkpoint = markWithLocalReset(vm);
   const definition: ActiveDefinition = {
-    name: wordName,
     branchPos,
     checkpoint,
+    entryCell: vm.head,
   };
   vm.currentDefinition = definition;
 
@@ -63,23 +74,33 @@ export function endDefinition(
 
   patchBranchOffset(vm, vm.currentDefinition.branchPos);
 
-  const { name, branchPos, checkpoint } = vm.currentDefinition;
-  const defStart = branchPos + 2;
+  const { checkpoint, entryCell } = vm.currentDefinition;
 
-  // Restore dictionary to checkpoint to remove local variable entries
-  // This must happen BEFORE define so the function definition itself is preserved
-  // This allows globals to be accessible after function definition
   forget(vm, checkpoint);
 
-  define(vm, name, Tagged(encodeX1516(defStart), Tag.CODE, 0));
+  if (vm.head !== entryCell) {
+    throw new Error('Dictionary head changed during definition');
+  }
+  unhideDictionaryHead(vm);
 
   vm.currentDefinition = null;
 }
 
-export function ensureNoOpenDefinition(currentDefinition: ActiveDefinition | null): void {
-  if (currentDefinition) {
-    throw new UnclosedDefinitionError(currentDefinition.name, []);
+export function ensureNoOpenDefinition(vm: VM): void {
+  const { currentDefinition } = vm;
+  if (!currentDefinition) {
+    return;
   }
+
+  let name = '<definition>';
+  try {
+    const { name: entryName } = getDictionaryEntryInfo(vm, currentDefinition.entryCell);
+    name = entryName;
+  } catch {
+    // fallback to placeholder if entry cannot be retrieved
+  }
+
+  throw new UnclosedDefinitionError(name, []);
 }
 
 export function patchBranchOffset(vm: VM, branchPos: number): void {

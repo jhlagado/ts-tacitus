@@ -15,6 +15,7 @@ import {
   Tag,
   Tagged,
   getTaggedInfo,
+  type TaggedInfo,
   isString,
   isNumber as isNumberTagged,
   isNIL,
@@ -25,6 +26,91 @@ import { isRef, createGlobalRef, getCellFromRef } from './refs';
 import { gpushListFrom, gpushVal } from './global-heap';
 import { GLOBAL_BASE } from './constants';
 import { type VM, gpush, peekAt, push, pop, peek, ensureStackSize } from './vm';
+
+const ENTRY_PREV = 0;
+const ENTRY_PAYLOAD = 1;
+const ENTRY_NAME = 2;
+const ENTRY_SLOTS = 3;
+
+function getEntryBaseCell(entryCellIndex: number): number {
+  return entryCellIndex - ENTRY_SLOTS;
+}
+
+function setEntryNameMeta(vm: VM, entryCellIndex: number, meta: 0 | 1): void {
+  if (entryCellIndex === 0) {
+    throw new Error('Cannot adjust meta bit on empty dictionary');
+  }
+  const baseCell = getEntryBaseCell(entryCellIndex);
+  const nameCellIndex = baseCell + ENTRY_NAME;
+  const current = vm.memory.readCell(nameCellIndex);
+  const info = getTaggedInfo(current);
+  if (info.tag !== Tag.STRING) {
+    throw new Error('Dictionary entry name must be STRING');
+  }
+  if (info.meta === meta) {
+    return;
+  }
+  const updated = Tagged(info.value, Tag.STRING, meta);
+  vm.memory.writeCell(nameCellIndex, updated);
+}
+
+function getEntryNameInfo(vm: VM, entryCellIndex: number): TaggedInfo {
+  const baseCell = getEntryBaseCell(entryCellIndex);
+  const nameCellIndex = baseCell + ENTRY_NAME;
+  const current = vm.memory.readCell(nameCellIndex);
+  return getTaggedInfo(current);
+}
+
+function getEntryPayload(vm: VM, entryCellIndex: number): number {
+  const baseCell = getEntryBaseCell(entryCellIndex);
+  const payloadCellIndex = baseCell + ENTRY_PAYLOAD;
+  return vm.memory.readCell(payloadCellIndex);
+}
+
+export function hideDictionaryHead(vm: VM): void {
+  if (vm.head === 0) {
+    throw new Error('Cannot hide head: dictionary is empty');
+  }
+  setEntryNameMeta(vm, vm.head, 1);
+}
+
+export function unhideDictionaryHead(vm: VM): void {
+  if (vm.head === 0) {
+    throw new Error('Cannot unhide head: dictionary is empty');
+  }
+  setEntryNameMeta(vm, vm.head, 0);
+}
+
+export function getDictionaryEntryInfo(
+  vm: VM,
+  entryCellIndex: number,
+): { payload: number; hidden: boolean; nameAddr: number; name: string } {
+  if (entryCellIndex === 0) {
+    throw new Error('Dictionary entry index 0 is not valid');
+  }
+  const nameInfo = getEntryNameInfo(vm, entryCellIndex);
+  if (nameInfo.tag !== Tag.STRING) {
+    throw new Error('Dictionary entry name must be STRING');
+  }
+  const payload = getEntryPayload(vm, entryCellIndex);
+  const nameAddr = nameInfo.value;
+  const name = vm.digest.get(nameAddr);
+  return {
+    payload,
+    hidden: nameInfo.meta === 1,
+    nameAddr,
+    name,
+  };
+}
+
+export function getDictionaryHeadInfo(
+  vm: VM,
+): { payload: number; hidden: boolean; nameAddr: number; name: string } | undefined {
+  if (vm.head === 0) {
+    return undefined;
+  }
+  return getDictionaryEntryInfo(vm, vm.head);
+}
 
 // Unified define: store a fully-formed tagged payload under an interned name
 export function define(vm: VM, name: string, payloadTagged: number): void {
@@ -41,28 +127,23 @@ export function define(vm: VM, name: string, payloadTagged: number): void {
 }
 
 export function lookup(vm: VM, name: string): number {
-  const PREV = 0;
-  const PAYLOAD = 1;
-  const NAME = 2;
-  const SLOTS = 3;
-
   const target = vm.digest.intern(name);
   let cur = vm.head; // cell index (0 = NIL)
 
   while (cur !== 0) {
     const hdr = vm.memory.readCell(cur);
-    if (!isList(hdr) || getListLength(hdr) !== SLOTS) {
+    if (!isList(hdr) || getListLength(hdr) !== ENTRY_SLOTS) {
       break;
     }
 
-    const baseCell = cur - SLOTS;
-    const nameCell = vm.memory.readCell(baseCell + NAME);
+    const baseCell = getEntryBaseCell(cur);
+    const nameCell = vm.memory.readCell(baseCell + ENTRY_NAME);
     const ni = getTaggedInfo(nameCell);
-    if (ni.tag === Tag.STRING && ni.value === target) {
-      return vm.memory.readCell(baseCell + PAYLOAD);
+    if (ni.meta === 0 && ni.tag === Tag.STRING && ni.value === target) {
+      return vm.memory.readCell(baseCell + ENTRY_PAYLOAD);
     }
 
-    const prevRefValue = vm.memory.readCell(baseCell + PREV);
+    const prevRefValue = vm.memory.readCell(baseCell + ENTRY_PREV);
     // prevRef is stored as REF (or NIL)
     if (isNIL(prevRefValue)) {
       cur = 0;

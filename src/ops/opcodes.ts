@@ -298,6 +298,8 @@ export enum Op {
   BeginDefinitionImmediate,
   /** Semicolon handler (immediate) */
   SemicolonImmediate,
+  /** Recursive call to current definition (immediate) */
+  RecurseImmediate,
   /** Begin IF construct (immediate) */
   BeginIfImmediate,
   /** Begin ELSE construct (immediate) */

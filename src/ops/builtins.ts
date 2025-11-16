@@ -48,18 +48,7 @@ import {
   endOfOp,
   endCaseOp,
 } from './core';
-import { tokenNextOp } from '../lang/meta/token-bridge';
-import {
-  sentinelOp,
-  emitNumberOp,
-  emitStringOp,
-  handleSpecialOp,
-  emitWordOp,
-  emitSymbolOp,
-  emitRefSigilOp,
-  finalizeCompileOp,
-  unexpectedTokenOp,
-} from '../lang/meta/compiler-bridge';
+import { getLangBridgeHandlers } from './lang-bridge';
 import {
   addOp,
   subtractOp,
@@ -148,6 +137,17 @@ import {
 
 const nopOp: Verb = () => {
   // No operation - intentionally empty
+};
+
+const sentinelEncodeOp: Verb = (vm: VM) => {
+  ensureStackSize(vm, 1, 'sentinel');
+  const raw = pop(vm);
+  const value = Math.trunc(raw);
+  push(vm, Tagged(value, Tag.SENTINEL));
+};
+
+const emitSymbolOp: Verb = () => {
+  throw new Error('emit-symbol removed; use ref sigil helpers instead.');
 };
 
 /**
@@ -297,16 +297,32 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.BufPop]: unwriteOp,
     [Op.BufShift]: readOp,
     [Op.BufUnshift]: unreadOp,
-  [Op.TokenNext]: tokenNextOp,
-    [Op.SentinelEncode]: sentinelOp,
-    [Op.EmitNumberWord]: emitNumberOp,
-    [Op.EmitStringWord]: emitStringOp,
-    [Op.HandleSpecialWord]: handleSpecialOp,
-    [Op.EmitWordCall]: emitWordOp,
+    [Op.TokenNext]: vm => {
+      getLangBridgeHandlers().tokenNext(vm);
+    },
+    [Op.SentinelEncode]: sentinelEncodeOp,
+    [Op.EmitNumberWord]: vm => {
+      getLangBridgeHandlers().emitNumber(vm);
+    },
+    [Op.EmitStringWord]: vm => {
+      getLangBridgeHandlers().emitString(vm);
+    },
+    [Op.HandleSpecialWord]: vm => {
+      getLangBridgeHandlers().handleSpecial(vm);
+    },
+    [Op.EmitWordCall]: vm => {
+      getLangBridgeHandlers().emitWord(vm);
+    },
     [Op.EmitSymbolWord]: emitSymbolOp,
-    [Op.EmitRefSigilWord]: emitRefSigilOp,
-    [Op.FinalizeCompile]: finalizeCompileOp,
-    [Op.UnexpectedTokenWord]: unexpectedTokenOp,
+    [Op.EmitRefSigilWord]: vm => {
+      getLangBridgeHandlers().emitRefSigil(vm);
+    },
+    [Op.FinalizeCompile]: vm => {
+      getLangBridgeHandlers().finalizeCompile(vm);
+    },
+    [Op.UnexpectedTokenWord]: vm => {
+      getLangBridgeHandlers().unexpectedToken(vm);
+    },
   };
 
   const impl = OPCODE_TO_VERB[opcode];
