@@ -2,6 +2,9 @@ import { Tagged, Tag, type VM } from '@src/core';
 import { define } from '@src/core/dictionary';
 import { Op } from '../ops/opcodes';
 import { installLangBridgeHandlers } from '../ops/lang-bridge';
+import { shouldUseTacitCompileLoop } from './feature-flags';
+import { parse } from './parser';
+import { Tokenizer } from './tokenizer';
 import {
   beginDefinitionImmediate,
   beginIfImmediate,
@@ -89,4 +92,15 @@ export function registerLanguageBuiltins(vm: VM): void {
     finalizeCompile: finalizeCompileOp,
     unexpectedToken: unexpectedTokenOp,
   });
+
+  if (shouldUseTacitCompileLoop()) {
+    parse(
+      vm,
+      new Tokenizer(`
+: compile-loop
+  0
+;
+`),
+    );
+  }
 }
