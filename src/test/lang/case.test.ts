@@ -10,8 +10,8 @@ import { STACK_BASE, RSTACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop, emitOpcode, emitFloat32 } from '../../core/vm';
 import {
-  beginCaseImmediate,
-  clauseDoImmediate,
+  beginCaseImmediateOp,
+  clauseDoImmediateOp,
   defaultImmediate,
   nilImmediate,
 } from '../../lang/meta/case';
@@ -123,14 +123,13 @@ describe('case control flow', () => {
 
 describe('case immediates', () => {
   let vm: VM;
-  const tokenizer = new Tokenizer('');
 
   beforeEach(() => {
     vm = createVM();
   });
 
   test('beginCaseImmediate pushes saved RSP and closer', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     expect(vm.sp - STACK_BASE).toBe(2);
     const closer = peek(vm);
@@ -144,12 +143,12 @@ describe('case immediates', () => {
   });
 
   test('clauseDoImmediate emits comparison sequence and records placeholder', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     emitOpcode(vm, Op.LiteralNumber);
     emitFloat32(vm, 42);
 
-    clauseDoImmediate(vm, tokenizer);
+    clauseDoImmediateOp(vm);
 
     expect(vm.sp - STACK_BASE).toBe(4);
     const closerInfo = getTaggedInfo(peek(vm));
@@ -166,7 +165,7 @@ describe('case immediates', () => {
   });
 
   test('defaultImmediate compiles sentinel literal', () => {
-    defaultImmediate(vm, tokenizer);
+    defaultImmediate(vm);
 
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
@@ -178,7 +177,7 @@ describe('case immediates', () => {
   });
 
   test('nilImmediate compiles NIL sentinel literal', () => {
-    nilImmediate(vm, tokenizer);
+    nilImmediate(vm);
 
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
@@ -190,7 +189,7 @@ describe('case immediates', () => {
 
   test('ensureNoOpenConditionals flags unclosed case', () => {
     // Guard against surprising shared-state interactions: reinit the VM and parser stub explicitly.
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     // Sanity check that the closer marker is actually on the stack before asserting behaviour.
     expect(vm.sp - STACK_BASE).toBeGreaterThanOrEqual(2);
@@ -203,18 +202,18 @@ describe('case immediates', () => {
   });
 
   test('do without case raises error', () => {
-    expect(() => clauseDoImmediate(vm, tokenizer)).toThrow(
+    expect(() => clauseDoImmediateOp(vm)).toThrow(
       "'do' without open case",
     );
   });
 
   test('endOfOp patches predicate skip and records exit branch', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     emitOpcode(vm, Op.LiteralNumber);
     emitFloat32(vm, 10);
 
-    clauseDoImmediate(vm, tokenizer);
+    clauseDoImmediateOp(vm);
 
     const skipPos = peekAt(vm, 1);
 
@@ -236,12 +235,12 @@ describe('case immediates', () => {
   });
 
   test('endOfOp guards against missing predicate placeholder', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     emitOpcode(vm, Op.LiteralNumber);
     emitFloat32(vm, 20);
 
-    clauseDoImmediate(vm, tokenizer);
+    clauseDoImmediateOp(vm);
     const endOfRef = pop(vm);
     push(vm, Number.NaN);
     push(vm, endOfRef);
@@ -250,7 +249,7 @@ describe('case immediates', () => {
   });
 
   test('endOfOp validates surrounding case metadata', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
     pop(vm); // remove EndCase to simulate misuse
 
     push(vm, 42);
@@ -260,12 +259,12 @@ describe('case immediates', () => {
   });
 
   test('endCaseOp emits final drop and patches exits', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     emitOpcode(vm, Op.LiteralNumber);
     emitFloat32(vm, 1);
 
-    clauseDoImmediate(vm, tokenizer);
+    clauseDoImmediateOp(vm);
     const skipPos = peekAt(vm, 1);
     expect(vm.memory.read8(SEG_CODE, skipPos + 2)).toBe(Op.Drop);
 
@@ -292,7 +291,7 @@ describe('case immediates', () => {
   });
 
   test('endCaseOp handles empty case by emitting lone drop', () => {
-    beginCaseImmediate(vm, tokenizer);
+    beginCaseImmediateOp(vm);
 
     evalOp(vm);
 

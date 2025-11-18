@@ -14,17 +14,17 @@ function resetCompilerState(vm: VM): void {
   vm.compiler.reservePatchAddr = -1;
 }
 import {
-  beginDefinitionImmediate,
-  beginIfImmediate,
-  beginElseImmediate,
-  beginMatchImmediate,
-  beginWithImmediate,
-  beginCaseImmediate,
-  clauseDoImmediate,
-  beginCapsuleImmediate,
+  beginDefinitionImmediateOp,
+  beginIfImmediateOp,
+  beginElseImmediateOp,
+  beginMatchImmediateOp,
+  beginWithImmediateOp,
+  beginCaseImmediateOp,
+  clauseDoImmediateOp,
+  beginCapsuleImmediateOp,
   registerImmediateHandler,
   resetImmediateHandlers,
-  semicolonImmediate,
+  semicolonImmediateOp,
   recurseImmediate,
   type ImmediateHandler,
 } from './meta';
@@ -62,16 +62,16 @@ export function registerLanguageBuiltins(vm: VM): void {
   resetImmediateHandlers();
 
   const immediates: ImmediateSpec[] = [
-    { name: ':', opcode: Op.BeginDefinitionImmediate, handler: beginDefinitionImmediate },
-    { name: ';', opcode: Op.SemicolonImmediate, handler: semicolonImmediate },
+    { name: ':', opcode: Op.BeginDefinitionImmediate },
+    { name: ';', opcode: Op.SemicolonImmediate },
     { name: 'recurse', opcode: Op.RecurseImmediate, handler: recurseImmediate },
-    { name: 'if', opcode: Op.BeginIfImmediate, handler: beginIfImmediate },
-    { name: 'else', opcode: Op.BeginElseImmediate, handler: beginElseImmediate },
-    { name: 'match', opcode: Op.BeginMatchImmediate, handler: beginMatchImmediate },
-    { name: 'with', opcode: Op.BeginWithImmediate, handler: beginWithImmediate },
-    { name: 'case', opcode: Op.BeginCaseImmediate, handler: beginCaseImmediate },
-    { name: 'do', opcode: Op.ClauseDoImmediate, handler: clauseDoImmediate },
-    { name: 'capsule', opcode: Op.BeginCapsuleImmediate, handler: beginCapsuleImmediate },
+    { name: 'if', opcode: Op.BeginIfImmediate },
+    { name: 'else', opcode: Op.BeginElseImmediate },
+    { name: 'match', opcode: Op.BeginMatchImmediate },
+    { name: 'with', opcode: Op.BeginWithImmediate },
+    { name: 'case', opcode: Op.BeginCaseImmediate },
+    { name: 'do', opcode: Op.ClauseDoImmediate },
+    { name: 'capsule', opcode: Op.BeginCapsuleImmediate },
     { name: 'DEFAULT', opcode: Op.Nop },
     { name: 'NIL', opcode: Op.Nop },
   ];

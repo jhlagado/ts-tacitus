@@ -44,6 +44,12 @@ import {
   endOfOp,
   endCaseOp,
 } from './core';
+import { beginDefinitionImmediateOp } from '../lang/meta/definitions';
+import { beginIfImmediateOp, beginElseImmediateOp } from '../lang/meta/conditionals';
+import { beginMatchImmediateOp, beginWithImmediateOp } from '../lang/meta/match-with';
+import { beginCaseImmediateOp, clauseDoImmediateOp } from '../lang/meta/case';
+import { beginCapsuleImmediateOp } from '../lang/meta/capsules';
+import { semicolonImmediateOp } from '../lang/meta/executor';
 import { getLangBridgeHandlers } from './lang-bridge';
 import {
   addOp,
@@ -191,6 +197,15 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
 
   const OPCODE_TO_VERB: Partial<Record<Op, Verb>> = {
     [Op.LiteralNumber]: literalNumberOp,
+    [Op.BeginDefinitionImmediate]: beginDefinitionImmediateOp,
+    [Op.BeginIfImmediate]: beginIfImmediateOp,
+    [Op.BeginElseImmediate]: beginElseImmediateOp,
+    [Op.BeginMatchImmediate]: beginMatchImmediateOp,
+    [Op.BeginWithImmediate]: beginWithImmediateOp,
+    [Op.BeginCaseImmediate]: beginCaseImmediateOp,
+    [Op.ClauseDoImmediate]: clauseDoImmediateOp,
+    [Op.BeginCapsuleImmediate]: beginCapsuleImmediateOp,
+    [Op.SemicolonImmediate]: semicolonImmediateOp,
     [Op.Branch]: skipDefOp,
     [Op.Call]: callOp,
     [Op.Abort]: abortOp,

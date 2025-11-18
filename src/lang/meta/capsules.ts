@@ -10,7 +10,6 @@ import {
 } from '../../core/vm';
 import { createBuiltinRef } from '@src/core/code-ref';
 import { Op } from '@src/ops/opcodes';
-import { type Tokenizer } from '../tokenizer';
 
 /**
  * `capsule` opener (immediate):
@@ -18,7 +17,7 @@ import { type Tokenizer } from '../tokenizer';
  * - Swaps the definition closer with EndCapsule so the shared `;` will close the capsule body
  * - Emits Op.ExitConstructor to freeze locals and return a capsule handle at runtime
  */
-export function beginCapsuleImmediate(vm: VM, _tokenizer: Tokenizer): void {
+export function beginCapsuleImmediateOp(vm: VM): void {
   if (depth(vm) === 0) {
     throw new SyntaxError('`capsule` must appear inside a colon definition', getStackData(vm));
   }

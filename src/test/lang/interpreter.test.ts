@@ -80,7 +80,7 @@ describe('Interpreter', () => {
       }
 
       expect(errorThrown).toBe(true);
-      expect(errorMessage).toContain('Invalid opcode: 110');
+      expect(errorMessage).toContain('ELSE without IF');
     });
     test('should handle non-Error exceptions', () => {
       // Mock executeOp to intercept Op.Add and throw a raw string error
