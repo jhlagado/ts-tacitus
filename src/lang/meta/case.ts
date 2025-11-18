@@ -55,10 +55,10 @@ function compileSentinelLiteral(vm: VM, value: Sentinel): void {
   emitFloat32(vm, Tagged(value, Tag.SENTINEL));
 }
 
-export function defaultImmediate(vm: VM): void {
+export function defaultImmediateOp(vm: VM): void {
   compileSentinelLiteral(vm, Sentinel.DEFAULT);
 }
 
-export function nilImmediate(vm: VM): void {
+export function nilImmediateOp(vm: VM): void {
   compileSentinelLiteral(vm, Sentinel.NIL);
 }
