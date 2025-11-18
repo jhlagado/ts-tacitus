@@ -12,18 +12,17 @@ import {
   emitUint16,
   getCompilePointer,
 } from '../../core/vm';
-import { type Tokenizer } from '../tokenizer';
 
 const ENDMATCH_CODE_REF = createBuiltinRef(Op.EndMatch);
 const ENDWITH_CODE_REF = createBuiltinRef(Op.EndWith);
 
-export function beginMatchImmediate(vm: VM, _tokenizer: Tokenizer): void {
+export function beginMatchImmediateOp(vm: VM): void {
   // Push saved return stack snapshot as relative cells
   push(vm, rdepth(vm));
   push(vm, ENDMATCH_CODE_REF);
 }
 
-export function beginWithImmediate(vm: VM, _tokenizer: Tokenizer): void {
+export function beginWithImmediateOp(vm: VM): void {
   if (depth(vm) === 0) {
     throw new SyntaxError('with without match', getStackData(vm));
   }

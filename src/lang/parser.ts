@@ -118,7 +118,8 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
   resetCompiler(vm);
 
   vm.currentDefinition = null;
-
+  const previousTokenizer = vm.currentTokenizer;
+  vm.currentTokenizer = tokenizer;
   try {
     const handledByTacit = tryRunTacitCompileLoop(vm, tokenizer);
     if (!handledByTacit) {
@@ -130,6 +131,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
     }
   } finally {
     vm.currentDefinition = null;
+    vm.currentTokenizer = previousTokenizer ?? null;
   }
 }
 

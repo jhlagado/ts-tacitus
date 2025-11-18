@@ -13,7 +13,6 @@ import {
   getCompilePointer,
   patchUint16,
 } from '../../core/vm';
-import { type Tokenizer } from '../tokenizer';
 
 const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
 
@@ -31,10 +30,7 @@ function patchPlaceholder(vm: VM, rawPos: number, word: string): void {
   patchUint16(vm, branchPos, branchOffset);
 }
 
-export function beginIfImmediate(
-  vm: VM,
-  _tokenizer: Tokenizer,
-): void {
+export function beginIfImmediateOp(vm: VM): void {
   emitOpcode(vm, Op.IfFalseBranch);
   const falseBranchPos = getCompilePointer(vm);
   emitUint16(vm, 0);
@@ -43,10 +39,7 @@ export function beginIfImmediate(
   push(vm, ENDIF_CODE_REF);
 }
 
-export function beginElseImmediate(
-  vm: VM,
-  _tokenizer: Tokenizer,
-): void {
+export function beginElseImmediateOp(vm: VM): void {
   if (depth(vm) < 2) {
     throw new SyntaxError('ELSE without IF', getStackData(vm));
   }

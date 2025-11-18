@@ -25,7 +25,7 @@ export function registerImmediateHandler(opcode: number, handler: ImmediateHandl
 export function resetImmediateHandlers(): void {
   immediateHandlers.clear();
 }
-export function semicolonImmediate(vm: VM, _tokenizer: Tokenizer): void {
+export function semicolonImmediateOp(vm: VM): void {
   if (vm.sp - STACK_BASE === 0) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
@@ -54,11 +54,11 @@ export function executeImmediateWord(
       const opcode = value as Op;
       const handler = immediateHandlers.get(opcode);
       if (name === 'DEFAULT') {
-        defaultImmediate(vm, tokenizer);
+        defaultImmediate(vm);
         return;
       }
       if (name === 'NIL') {
-        nilImmediate(vm, tokenizer);
+        nilImmediate(vm);
         return;
       }
       if (handler) {

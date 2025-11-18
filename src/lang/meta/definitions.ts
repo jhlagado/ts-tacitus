@@ -8,11 +8,16 @@ import { getDictionaryEntryInfo } from '../../core/dictionary';
 
 const ENDDEF_CODE_REF = createBuiltinRef(Op.EndDefinition);
 
-export function beginDefinitionImmediate(
-  vm: VM,
-  tokenizer: Tokenizer,
-): void {
-  beginDefinition(vm, tokenizer);
+function requireTokenizer(vm: VM): Tokenizer {
+  const tokenizer = vm.currentTokenizer;
+  if (!tokenizer) {
+    throw new SyntaxError('Tokenizer is not available for ":"', getStackData(vm));
+  }
+  return tokenizer;
+}
+
+export function beginDefinitionImmediateOp(vm: VM): void {
+  beginDefinition(vm, requireTokenizer(vm));
   push(vm, ENDDEF_CODE_REF);
 }
 
