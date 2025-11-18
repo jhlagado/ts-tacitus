@@ -16,12 +16,12 @@ Gradually migrate Tacit's immediate words so they live in the dictionary as regu
    - Update parser lookup (`emitWord`) to execute immediates when `meta=1`; remove special casing for `:`/`;`.
 
 3. **Conditional family**
-   - Move `if`, `else`, match/with, case/do, capsule handlers into verbs; drop `registerImmediateHandler`.
-   - Simplify `executeImmediateWord` to only rely on dictionary verbs (no handler map).
+   - Move `if`, `else`, match/with, case/do, capsule handlers into verbs; drop the handler map entirely.
+   - Parser executes meta=1 entries directly via builtin dispatch or `runImmediateCode`; `executeImmediateWord` removed.
 
 4. **Compiler specials**
-   - Convert `var`, `->`, `global`, `+>` to immediates.
-   - Remove explicit parser branches for these keywords.
+   - Convert `var`, `->`, `global`, `+>` into dedicated op verbs (Tokenizer-aware) and register them like other immediates.
+   - Delete the ad-hoc parser branches (`emitVarDecl`, `emitAssignment`, etc.) so the parser relies solely on dictionary lookups.
 
 5. **Cleanup**
    - Delete obsolete handler registry, `ImmediateSpec` array, and any remaining parser hacks.

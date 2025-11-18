@@ -21,10 +21,7 @@ export function beginDefinitionImmediateOp(vm: VM): void {
   push(vm, ENDDEF_CODE_REF);
 }
 
-export function recurseImmediate(
-  vm: VM,
-  _tokenizer: Tokenizer,
-): void {
+export function recurseImmediateOp(vm: VM): void {
   if (!vm.currentDefinition) {
     throw new SyntaxError('RECURSE outside definition', getStackData(vm));
   }

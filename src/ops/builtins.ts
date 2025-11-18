@@ -44,12 +44,23 @@ import {
   endOfOp,
   endCaseOp,
 } from './core';
-import { beginDefinitionImmediateOp } from '../lang/meta/definitions';
+import { beginDefinitionImmediateOp, recurseImmediateOp } from '../lang/meta/definitions';
 import { beginIfImmediateOp, beginElseImmediateOp } from '../lang/meta/conditionals';
 import { beginMatchImmediateOp, beginWithImmediateOp } from '../lang/meta/match-with';
-import { beginCaseImmediateOp, clauseDoImmediateOp } from '../lang/meta/case';
+import {
+  beginCaseImmediateOp,
+  clauseDoImmediateOp,
+  defaultImmediateOp,
+  nilImmediateOp,
+} from '../lang/meta/case';
 import { beginCapsuleImmediateOp } from '../lang/meta/capsules';
 import { semicolonImmediateOp } from '../lang/meta/executor';
+import {
+  varImmediateOp,
+  assignImmediateOp,
+  globalImmediateOp,
+  incrementImmediateOp,
+} from '../lang/meta/variables';
 import { getLangBridgeHandlers } from './lang-bridge';
 import {
   addOp,
@@ -204,8 +215,15 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.BeginWithImmediate]: beginWithImmediateOp,
     [Op.BeginCaseImmediate]: beginCaseImmediateOp,
     [Op.ClauseDoImmediate]: clauseDoImmediateOp,
+    [Op.DefaultImmediate]: defaultImmediateOp,
+    [Op.NilImmediate]: nilImmediateOp,
     [Op.BeginCapsuleImmediate]: beginCapsuleImmediateOp,
+    [Op.VarImmediate]: varImmediateOp,
+    [Op.AssignImmediate]: assignImmediateOp,
+    [Op.GlobalImmediate]: globalImmediateOp,
+    [Op.IncrementImmediate]: incrementImmediateOp,
     [Op.SemicolonImmediate]: semicolonImmediateOp,
+    [Op.RecurseImmediate]: recurseImmediateOp,
     [Op.Branch]: skipDefOp,
     [Op.Call]: callOp,
     [Op.Abort]: abortOp,

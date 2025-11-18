@@ -312,6 +312,10 @@ export enum Op {
   BeginCaseImmediate,
   /** CASE clause `do` (immediate) */
   ClauseDoImmediate,
+  /** CASE DEFAULT literal immediate */
+  DefaultImmediate,
+  /** CASE NIL literal immediate */
+  NilImmediate,
   /** Begin capsule definition (immediate) */
   BeginCapsuleImmediate,
   /** Fetch next token for Tacit compile loop */
@@ -336,4 +340,12 @@ export enum Op {
   UnexpectedTokenWord,
   /** Run Tacit compile loop (builtin prototype) */
   RunTacitCompileLoop,
+  /** Local `var` declaration (immediate-only opcode range >= MIN_USER_OPCODE) */
+  VarImmediate = 256,
+  /** Local/global assignment (immediate) */
+  AssignImmediate,
+  /** Global declaration (immediate) */
+  GlobalImmediate,
+  /** Local increment operator (immediate) */
+  IncrementImmediate,
 }

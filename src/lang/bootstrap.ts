@@ -22,11 +22,12 @@ import {
   beginCaseImmediateOp,
   clauseDoImmediateOp,
   beginCapsuleImmediateOp,
-  registerImmediateHandler,
-  resetImmediateHandlers,
   semicolonImmediateOp,
-  recurseImmediate,
-  type ImmediateHandler,
+  recurseImmediateOp,
+  varImmediateOp,
+  assignImmediateOp,
+  globalImmediateOp,
+  incrementImmediateOp,
 } from './meta';
 import { tokenNextOp } from './meta/token-bridge';
 import {
@@ -43,15 +44,11 @@ import {
 type ImmediateSpec = {
   name: string;
   opcode: Op;
-  handler?: ImmediateHandler;
 };
 
 function defineImmediate(vm: VM, spec: ImmediateSpec): void {
-  const { name, opcode, handler } = spec;
+  const { name, opcode } = spec;
   define(vm, name, Tagged(opcode, Tag.CODE, 1));
-  if (handler) {
-    registerImmediateHandler(opcode, handler);
-  }
 }
 
 function defineBuiltin(vm: VM, name: string, opcode: Op): void {
@@ -59,12 +56,10 @@ function defineBuiltin(vm: VM, name: string, opcode: Op): void {
 }
 
 export function registerLanguageBuiltins(vm: VM): void {
-  resetImmediateHandlers();
-
   const immediates: ImmediateSpec[] = [
     { name: ':', opcode: Op.BeginDefinitionImmediate },
     { name: ';', opcode: Op.SemicolonImmediate },
-    { name: 'recurse', opcode: Op.RecurseImmediate, handler: recurseImmediate },
+    { name: 'recurse', opcode: Op.RecurseImmediate },
     { name: 'if', opcode: Op.BeginIfImmediate },
     { name: 'else', opcode: Op.BeginElseImmediate },
     { name: 'match', opcode: Op.BeginMatchImmediate },
@@ -72,8 +67,12 @@ export function registerLanguageBuiltins(vm: VM): void {
     { name: 'case', opcode: Op.BeginCaseImmediate },
     { name: 'do', opcode: Op.ClauseDoImmediate },
     { name: 'capsule', opcode: Op.BeginCapsuleImmediate },
-    { name: 'DEFAULT', opcode: Op.Nop },
-    { name: 'NIL', opcode: Op.Nop },
+    { name: 'var', opcode: Op.VarImmediate },
+    { name: 'global', opcode: Op.GlobalImmediate },
+    { name: '->', opcode: Op.AssignImmediate },
+    { name: '+>', opcode: Op.IncrementImmediate },
+    { name: 'DEFAULT', opcode: Op.DefaultImmediate },
+    { name: 'NIL', opcode: Op.NilImmediate },
   ];
 
   for (const spec of immediates) {
@@ -104,7 +103,7 @@ export function registerLanguageBuiltins(vm: VM): void {
   });
 
   if (shouldUseTacitCompileLoop()) {
-    defineBuiltin(vm, 'compile-loop', Op.RunTacitCompileLoop);
+    defineImmediate(vm, { name: 'compile-loop', opcode: Op.RunTacitCompileLoop });
   } else {
     parse(vm, new Tokenizer(': compile-loop 0 ;'));
   }

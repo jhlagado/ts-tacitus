@@ -18,6 +18,7 @@
  */
 
 import { Op } from '../ops/opcodes';
+import { executeOp } from '../ops/builtins';
 import {
   type VM,
   getStackData,
@@ -46,7 +47,7 @@ import {
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ensureNoOpenDefinition } from './definitions';
-import { executeImmediateWord, ensureNoOpenConditionals } from './meta';
+import { runImmediateCode, ensureNoOpenConditionals } from './meta';
 import { lookup, define, findEntry } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
 import { MIN_USER_OPCODE } from '@src/core';
@@ -231,26 +232,6 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
  * @throws {Error} If a block is expected but not found, or if a word is undefined
  */
 export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
-  if (value === 'var') {
-    emitVarDecl(vm, tokenizer);
-    return;
-  }
-
-  if (value === '->') {
-    emitAssignment(vm, tokenizer);
-    return;
-  }
-
-  if (value === 'global') {
-    emitGlobalDecl(vm, tokenizer);
-    return;
-  }
-
-  if (value === '+>') {
-    emitIncrement(vm, tokenizer);
-    return;
-  }
-
   // backtick removed
   const tval = lookup(vm, value);
   if (isNIL(tval)) {
@@ -261,7 +242,17 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
   const isImmediate = info.meta === 1;
 
   if (isImmediate) {
-    executeImmediateWord(vm, value, { taggedValue: tval, isImmediate }, tokenizer);
+    if (info.tag !== Tag.CODE) {
+      throw new SyntaxError(`Immediate word ${value} is not executable`, getStackData(vm));
+    }
+    const opcodeValue = info.value;
+    const isBuiltinImmediate = opcodeValue < MIN_USER_OPCODE || opcodeValue >= Op.VarImmediate;
+    if (isBuiltinImmediate) {
+      executeOp(vm, opcodeValue);
+    } else {
+      const decodedAddress = decodeX1516(opcodeValue);
+      runImmediateCode(vm, decodedAddress);
+    }
     return;
   }
 
@@ -409,280 +400,6 @@ export function emitRefSigil(vm: VM, varName: string, _tokenizer: Tokenizer): vo
     return;
   }
   throw new Error(`${varName} is not a variable or function`);
-}
-
-/**
- * Process variable declarations with 'var' keyword.
- *
- * This function handles variable declarations in Tacit using the syntax: value var name
- * It expects a value to already be on the stack and reads the variable name from the next token.
- *
- * @param {ParserState} state - The current parser state
- * @throws {Error} If not inside a function definition or invalid variable name
- */
-export function emitVarDecl(vm: VM, tokenizer: Tokenizer): void {
-  if (!vm.currentDefinition) {
-    throw new SyntaxError(
-      'Variable declarations only allowed inside function definitions',
-      getStackData(vm),
-    );
-  }
-
-  const nameToken = tokenizer.nextToken();
-  if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after var', getStackData(vm));
-  }
-
-  const varName = nameToken.value as string;
-
-  if (
-    varName.length === 0 ||
-    varName === ':' ||
-    varName === ';' ||
-    (varName.length === 1 && isSpecialChar(varName))
-  ) {
-    throw new SyntaxError('Expected variable name after var', getStackData(vm));
-  }
-
-  ensureReserveEmitted(vm);
-
-  const slotNumber = vm.localCount++;
-  define(vm, varName, Tagged(slotNumber, Tag.LOCAL));
-
-  emitOpcode(vm, Op.InitVar);
-  emitUint16(vm, slotNumber);
-}
-
-/**
- * Process global variable declaration with 'global' keyword.
- *
- * Syntax: value global name
- * Behavior: registers a global slot for 'name' and stores TOS into it at runtime.
- *
- * Steps:
- * 1. Check top-level scope (must NOT be inside function)
- * 2. Read variable name
- * 3. Calculate offset: offset = vm.gp (relative to GLOBAL_BASE)
- * 4. Check 16-bit offset limit: offset <= 0xffff
- * 5. Check runtime boundary: vm.gp < GLOBAL_SIZE
- * 6. Emit GlobalRef <offset>; Store
- * 7. Register in dictionary: define(vm, name, createGlobalRef(offset))
- * 8. Increment vm.gp after successful declaration
- */
-export function emitGlobalDecl(vm: VM, tokenizer: Tokenizer): void {
-  // Top-level restriction: must NOT be inside function
-  if (vm.currentDefinition) {
-    throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
-  }
-
-  const nameToken = tokenizer.nextToken();
-  if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after global', getStackData(vm));
-  }
-
-  const varName = nameToken.value as string;
-
-  if (
-    varName.length === 0 ||
-    varName === ':' ||
-    varName === ';' ||
-    (varName.length === 1 && isSpecialChar(varName))
-  ) {
-    throw new SyntaxError('Expected variable name after global', getStackData(vm));
-  }
-
-  // Calculate offset: vm.gp is already relative to GLOBAL_BASE
-  const offset = vm.gp;
-
-  // Check 16-bit offset limit (compile-time constraint)
-  if (offset > 0xffff) {
-    throw new SyntaxError('Global variable limit exceeded (64K)', getStackData(vm));
-  }
-
-  // Check runtime boundary (actual area limit)
-  if (vm.gp >= GLOBAL_SIZE) {
-    throw new SyntaxError('Global area exhausted', getStackData(vm));
-  }
-
-  // Reserve the global cell by incrementing gp FIRST
-  // This ensures the cell is allocated before dictionary registration
-  vm.gp += 1;
-
-  // Register in dictionary (uses the offset we calculated before incrementing)
-  const globalRef = createGlobalRef(offset);
-  define(vm, varName, globalRef);
-
-  // Emit InitGlobal opcode (matches InitVar pattern for locals)
-  // Directly writes to global cell without Store opcode compatibility checks
-  emitOpcode(vm, Op.InitGlobal);
-  emitUint16(vm, offset);
-}
-
-/**
- * Process assignment operator '->'.
- *
- * This function handles local variable assignment using the syntax: value -> variable
- * It expects a value to already be on the stack and reads the variable name from the next token.
- * Compiles to: VarRef slot_number, Store
- *
- * @param {ParserState} state - The current parser state
- * @throws {Error} If not inside a function definition or invalid variable name
- */
-export function emitAssignment(vm: VM, tokenizer: Tokenizer): void {
-  const nameToken = tokenizer.nextToken();
-  if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after ->', getStackData(vm));
-  }
-
-  const varName = nameToken.value as string;
-
-  if (
-    varName.length === 0 ||
-    varName === ':' ||
-    varName === ';' ||
-    (varName.length === 1 && isSpecialChar(varName))
-  ) {
-    throw new SyntaxError('Expected variable name after ->', getStackData(vm));
-  }
-
-  const tval = lookup(vm, varName);
-  if (isNIL(tval)) {
-    throw new Error(`Undefined local or global variable: ${varName}`);
-  }
-
-  const { tag, value: slotNumber } = getTaggedInfo(tval);
-  if (tag === Tag.LOCAL) {
-    // Check for bracketed path assignment: value -> x[ ... ]
-    const maybeBracket = tokenizer.nextToken();
-    if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-      // Compile &x semantics for path-based assignment
-      emitOpcode(vm, Op.VarRef);
-      emitUint16(vm, slotNumber);
-      emitOpcode(vm, Op.Fetch);
-      compileBracketPathAsList(vm, tokenizer);
-      // Inline update: select → nip → store
-      emitOpcode(vm, Op.Select);
-      emitOpcode(vm, Op.Nip);
-      emitOpcode(vm, Op.Store);
-      return;
-    } else {
-      // No bracket; put the token back
-      tokenizer.pushBack(maybeBracket);
-    }
-    // Simple variable assignment
-    emitOpcode(vm, Op.VarRef);
-    emitUint16(vm, slotNumber);
-    emitOpcode(vm, Op.Store);
-    return;
-  }
-  if (tag === Tag.REF) {
-    if (getRefArea(tval) !== 'global') {
-      throw new SyntaxError(
-        'Assignment operator (->) only allowed for locals or globals',
-        getStackData(vm),
-      );
-    }
-    // Calculate offset from absolute cell index
-    const absoluteCellIndex = getCellFromRef(tval);
-    const offset = absoluteCellIndex - GLOBAL_BASE;
-
-    const maybeBracket = tokenizer.nextToken();
-    if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-      emitOpcode(vm, Op.GlobalRef);
-      emitUint16(vm, offset);
-      emitOpcode(vm, Op.Fetch);
-      compileBracketPathAsList(vm, tokenizer);
-      emitOpcode(vm, Op.Select);
-      emitOpcode(vm, Op.Nip);
-      emitOpcode(vm, Op.Store);
-      return;
-    } else {
-      tokenizer.pushBack(maybeBracket);
-    }
-    emitOpcode(vm, Op.GlobalRef);
-    emitUint16(vm, offset);
-    emitOpcode(vm, Op.Store);
-    return;
-  }
-  // Otherwise, not a recognized assignable
-  throw new SyntaxError(
-    'Assignment operator (->) only allowed for locals or globals',
-    getStackData(vm),
-  );
-}
-
-/**
- * Implement locals-only increment operator: value +> x
- *
- * Sugar for: value x add -> x
- * Bytecode sequence (starting with [..., inc] on stack):
- *   VarRef slot
- *   Swap
- *   Over
- *   Fetch
- *   Add
- *   Swap
- *   Store
- */
-export function emitIncrement(vm: VM, tokenizer: Tokenizer): void {
-  if (!vm.currentDefinition) {
-    throw new SyntaxError(
-      'Increment operator (+>) only allowed inside function definitions',
-      getStackData(vm),
-    );
-  }
-
-  const nameToken = tokenizer.nextToken();
-  if (nameToken.type !== TokenType.WORD) {
-    throw new SyntaxError('Expected variable name after +>', getStackData(vm));
-  }
-
-  const varName = nameToken.value as string;
-
-  const tval = lookup(vm, varName);
-  if (isNIL(tval)) {
-    throw new Error(`Undefined local variable: ${varName}`);
-  }
-
-  const { tag, value: slotNumber } = getTaggedInfo(tval);
-  if (tag !== Tag.LOCAL) {
-    throw new Error(`${varName} is not a local variable`);
-  }
-
-  // Check for optional bracketed path: value +> x[ ... ]
-  const maybeBracket = tokenizer.nextToken();
-  if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
-    // Build destination sub-address from local list slot: &x fetch [path] select nip
-    emitOpcode(vm, Op.VarRef);
-    emitUint16(vm, slotNumber);
-    emitOpcode(vm, Op.Fetch);
-    compileBracketPathAsList(vm, tokenizer);
-    emitOpcode(vm, Op.Select);
-    emitOpcode(vm, Op.Nip);
-
-    // Now perform RMW on that address: swap, over, fetch, add, swap, store
-    emitOpcode(vm, Op.Swap);
-    emitOpcode(vm, Op.Over);
-    emitOpcode(vm, Op.Fetch);
-    emitOpcode(vm, Op.Add);
-    emitOpcode(vm, Op.Swap);
-    emitOpcode(vm, Op.Store);
-    return;
-  } else {
-    // No bracket; put the token back for outer parsing
-    tokenizer.pushBack(maybeBracket);
-  }
-
-  // Simple locals-only increment sugar: value x add -> x
-  // Start: [..., inc]
-  emitOpcode(vm, Op.VarRef);
-  emitUint16(vm, slotNumber); // [..., inc, addr]
-  emitOpcode(vm, Op.Swap); // [..., addr, inc]
-  emitOpcode(vm, Op.Over); // [..., addr, inc, addr]
-  emitOpcode(vm, Op.Fetch); // [..., addr, inc, value]
-  emitOpcode(vm, Op.Add); // [..., addr, sum]
-  emitOpcode(vm, Op.Swap); // [..., sum, addr]
-  emitOpcode(vm, Op.Store); // []
 }
 
 /**

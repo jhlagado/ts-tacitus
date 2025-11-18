@@ -12,8 +12,8 @@ import { peekAt, peek, rpush, rpop, push, pop, emitOpcode, emitFloat32 } from '.
 import {
   beginCaseImmediateOp,
   clauseDoImmediateOp,
-  defaultImmediate,
-  nilImmediate,
+  defaultImmediateOp,
+  nilImmediateOp,
 } from '../../lang/meta/case';
 import { Op } from '../../ops/opcodes';
 import { evalOp } from '../../ops/core';
@@ -165,7 +165,7 @@ describe('case immediates', () => {
   });
 
   test('defaultImmediate compiles sentinel literal', () => {
-    defaultImmediate(vm);
+    defaultImmediateOp(vm);
 
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
@@ -177,7 +177,7 @@ describe('case immediates', () => {
   });
 
   test('nilImmediate compiles NIL sentinel literal', () => {
-    nilImmediate(vm);
+    nilImmediateOp(vm);
 
     const opcode = vm.memory.read8(SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
