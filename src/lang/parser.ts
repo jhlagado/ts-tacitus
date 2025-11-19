@@ -25,7 +25,6 @@ import {
   emitOpcode,
   emitUint16,
   emitUserWordCall,
-  ensureReserveEmitted,
   resetCompiler,
   depth,
   pop,
@@ -40,70 +39,83 @@ import {
   UndefinedWordError,
   SyntaxError,
   GLOBAL_BASE,
-  GLOBAL_SIZE,
-  createGlobalRef,
   getCellFromRef,
   Tagged,
+  NIL,
+  MIN_USER_OPCODE,
 } from '@src/core';
 import { emitNumber, emitString } from './literals';
 import { ensureNoOpenDefinition } from './definitions';
-import { runImmediateCode, ensureNoOpenConditionals } from './meta';
-import { lookup, define, findEntry } from '../core/dictionary';
+import {
+  runImmediateCode,
+  ensureNoOpenConditionals,
+  executeImmediateOpcode,
+  isBuiltinImmediateOpcode,
+} from './meta';
+import { lookup } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
-import { MIN_USER_OPCODE } from '@src/core';
-import { callTacit } from './interpreter';
 import { shouldUseTacitCompileLoop } from './feature-flags';
-
-const TACIT_COMPILE_LOOP_WORD = 'compile-loop';
+import { runTacitCompileLoop } from './compile-loop';
 
 let activeTokenizer: Tokenizer | null = null;
+
+export function getActiveTokenizer(): Tokenizer | null {
+  return activeTokenizer;
+}
+
+export function tokenNext(vm: VM): { type: TokenType; raw: number } {
+  const tokenizer = getActiveTokenizer();
+  if (!tokenizer) {
+    throw new Error('token-next: no active tokenizer');
+  }
+
+  const token = tokenizer.nextToken();
+  let payload: number;
+
+  switch (token.type) {
+    case TokenType.NUMBER:
+      payload = typeof token.value === 'number' ? token.value : Number(token.value ?? 0);
+      break;
+    case TokenType.STRING:
+    case TokenType.WORD:
+    case TokenType.SPECIAL:
+    case TokenType.REF_SIGIL: {
+      const str = String(token.value ?? '');
+      const addr = vm.digest.intern(str);
+      payload = Tagged(addr, Tag.STRING);
+      break;
+    }
+    case TokenType.EOF:
+      payload = NIL;
+      break;
+    default:
+      payload = NIL;
+  }
+
+  return { type: token.type, raw: payload };
+}
 
 function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
   if (!shouldUseTacitCompileLoop()) {
     return false;
   }
 
-  const entry = findEntry(vm, TACIT_COMPILE_LOOP_WORD);
-  if (!entry) {
-    return false;
-  }
-
-  const { taggedValue } = entry;
-  const info = getTaggedInfo(taggedValue);
-  if (info.tag !== Tag.CODE || info.meta !== 0) {
-    return false;
-  }
-
-  if (info.value < MIN_USER_OPCODE) {
-    // Builtin opcodes cannot drive the Tacit compile loop.
-    return false;
-  }
-
-  const entryAddress = decodeX1516(info.value);
-
   activeTokenizer = tokenizer;
   const stackDepthBefore = depth(vm);
   try {
-    callTacit(vm, entryAddress);
+    runTacitCompileLoop(vm);
+    const stackDepthAfter = depth(vm);
+    if (stackDepthAfter < stackDepthBefore + 1) {
+      throw new Error('Tacit compile loop must push handled flag');
+    }
+    const handledFlag = pop(vm);
+    if (depth(vm) !== stackDepthBefore) {
+      throw new Error('Tacit compile loop must leave stack depth unchanged');
+    }
+    return handledFlag !== 0;
   } finally {
     activeTokenizer = null;
   }
-
-  const stackDepthAfter = depth(vm);
-  if (stackDepthAfter < stackDepthBefore + 1) {
-    throw new Error('Tacit compile loop must push handled flag');
-  }
-
-  const handledFlag = pop(vm);
-  if (depth(vm) !== stackDepthBefore) {
-    throw new Error('Tacit compile loop must leave stack depth unchanged');
-  }
-
-  return handledFlag !== 0;
-}
-
-export function getActiveTokenizer(): Tokenizer | null {
-  return activeTokenizer;
 }
 
 /**
@@ -239,20 +251,21 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
   }
 
   const info = getTaggedInfo(tval);
-  const isImmediate = info.meta === 1;
-
-  if (isImmediate) {
+  if (info.meta === 1) {
     if (info.tag !== Tag.CODE) {
       throw new SyntaxError(`Immediate word ${value} is not executable`, getStackData(vm));
     }
     const opcodeValue = info.value;
-    const isBuiltinImmediate = opcodeValue < MIN_USER_OPCODE || opcodeValue >= Op.VarImmediate;
-    if (isBuiltinImmediate) {
-      executeOp(vm, opcodeValue);
-    } else {
-      const decodedAddress = decodeX1516(opcodeValue);
-      runImmediateCode(vm, decodedAddress);
+    if (isBuiltinImmediateOpcode(opcodeValue)) {
+      executeImmediateOpcode(vm, opcodeValue);
+      return;
     }
+    if (opcodeValue < MIN_USER_OPCODE) {
+      executeOp(vm, opcodeValue);
+      return;
+    }
+    const decodedAddress = decodeX1516(opcodeValue);
+    runImmediateCode(vm, decodedAddress);
     return;
   }
 

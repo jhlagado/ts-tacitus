@@ -293,59 +293,20 @@ export enum Op {
 
   /** Dump heap-backed dictionary chain to console */
   DumpDict,
-
-  /** Begin colon definition (immediate) */
   BeginDefinitionImmediate,
-  /** Semicolon handler (immediate) */
   SemicolonImmediate,
-  /** Recursive call to current definition (immediate) */
   RecurseImmediate,
-  /** Begin IF construct (immediate) */
   BeginIfImmediate,
-  /** Begin ELSE construct (immediate) */
   BeginElseImmediate,
-  /** Begin MATCH construct (immediate) */
   BeginMatchImmediate,
-  /** Begin WITH clause (immediate) */
   BeginWithImmediate,
-  /** Begin CASE construct (immediate) */
   BeginCaseImmediate,
-  /** CASE clause `do` (immediate) */
   ClauseDoImmediate,
-  /** CASE DEFAULT literal immediate */
-  DefaultImmediate,
-  /** CASE NIL literal immediate */
-  NilImmediate,
-  /** Begin capsule definition (immediate) */
   BeginCapsuleImmediate,
-  /** Fetch next token for Tacit compile loop */
-  TokenNext,
-  /** Encode integer payload as Tag.SENTINEL */
-  SentinelEncode,
-  /** Emit numeric literal during compilation */
-  EmitNumberWord,
-  /** Emit string literal during compilation */
-  EmitStringWord,
-  /** Handle special token during compilation */
-  HandleSpecialWord,
-  /** Emit standard word during compilation */
-  EmitWordCall,
-  /** Emit @symbol token during compilation */
-  EmitSymbolWord,
-  /** Emit ref sigil token during compilation */
-  EmitRefSigilWord,
-  /** Finalize compilation (validation + Abort) */
-  FinalizeCompile,
-  /** Raise unexpected token error */
-  UnexpectedTokenWord,
-  /** Run Tacit compile loop (builtin prototype) */
-  RunTacitCompileLoop,
-  /** Local `var` declaration (immediate-only opcode range >= MIN_USER_OPCODE) */
-  VarImmediate = 256,
-  /** Local/global assignment (immediate) */
-  AssignImmediate,
-  /** Global declaration (immediate) */
+  VarImmediate,
   GlobalImmediate,
-  /** Local increment operator (immediate) */
+  AssignImmediate,
   IncrementImmediate,
+  DefaultImmediate,
+  NilImmediate,
 }

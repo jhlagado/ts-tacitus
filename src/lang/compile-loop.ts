@@ -1,56 +1,51 @@
 import { Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
 import type { VM } from '@src/core';
-import { ensureStackSize, pop, getStackData, emitOpcode, push } from '../../core/vm';
-import { Op } from '../../ops/opcodes';
-import { emitNumber, emitString } from '../literals';
+import { ensureStackSize, pop, getStackData, emitOpcode, push } from '../core/vm';
+import { Op } from '../ops/opcodes';
+import { emitNumber, emitString } from './literals';
 import {
   handleSpecial,
   emitWord,
   emitRefSigil,
   validateFinalState,
+  tokenNext,
   getActiveTokenizer,
-} from '../parser';
-import { TokenType } from '../tokenizer';
-import { tokenNextOp } from './token-bridge';
-export function runTacitCompileLoopOp(vm: VM): void {
-  for (;;) {
-    tokenNextOp(vm);
-    const tokenType = pop(vm);
-    const payload = pop(vm);
-    const { tag, value } = getTaggedInfo(tokenType);
-    if (tag !== Tag.NUMBER) {
-      throw new Error('runTacitCompileLoopOp: token type must be numeric');
-    }
+} from './parser';
+import { TokenType } from './tokenizer';
 
-    switch (value) {
+export function runTacitCompileLoop(vm: VM): void {
+  for (;;) {
+    const { type, raw } = tokenNext(vm);
+
+    switch (type) {
       case TokenType.EOF:
-        finalizeCompileOp(vm);
+        finalizeCompile(vm);
         push(vm, 1);
         return;
       case TokenType.NUMBER:
-        push(vm, payload);
-        emitNumberOp(vm);
+        push(vm, raw);
+        emitNumberWord(vm);
         break;
       case TokenType.STRING:
-        push(vm, payload);
-        emitStringOp(vm);
+        push(vm, raw);
+        emitStringWord(vm);
         break;
       case TokenType.SPECIAL:
-        push(vm, payload);
-        handleSpecialOp(vm);
+        push(vm, raw);
+        handleSpecialWord(vm);
         break;
       case TokenType.WORD:
-        push(vm, payload);
-        emitWordOp(vm);
+        push(vm, raw);
+        emitWordCall(vm);
         break;
       case TokenType.REF_SIGIL:
-        push(vm, payload);
-        emitRefSigilOp(vm);
+        push(vm, raw);
+        emitRefSigilWord(vm);
         break;
       default:
-        push(vm, payload);
-        push(vm, tokenType);
-        unexpectedTokenOp(vm);
+        push(vm, raw);
+        push(vm, type);
+        unexpectedToken(vm);
     }
   }
 }
@@ -63,20 +58,20 @@ function decodeString(vm: VM, raw: number, context: string): string {
   return vm.digest.get(info.value);
 }
 
-export function emitNumberOp(vm: VM): void {
+export function emitNumberWord(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-number');
   const value = pop(vm);
   emitNumber(vm, value);
 }
 
-export function emitStringOp(vm: VM): void {
+export function emitStringWord(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-string');
   const raw = pop(vm);
   const text = decodeString(vm, raw, 'emit-string');
   emitString(vm, text);
 }
 
-export function handleSpecialOp(vm: VM): void {
+export function handleSpecialWord(vm: VM): void {
   ensureStackSize(vm, 1, 'handle-special');
   const raw = pop(vm);
   const text = decodeString(vm, raw, 'handle-special');
@@ -87,7 +82,7 @@ export function handleSpecialOp(vm: VM): void {
   handleSpecial(vm, text, tokenizer);
 }
 
-export function emitWordOp(vm: VM): void {
+export function emitWordCall(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-word');
   const raw = pop(vm);
   const text = decodeString(vm, raw, 'emit-word');
@@ -98,11 +93,11 @@ export function emitWordOp(vm: VM): void {
   emitWord(vm, text, tokenizer);
 }
 
-export function emitSymbolOp(): void {
+export function emitSymbolWord(): void {
   throw new Error('emit-symbol removed; use ref sigil helpers instead.');
 }
 
-export function emitRefSigilOp(vm: VM): void {
+export function emitRefSigilWord(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-ref-sigil');
   const raw = pop(vm);
   const text = decodeString(vm, raw, 'emit-ref-sigil');
@@ -113,7 +108,7 @@ export function emitRefSigilOp(vm: VM): void {
   emitRefSigil(vm, text, tokenizer);
 }
 
-export function finalizeCompileOp(vm: VM): void {
+export function finalizeCompile(vm: VM): void {
   validateFinalState(vm);
   emitOpcode(vm, Op.Abort);
 }
@@ -139,7 +134,7 @@ function formatTokenValue(vm: VM, raw: number): string {
   }
 }
 
-export function unexpectedTokenOp(vm: VM): void {
+export function unexpectedToken(vm: VM): void {
   ensureStackSize(vm, 2, 'unexpected-token');
   const tokenType = Math.trunc(pop(vm));
   const rawValue = pop(vm);
