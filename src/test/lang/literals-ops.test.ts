@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { Op } from '../../ops/opcodes';
 import { createVM, type VM, emitOpcode, emitFloat32, emitUint16 } from '../../core/vm';
 import { SEG_CODE } from '../../core';
@@ -19,7 +18,6 @@ describe('literal emission opcodes', () => {
   });
 
   it('LiteralString opcode is emitted correctly', () => {
-    const internSpy = jest.spyOn(vm.digest, 'intern').mockReturnValue(42);
     const start = vm.compiler.CP;
     emitOpcode(vm, Op.LiteralString);
     emitUint16(vm, 42);

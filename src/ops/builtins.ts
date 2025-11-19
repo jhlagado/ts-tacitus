@@ -30,7 +30,7 @@ import {
 
 import {
   literalNumberOp,
-  skipDefOp,
+  branchOp,
   callOp,
   abortOp,
   exitOp,
@@ -179,7 +179,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
 
   const OPCODE_TO_VERB: Partial<Record<Op, Verb>> = {
     [Op.LiteralNumber]: literalNumberOp,
-    [Op.Branch]: skipDefOp,
+    [Op.Branch]: branchOp,
     [Op.Call]: callOp,
     [Op.Abort]: abortOp,
     [Op.Exit]: exitOp,
