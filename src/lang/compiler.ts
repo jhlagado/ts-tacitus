@@ -15,7 +15,7 @@ export type CompilerState = {
   reservePatchAddr: number;
 };
 
-export function createCompilerState(): CompilerState {
+export function makeCompiler(): CompilerState {
   return {
     CP: 0,
     BCP: 0,
