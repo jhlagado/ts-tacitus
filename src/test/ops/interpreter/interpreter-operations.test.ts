@@ -11,7 +11,7 @@ import {
   abortOp,
   exitOp,
   evalOp,
-  skipDefOp,
+  branchOp,
   callOp,
   literalNumberOp,
   groupLeftOp,
@@ -58,7 +58,7 @@ describe('Built-in Words', () => {
     test('branchOp should jump relative', () => {
       const initialIP = vm.IP;
       emitUint16(vm, 10);
-      skipDefOp(vm);
+      branchOp(vm);
       expect(vm.IP).toBe(initialIP + 12);
     });
     test('callOp should jump to absolute address and set up BP frame', () => {

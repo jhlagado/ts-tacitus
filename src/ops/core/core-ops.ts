@@ -89,23 +89,13 @@ export const literalStringOp: Verb = (vm: VM) => {
 };
 
 /**
- * Implements the skip definition operation.
+ * Implements the generic branch operation.
  *
- * Reads a 16-bit offset from the bytecode stream and advances the instruction pointer
- * by that offset. This is used to skip over function definitions during normal execution.
- *
- * @param {VM} vm - The virtual machine instance.
- *
- * @example
- *
- *
- *
- *
- *
- * skipDefOp(vm)
- *
+ * Reads a signed 16-bit offset from the bytecode stream and adds it to the current
+ * instruction pointer. This is used for unconditional control-flow jumps (e.g. skipping
+ * over colon definitions during normal execution).
  */
-export const skipDefOp: Verb = (vm: VM) => {
+export const branchOp: Verb = (vm: VM) => {
   const offset = nextInt16(vm);
   vm.IP += offset;
 };
