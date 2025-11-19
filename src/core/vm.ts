@@ -19,7 +19,7 @@ import {
   compilerReset,
 } from '../lang/compiler';
 import type { Tokenizer } from '../lang/tokenizer';
-import type { ActiveDefinition } from '../lang/state';
+import type { ActiveDefinition } from '../lang/definitions';
 import { Memory } from './memory';
 import { lookup } from './dictionary';
 import {

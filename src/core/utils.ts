@@ -57,19 +57,6 @@ export const isSpecialChar = (char: string): boolean => ':"\'`{}()[]'.includes(c
  * @param num The number to convert
  * @returns Unsigned 16-bit integer
  */
-export const toUnsigned16 = (num: number): number => num & 0xffff;
-/**
- * Converts number to boolean.
- * @param value The number to convert
- * @returns True if non-zero
- */
-export const toBoolean = (value: number): boolean => value !== 0;
-/**
- * Converts boolean to number.
- * @param value The boolean to convert
- * @returns 1 if true, 0 if false
- */
-export const toNumber = (value: boolean): number => (value ? 1 : 0);
 /**
  * Converts number to 32-bit float precision.
  * @param value The number to convert
@@ -81,34 +68,6 @@ export function toFloat32(value: number): number {
   view.setFloat32(0, value, true);
   return view.getFloat32(0, true);
 }
-
-/**
- * Performs logical NOT operation.
- * @param value The number to negate
- * @returns 1 if value is 0, 0 otherwise
- */
-export const not = (value: number): number => toNumber(!toBoolean(value));
-/**
- * Performs logical AND operation.
- * @param a First operand
- * @param b Second operand
- * @returns 1 if both non-zero, 0 otherwise
- */
-export const and = (a: number, b: number): number => toNumber(toBoolean(a) && toBoolean(b));
-/**
- * Performs logical OR operation.
- * @param a First operand
- * @param b Second operand
- * @returns 1 if either non-zero, 0 otherwise
- */
-export const or = (a: number, b: number): number => toNumber(toBoolean(a) || toBoolean(b));
-/**
- * Performs logical XOR operation.
- * @param a First operand
- * @param b Second operand
- * @returns 1 if exactly one non-zero, 0 otherwise
- */
-export const xor = (a: number, b: number): number => toNumber(toBoolean(a) !== toBoolean(b));
 
 /**
  * Formats are provided by core/format-utils.

@@ -12,7 +12,6 @@ import {
 } from '../core/vm';
 import { TokenType, type Tokenizer } from './tokenizer';
 import { Op } from '../ops/opcodes';
-import { type ActiveDefinition } from './state';
 import {
   markWithLocalReset,
   define,
@@ -22,6 +21,12 @@ import {
   getDictionaryEntryInfo,
 } from '../core/dictionary';
 import { encodeX1516 } from '../core/code-ref';
+
+export type ActiveDefinition = {
+  branchPos: number;
+  checkpoint: number; // Dictionary mark (heap position)
+  entryCell: number;
+};
 
 export function beginDefinition(
   vm: VM,

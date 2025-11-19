@@ -2,7 +2,7 @@ import { type VM, RSTACK_BASE, Tagged, Tag, createRef, getTaggedInfo } from '@sr
 import { emitOpcode } from '../../core/vm';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 import { Op } from '../opcodes';
-import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
+import { endDefinition } from '../../lang/definitions';
 import { readCapsuleLayoutFromHandle } from './layout';
 import { rdepth, rpush, push, rpop, ensureStackSize, pop } from '../../core/vm';
 
@@ -65,5 +65,8 @@ export function endCapsuleOp(vm: VM): void {
   // Emit the capsule-specific epilogue for the dispatch body
   emitOpcode(vm, Op.ExitDispatch);
   // Finalise the surrounding colon definition (replaces EndDefinition closer)
-  invokeEndDefinitionHandler(vm);
+  if (!vm.currentDefinition) {
+    throw new Error('End-definition handler not installed');
+  }
+  endDefinition(vm);
 }

@@ -14,7 +14,7 @@ import {
   clauseDoImmediateOp,
   defaultImmediateOp,
   nilImmediateOp,
-} from '../../lang/meta/case';
+} from '../../lang/meta/immediate';
 import { Op } from '../../ops/opcodes';
 import { evalOp } from '../../ops/core';
 import { endCaseOp } from '../../ops/core/core-ops';

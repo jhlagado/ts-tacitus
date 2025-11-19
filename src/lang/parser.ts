@@ -24,6 +24,7 @@ import {
   getStackData,
   emitOpcode,
   emitUint16,
+  emitFloat32,
   emitUserWordCall,
   resetCompiler,
   depth,
@@ -44,7 +45,6 @@ import {
   NIL,
   MIN_USER_OPCODE,
 } from '@src/core';
-import { emitNumber, emitString } from './literals';
 import { ensureNoOpenDefinition } from './definitions';
 import {
   runImmediateCode,
@@ -54,7 +54,6 @@ import {
 } from './meta';
 import { lookup } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
-import { shouldUseTacitCompileLoop } from './feature-flags';
 import { runTacitCompileLoop } from './compile-loop';
 
 let activeTokenizer: Tokenizer | null = null;
@@ -96,7 +95,7 @@ export function tokenNext(vm: VM): { type: TokenType; raw: number } {
 }
 
 function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
-  if (!shouldUseTacitCompileLoop()) {
+  if (process.env['TACIT_COMPILE_LOOP'] !== '1') {
     return false;
   }
 
@@ -203,10 +202,12 @@ export function validateFinalState(vm: VM): void {
 export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
   switch (token.type) {
     case TokenType.NUMBER:
-      emitNumber(vm, token.value as number);
+      emitOpcode(vm, Op.LiteralNumber);
+      emitFloat32(vm, token.value as number);
       break;
     case TokenType.STRING:
-      emitString(vm, token.value as string);
+      emitOpcode(vm, Op.LiteralString);
+      emitUint16(vm, vm.digest.intern(token.value as string));
       break;
     case TokenType.SPECIAL:
       handleSpecial(vm, token.value as string, tokenizer);
@@ -429,10 +430,12 @@ function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
       break;
     }
     if (tok.type === TokenType.NUMBER) {
-      emitNumber(vm, tok.value as number);
+      emitOpcode(vm, Op.LiteralNumber);
+      emitFloat32(vm, tok.value as number);
       continue;
     } else if (tok.type === TokenType.STRING) {
-      emitString(vm, tok.value as string);
+      emitOpcode(vm, Op.LiteralString);
+      emitUint16(vm, vm.digest.intern(tok.value as string));
       continue;
     }
     // Allow empty path [] or numbers only for now
@@ -490,7 +493,8 @@ function parseApostropheString(vm: VM, tokenizer: Tokenizer): void {
     tokenizer.position++;
     tokenizer.column++;
   }
-  emitString(vm, s);
+  emitOpcode(vm, Op.LiteralString);
+  emitUint16(vm, vm.digest.intern(s));
 }
 
 /**
