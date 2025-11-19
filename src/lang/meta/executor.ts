@@ -1,11 +1,10 @@
 import { SyntaxError, RSTACK_BASE, STACK_BASE } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
-import { Op } from '../../ops/opcodes';
+import { type Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 import { evalOp } from '../../ops/core';
 import { nextOpcode, rdepth, getStackData, rpush } from '../../core/vm';
 import type { VM } from '../../core/vm';
-import { decodeX1516 } from '../../core/code-ref';
 
 export function semicolonImmediateOp(vm: VM): void {
   if (vm.sp - STACK_BASE === 0) {

@@ -36,7 +36,6 @@ import { getTaggedInfo, isNIL, Tag } from './tagged';
 import { decodeX1516 } from './code-ref';
 import { Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
-import { registerLanguageBuiltins } from '../lang/bootstrap';
 import {
   StackUnderflowError,
   StackOverflowError,
@@ -118,7 +117,6 @@ export function createVM(useCache = true): VM {
       compiler: createCompilerState(),
     };
       registerBuiltins(vm);
-      registerLanguageBuiltins(vm);
       // Snapshot state AFTER builtins are registered
       cachedTestVM = vm;
       builtinSnapshot = {
@@ -165,7 +163,6 @@ export function createVM(useCache = true): VM {
     compiler: createCompilerState(),
   };
   registerBuiltins(vm);
-  registerLanguageBuiltins(vm);
   return vm;
 }
 

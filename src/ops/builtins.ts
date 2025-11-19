@@ -44,24 +44,6 @@ import {
   endOfOp,
   endCaseOp,
 } from './core';
-import { beginDefinitionImmediateOp, recurseImmediateOp } from '../lang/meta/definitions';
-import { beginIfImmediateOp, beginElseImmediateOp } from '../lang/meta/conditionals';
-import { beginMatchImmediateOp, beginWithImmediateOp } from '../lang/meta/match-with';
-import {
-  beginCaseImmediateOp,
-  clauseDoImmediateOp,
-  defaultImmediateOp,
-  nilImmediateOp,
-} from '../lang/meta/case';
-import { beginCapsuleImmediateOp } from '../lang/meta/capsules';
-import { semicolonImmediateOp } from '../lang/meta/executor';
-import {
-  varImmediateOp,
-  assignImmediateOp,
-  globalImmediateOp,
-  incrementImmediateOp,
-} from '../lang/meta/variables';
-import { getLangBridgeHandlers } from './lang-bridge';
 import {
   addOp,
   subtractOp,
@@ -152,17 +134,6 @@ const nopOp: Verb = () => {
   // No operation - intentionally empty
 };
 
-const sentinelEncodeOp: Verb = (vm: VM) => {
-  ensureStackSize(vm, 1, 'sentinel');
-  const raw = pop(vm);
-  const value = Math.trunc(raw);
-  push(vm, Tagged(value, Tag.SENTINEL));
-};
-
-const emitSymbolOp: Verb = () => {
-  throw new Error('emit-symbol removed; use ref sigil helpers instead.');
-};
-
 /**
  * Executes a specific operation based on the given opcode.
  *
@@ -208,22 +179,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
 
   const OPCODE_TO_VERB: Partial<Record<Op, Verb>> = {
     [Op.LiteralNumber]: literalNumberOp,
-    [Op.BeginDefinitionImmediate]: beginDefinitionImmediateOp,
-    [Op.BeginIfImmediate]: beginIfImmediateOp,
-    [Op.BeginElseImmediate]: beginElseImmediateOp,
-    [Op.BeginMatchImmediate]: beginMatchImmediateOp,
-    [Op.BeginWithImmediate]: beginWithImmediateOp,
-    [Op.BeginCaseImmediate]: beginCaseImmediateOp,
-    [Op.ClauseDoImmediate]: clauseDoImmediateOp,
-    [Op.DefaultImmediate]: defaultImmediateOp,
-    [Op.NilImmediate]: nilImmediateOp,
-    [Op.BeginCapsuleImmediate]: beginCapsuleImmediateOp,
-    [Op.VarImmediate]: varImmediateOp,
-    [Op.AssignImmediate]: assignImmediateOp,
-    [Op.GlobalImmediate]: globalImmediateOp,
-    [Op.IncrementImmediate]: incrementImmediateOp,
-    [Op.SemicolonImmediate]: semicolonImmediateOp,
-    [Op.RecurseImmediate]: recurseImmediateOp,
     [Op.Branch]: skipDefOp,
     [Op.Call]: callOp,
     [Op.Abort]: abortOp,
@@ -326,35 +281,6 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     [Op.BufPop]: unwriteOp,
     [Op.BufShift]: readOp,
     [Op.BufUnshift]: unreadOp,
-    [Op.TokenNext]: vm => {
-      getLangBridgeHandlers().tokenNext(vm);
-    },
-    [Op.SentinelEncode]: sentinelEncodeOp,
-    [Op.EmitNumberWord]: vm => {
-      getLangBridgeHandlers().emitNumber(vm);
-    },
-    [Op.EmitStringWord]: vm => {
-      getLangBridgeHandlers().emitString(vm);
-    },
-    [Op.HandleSpecialWord]: vm => {
-      getLangBridgeHandlers().handleSpecial(vm);
-    },
-    [Op.EmitWordCall]: vm => {
-      getLangBridgeHandlers().emitWord(vm);
-    },
-    [Op.EmitSymbolWord]: emitSymbolOp,
-    [Op.EmitRefSigilWord]: vm => {
-      getLangBridgeHandlers().emitRefSigil(vm);
-    },
-    [Op.FinalizeCompile]: vm => {
-      getLangBridgeHandlers().finalizeCompile(vm);
-    },
-    [Op.UnexpectedTokenWord]: vm => {
-      getLangBridgeHandlers().unexpectedToken(vm);
-    },
-    [Op.RunTacitCompileLoop]: vm => {
-      getLangBridgeHandlers().runCompileLoop(vm);
-    },
   };
 
   const impl = OPCODE_TO_VERB[opcode];

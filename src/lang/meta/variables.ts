@@ -32,7 +32,7 @@ function requireTokenizer(vm: VM, word: string): Tokenizer {
 
 function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
   emitOpcode(vm, Op.OpenList);
-  while (true) {
+  for (;;) {
     const tok = tokenizer.nextToken();
     if (tok.type === TokenType.SPECIAL && tok.value === ']') {
       break;
