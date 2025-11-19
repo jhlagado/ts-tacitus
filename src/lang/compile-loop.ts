@@ -1,8 +1,7 @@
 import { Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
 import type { VM } from '@src/core';
-import { ensureStackSize, pop, getStackData, emitOpcode, push } from '../core/vm';
+import { ensureStackSize, pop, getStackData, emitOpcode, push, emitFloat32, emitUint16 } from '../core/vm';
 import { Op } from '../ops/opcodes';
-import { emitNumber, emitString } from './literals';
 import {
   handleSpecial,
   emitWord,
@@ -61,14 +60,16 @@ function decodeString(vm: VM, raw: number, context: string): string {
 export function emitNumberWord(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-number');
   const value = pop(vm);
-  emitNumber(vm, value);
+  emitOpcode(vm, Op.LiteralNumber);
+  emitFloat32(vm, value);
 }
 
 export function emitStringWord(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-string');
   const raw = pop(vm);
   const text = decodeString(vm, raw, 'emit-string');
-  emitString(vm, text);
+  emitOpcode(vm, Op.LiteralString);
+  emitUint16(vm, vm.digest.intern(text));
 }
 
 export function handleSpecialWord(vm: VM): void {

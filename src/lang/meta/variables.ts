@@ -11,11 +11,11 @@ import {
   type VM,
   emitOpcode,
   emitUint16,
+  emitFloat32,
   ensureReserveEmitted,
   getStackData,
 } from '../../core/vm';
 import { define, lookup } from '../../core/dictionary';
-import { emitNumber, emitString } from '../literals';
 import { TokenType, type Tokenizer } from '../tokenizer';
 import { Op } from '../../ops/opcodes';
 import { getCellFromRef } from '../../core/refs';
@@ -38,11 +38,13 @@ function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
       break;
     }
     if (tok.type === TokenType.NUMBER) {
-      emitNumber(vm, tok.value as number);
+      emitOpcode(vm, Op.LiteralNumber);
+      emitFloat32(vm, tok.value as number);
       continue;
     }
     if (tok.type === TokenType.STRING) {
-      emitString(vm, tok.value as string);
+      emitOpcode(vm, Op.LiteralString);
+      emitUint16(vm, vm.digest.intern(tok.value as string));
       continue;
     }
     throw new SyntaxError(

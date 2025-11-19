@@ -2,22 +2,25 @@ import { SyntaxError } from '@src/core';
 import { getStackData, type VM } from '../../core/vm';
 import { Op } from '../../ops/opcodes';
 import { beginDefinitionImmediateOp, recurseImmediateOp } from './definitions';
-import { beginIfImmediateOp, beginElseImmediateOp, ensureNoOpenConditionals } from './conditionals';
 import { runImmediateCode, semicolonImmediateOp } from './executor';
-import { beginMatchImmediateOp, beginWithImmediateOp } from './match-with';
-import {
-  beginCaseImmediateOp,
-  clauseDoImmediateOp,
-  defaultImmediateOp,
-  nilImmediateOp,
-} from './case';
-import { beginCapsuleImmediateOp } from './capsules';
 import {
   varImmediateOp,
   assignImmediateOp,
   globalImmediateOp,
   incrementImmediateOp,
 } from './variables';
+import {
+  beginIfImmediateOp,
+  beginElseImmediateOp,
+  ensureNoOpenConditionals,
+  beginMatchImmediateOp,
+  beginWithImmediateOp,
+  beginCaseImmediateOp,
+  clauseDoImmediateOp,
+  defaultImmediateOp,
+  nilImmediateOp,
+  beginCapsuleImmediateOp,
+} from './immediate';
 
 export {
   beginDefinitionImmediateOp,

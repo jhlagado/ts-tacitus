@@ -23,7 +23,7 @@ import {
   SyntaxError,
   RSTACK_BASE,
 } from '@src/core';
-import { invokeEndDefinitionHandler } from '../../lang/compiler-hooks';
+import { endDefinition } from '../../lang/definitions';
 import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 import { emitOpcode, emitUint16 } from '../../core/vm';
@@ -279,7 +279,10 @@ export const evalOp: Verb = (vm: VM) => {
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
 export const endDefinitionOp: Verb = vm => {
-  invokeEndDefinitionHandler(vm);
+  if (!vm.currentDefinition) {
+    throw new Error('End-definition handler not installed');
+  }
+  endDefinition(vm);
 };
 
 /**

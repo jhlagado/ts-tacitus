@@ -2,13 +2,6 @@ import {
   isDigit,
   isWhitespace,
   isGroupingChar,
-  toUnsigned16,
-  toBoolean,
-  toNumber,
-  not,
-  and,
-  or,
-  xor,
   formatValue,
 } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
@@ -66,39 +59,6 @@ describe('Utility Functions', () => {
       expect(isGroupingChar('a')).toBe(false);
       expect(isGroupingChar('1')).toBe(false);
       expect(isGroupingChar(' ')).toBe(false);
-    });
-  });
-  describe('Logical and conversion functions', () => {
-    test('toUnsigned16 converts numbers to 16-bit', () => {
-      expect(toUnsigned16(0)).toBe(0);
-      expect(toUnsigned16(0xffff + 1)).toBe(0);
-      expect(toUnsigned16(0x12345)).toBe(0x2345);
-    });
-    test('toBoolean returns true for non-zero and false for zero', () => {
-      expect(toBoolean(5)).toBe(true);
-      expect(toBoolean(0)).toBe(false);
-    });
-    test('toNumber converts boolean to number', () => {
-      expect(toNumber(true)).toBe(1);
-      expect(toNumber(false)).toBe(0);
-    });
-    test('not returns the logical negation', () => {
-      expect(not(5)).toBe(0);
-      expect(not(0)).toBe(1);
-    });
-    test('and returns correct logical and', () => {
-      expect(and(5, 10)).toBe(1);
-      expect(and(5, 0)).toBe(0);
-    });
-    test('or returns correct logical or', () => {
-      expect(or(0, 0)).toBe(0);
-      expect(or(0, 10)).toBe(1);
-      expect(or(5, 0)).toBe(1);
-    });
-    test('xor returns correct logical exclusive or', () => {
-      expect(xor(5, 0)).toBe(1);
-      expect(xor(5, 5)).toBe(0);
-      expect(xor(0, 0)).toBe(0);
     });
   });
   describe('formatValue function', () => {

@@ -2,7 +2,6 @@ import { addOp } from '../../../ops/math';
 import { dupOp, swapOp } from '../../../ops/stack';
 import { createVM, type VM } from '../../../core/vm';
 import { Tag, Tagged } from '../../../core/tagged';
-import { toUnsigned16 } from '../../../core/utils';
 import { Op } from '../../../ops/opcodes';
 import { RSTACK_BASE, RSTACK_TOP, STACK_BASE } from '../../../core/constants';
 import { rpush, push, rpop, getStackData, pop, emitUint16, emitFloat32 } from '../../../core/vm';
@@ -68,7 +67,7 @@ describe('Built-in Words', () => {
       const testAddress = 0x12345;
       emitUint16(vm, testAddress);
       callOp(vm);
-      expect(vm.IP).toBe(toUnsigned16(testAddress));
+      expect(vm.IP).toBe(testAddress & 0xffff);
       expect(vm.bp).toBe(vm.rsp);
       const savedBP = rpop(vm);
       expect(savedBP).toBe(originalBP - RSTACK_BASE);
