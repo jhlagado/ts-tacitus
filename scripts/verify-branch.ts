@@ -6,7 +6,7 @@ import { Tagged, Tag } from './src/core/tagged';
 import { Op } from './src/ops/opcodes';
 import { registerBuiltins } from './src/ops/builtins-register';
 import { executeOp } from './src/ops/builtins';
-import { createCompilerState } from './src/lang/compiler';
+import { makeCompiler } from './src/lang/compiler';
 
 const memory = new Memory();
 const digest = new Digest(memory);
@@ -25,7 +25,7 @@ const vm = {
   head: 0,
   currentDefinition: null,
   currentTokenizer: null,
-  compiler: createCompilerState(),
+  compiler: makeCompiler(),
 };
 registerBuiltins(vm);
 

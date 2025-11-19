@@ -5,7 +5,7 @@
 
 import {
   type CompilerState,
-  createCompilerState,
+  makeCompiler,
   compilerCompileOpcode,
   compilerCompile16,
   compilerCompileFloat32,
@@ -114,7 +114,7 @@ export function createVM(useCache = true): VM {
         head: 0,
       currentDefinition: null,
       currentTokenizer: null,
-      compiler: createCompilerState(),
+      compiler: makeCompiler(),
     };
       registerBuiltins(vm);
       // Snapshot state AFTER builtins are registered
@@ -137,7 +137,7 @@ export function createVM(useCache = true): VM {
       cachedTestVM.currentTokenizer = null;
       cachedTestVM.gp = builtinSnapshot.gp;
       cachedTestVM.head = builtinSnapshot.head;
-      cachedTestVM.compiler = createCompilerState();
+      cachedTestVM.compiler = makeCompiler();
     }
     return cachedTestVM;
   }
@@ -160,7 +160,7 @@ export function createVM(useCache = true): VM {
     head: 0,
     currentDefinition: null,
     currentTokenizer: null,
-    compiler: createCompilerState(),
+    compiler: makeCompiler(),
   };
   registerBuiltins(vm);
   return vm;

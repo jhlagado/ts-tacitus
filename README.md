@@ -113,8 +113,9 @@ yarn start
 
 ### Getting Started
 
-- [`docs/specs/README.md`](docs/specs/README.md) - Specification overview
+- [`docs/specs/readme.md`](docs/specs/readme.md) - Specification overview
 - [`docs/learn/`](docs/learn/) - Tutorials and learning materials
+- [`docs/rules/assistant-guide.md`](docs/rules/assistant-guide.md) - Combined assistant and contributor guardrails
 
 ## Language Strengths
 

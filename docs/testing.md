@@ -14,7 +14,7 @@ tests small, direct, and behaviour‑focused.
 - [Decode Tagged Values (NaN‑Boxing)](#s-tagged) — specs: [tagged.md](./specs/tagged.md); tests: [`src/test/core/tagged.test.ts`](../src/test/core/tagged.test.ts)
 - [Globals and Assignment](#s-globals) — specs: [variables-and-refs.md](./specs/variables-and-refs.md); tests: [`src/test/lang/globals.basic.test.ts`](../src/test/lang/globals.basic.test.ts)
 - [Lists: Size, Addressing, Structure](#s-lists) — specs: [lists.md](./specs/lists.md); tests: [`src/test/ops/lists/**`](../src/test/ops/lists)
-- [Stack Ops: Verify Stack Effects](#s-stack-ops) — primer: [specs/README.md](./specs/README.md); tests: [`src/test/ops/stack/**`](../src/test/ops/stack)
+- [Stack Ops: Verify Stack Effects](#s-stack-ops) — primer: [specs/readme.md](./specs/readme.md); tests: [`src/test/ops/stack/**`](../src/test/ops/stack)
 - [Printing and REPL Output](#s-printing) — tests: [`src/test/ops/print/print-operations.test.ts`](../src/test/ops/print/print-operations.test.ts)
 - [VM State Snapshots (When You Need Them)](#s-snapshots) — tests: [`src/test/utils/vm-state-snapshot.test.ts`](../src/test/utils/vm-state-snapshot.test.ts)
 - [Checklist (Spec‑First Workflow)](#s-checklist) — spec-first workflow summary
@@ -28,7 +28,7 @@ tests small, direct, and behaviour‑focused.
 
 Before you start:
 
-- Skim [Stack Primer](./specs/README.md) and [Core invariants](./specs/core-invariants.md).
+- Skim [Stack Primer](./specs/readme.md) and [Core invariants](./specs/core-invariants.md).
 - Know how to run tests (`yarn test`) and filter by name/path with Jest flags.
 
 Objectives of this tutorial:
@@ -110,7 +110,7 @@ expect(captureTacitOutput('( 1 ( 2 3 ) ) raw').length).toBeGreaterThan(0);
 
 Read
 
-- This tutorial sections above (Harness and Reset) and the Stack Primer in specs/README.
+- This tutorial sections above (Harness and Reset) and the Stack Primer in specs/readme.md.
 
 Do
 
@@ -169,7 +169,7 @@ Tips
 - Tests that intentionally leave state dirty should live in their own `describe` with explicit
   cleanup in `afterEach`.
 
-See also: [Known Issues](../KNOWN_ISSUES.md) for context on isolation problems and why resets are mandatory.
+See also: [Known Issues](../known-issues.md) for context on isolation problems and why resets are mandatory.
 
 <a id="s-tagged"></a>
 
@@ -429,7 +429,7 @@ Tips
 
 ## Stack Ops: Verify Stack Effects
 
-Spec orientation: `specs/README.md` Stack Primer.
+Spec orientation: `specs/readme.md` Stack Primer.
 
 Test the observable stack before/after, including lists:
 
@@ -552,7 +552,7 @@ Team habits and CI tips
 
 ## Common Pitfalls and How to Avoid Them
 
-- TOS is rightmost; stack grows upward (spec: `specs/README.md`). Draw before/after states.
+- TOS is rightmost; stack grows upward (spec: `specs/readme.md`). Draw before/after states.
 - Variadics require explicit length/sentinel/list collection — fixed arity otherwise.
 - Value‑by‑default: stack ops do not deref; structure‑aware ops and `load/fetch/store` do (spec: `variables-and-refs.md`).
 - NaN collapse in Jest: decode before compare (spec: `tagged.md`).

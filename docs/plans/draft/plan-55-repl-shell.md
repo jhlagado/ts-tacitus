@@ -53,7 +53,7 @@ Tacit already compiles and executes one submitted “line” (string) at a time.
 
 5. **Refinement & tests**
    - Unit test history replay and multiline behaviors.
-   - Update developer docs / README with new keybindings.
+   - Update developer docs / readme with new keybindings.
    - Consider saving history across sessions (optional stretch).
 
 ## Risks / Considerations

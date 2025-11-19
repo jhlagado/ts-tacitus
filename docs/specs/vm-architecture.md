@@ -268,7 +268,7 @@ All reference payloads use arena-absolute cell indices. Decoding maps the payloa
 ## Related Specifications
 
 - `docs/specs/tagged.md` - Value representation
-- `docs/specs/README.md` - Stack primer and index
+- `docs/specs/readme.md` - Stack primer and index
 - `docs/specs/core-invariants.md` - Shared invariants and rules
 
 ---
