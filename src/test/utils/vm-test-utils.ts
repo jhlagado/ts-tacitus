@@ -179,6 +179,21 @@ export function pushTaggedValue(vm: VM, value: number, tag: Tag): void {
 }
 
 /**
+ * Push a NUMBER-tagged value convenience helper.
+ */
+export function pushNumber(vm: VM, value: number): void {
+  pushFn(vm, value);
+}
+
+/**
+ * Push a LIST literal built from raw slot values.
+ */
+export function pushListLiteral(vm: VM, ...values: number[]): void {
+  values.forEach(value => pushNumber(vm, value));
+  pushTaggedValue(vm, values.length, Tag.LIST);
+}
+
+/**
  * Get stack contents with tag information for debugging
  */
 export function getStackWithTags(vm: VM): { value: number; tag: string }[] {
