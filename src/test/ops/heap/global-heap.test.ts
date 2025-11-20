@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
-import { gpushOp, gpopOp, gpeekOp } from '../../../ops/heap';
+import { gpushOp, gpopOp, gpeekOp, forgetOp } from '../../../ops/heap';
 import {
   GLOBAL_SIZE,
   GLOBAL_BASE,
@@ -92,6 +92,24 @@ describe('Global heap primitives', () => {
     expect(memoryReadCell(vm.memory, GLOBAL_BASE + baseGp + 1)).toBe(7);
   });
 
+  test('gpush copies list referenced by REF handle', () => {
+    // First, push a list to heap to create a REF to its header
+    push(vm, 2);
+    push(vm, 1);
+    push(vm, Tagged(2, Tag.LIST));
+    gpushOp(vm);
+    const listHeaderCell = baseGp + 2; // header at gp-1 after push
+    const listRef = createRef(GLOBAL_BASE + listHeaderCell);
+
+    // Now push that REF and copy via gpushOp
+    push(vm, listRef);
+    gpushOp(vm);
+
+    // Expect a duplicate list appended to heap (span size = 3)
+    expect(vm.gp).toBe(baseGp + 6);
+    expect(memoryReadCell(vm.memory, GLOBAL_BASE + baseGp + 5)).toBe(Tagged(2, Tag.LIST));
+  });
+
   test('gpeek rejects empty heap', () => {
     // Set GP to 0 to simulate empty heap
     vm.gp = 0;
@@ -101,6 +119,16 @@ describe('Global heap primitives', () => {
   test('gpop throws on empty heap', () => {
     vm.gp = 0;
     expect(() => gpopOp(vm)).toThrow(/empty heap/);
+  });
+
+  test('forgetOp rejects non-REF and out-of-range marks', () => {
+    push(vm, 123); // not a REF
+    expect(() => forgetOp(vm)).toThrow(/expects REF/);
+
+    // Push a valid ref but make it out of range
+    const badRef = createRef(GLOBAL_BASE + vm.gp + 5);
+    push(vm, badRef);
+    expect(() => forgetOp(vm)).toThrow(/out of range|beyond current heap top/);
   });
 
   // gpop no longer accepts input; reference validation tests removed

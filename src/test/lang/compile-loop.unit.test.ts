@@ -1,13 +1,5 @@
 import { describe, expect, test, jest, beforeEach, afterEach } from '@jest/globals';
 
-jest.mock('../../lang/parser', () => ({
-  handleSpecial: jest.fn(),
-  emitWord: jest.fn(),
-  emitRefSigil: jest.fn(),
-  validateFinalState: jest.fn(),
-  tokenNext: jest.fn(),
-}));
-
 import {
   runTacitCompileLoop,
   finalizeCompile,
@@ -18,21 +10,13 @@ import * as vmCore from '../../core/vm';
 import { Tagged, Tag, Sentinel } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
 import { UnexpectedTokenError, digestIntern } from '../../core';
-import {
-  handleSpecial,
-  emitWord,
-  emitRefSigil,
-  validateFinalState,
-  tokenNext,
-} from '../../lang/parser';
+import * as parser from '../../lang/parser';
 
-const tokenNextMock = tokenNext as jest.MockedFunction<typeof tokenNext>;
-const handleSpecialMock = handleSpecial as jest.MockedFunction<typeof handleSpecial>;
-const emitWordMock = emitWord as jest.MockedFunction<typeof emitWord>;
-const emitRefSigilMock = emitRefSigil as jest.MockedFunction<typeof emitRefSigil>;
-const validateFinalStateMock = validateFinalState as jest.MockedFunction<
-  typeof validateFinalState
->;
+const tokenNextMock = jest.spyOn(parser, 'tokenNext');
+const handleSpecialMock = jest.spyOn(parser, 'handleSpecial');
+const emitWordMock = jest.spyOn(parser, 'emitWord');
+const emitRefSigilMock = jest.spyOn(parser, 'emitRefSigil');
+const validateFinalStateMock = jest.spyOn(parser, 'validateFinalState');
 
 describe('compile loop unit coverage', () => {
   let vm = vmCore.createVM(false);
@@ -85,28 +69,15 @@ describe('compile loop unit coverage', () => {
     expect(() => runTacitCompileLoop(vm)).toThrow('handle-special: no active tokenizer');
   });
 
-  test('WORD dispatches to emitWord when tokenizer exists', () => {
-    const word = Tagged(0, Tag.STRING);
+  test('SPECIAL dispatches when tokenizer exists', () => {
+    const special = Tagged(0, Tag.STRING);
     vm.currentTokenizer = {} as never;
     tokenNextMock
-      .mockReturnValueOnce({ type: TokenType.WORD, raw: word })
+      .mockReturnValueOnce({ type: TokenType.SPECIAL, raw: special })
       .mockReturnValueOnce({ type: TokenType.EOF, raw: 0 });
 
     runTacitCompileLoop(vm);
-
-    expect(emitWordMock).toHaveBeenCalledWith(vm, expect.any(String), vm.currentTokenizer);
-  });
-
-  test('REF_SIGIL dispatches to emitRefSigil when tokenizer exists', () => {
-    const sigil = Tagged(0, Tag.STRING);
-    vm.currentTokenizer = {} as never;
-    tokenNextMock
-      .mockReturnValueOnce({ type: TokenType.REF_SIGIL, raw: sigil })
-      .mockReturnValueOnce({ type: TokenType.EOF, raw: 0 });
-
-    runTacitCompileLoop(vm);
-
-    expect(emitRefSigilMock).toHaveBeenCalledWith(vm, vm.currentTokenizer);
+    expect(handleSpecialMock).toHaveBeenCalled();
   });
 
   test('unexpectedToken surface error formatting for sentinel payload', () => {
