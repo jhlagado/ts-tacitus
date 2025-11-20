@@ -1,7 +1,7 @@
 import { SyntaxError } from '@src/core';
 import { getStackData, type VM } from '../../core/vm';
 import { Op } from '../../ops/opcodes';
-import { beginDefinitionImmediateOp, recurseImmediateOp } from './definitions';
+import { beginDefinitionImmediateOp, recurseImmediateOp } from './definition-ops';
 import { runImmediateCode, semicolonImmediateOp } from './executor';
 import {
   varImmediateOp,

@@ -2,7 +2,7 @@ import { Op } from '../../ops/opcodes';
 import { createVM, VM } from '../../core';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
-import { executeProgram } from '../../lang/interpreter';
+import { executeProgram } from '../../lang/runner';
 import { next8, nextInt16, nextFloat32, resolveSymbol, pop } from '../../core/vm';
 
 describe('Comprehensive Parser Tests', () => {

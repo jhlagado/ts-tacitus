@@ -19,7 +19,6 @@ import {
   compilerReset,
 } from '../lang/compiler';
 import type { Tokenizer } from '../lang/tokenizer';
-import type { ActiveDefinition } from '../lang/definitions';
 import { Memory } from './memory';
 import { lookup } from './dictionary';
 import {
@@ -73,8 +72,12 @@ export type VM = {
   head: number;
   /** Current local variable count */
   localCount: number;
-  /** Active colon definition during compilation (null when idle) */
-  currentDefinition: ActiveDefinition | null;
+  /** Branch placeholder location for active definition (-1 when idle) */
+  defBranchPos: number;
+  /** Dictionary checkpoint mark for active definition (-1 when idle) */
+  defCheckpoint: number;
+  /** Dictionary head cell for hidden definition (-1 when idle) */
+  defEntryCell: number;
   /** Active tokenizer during parsing (for immediates) */
   currentTokenizer: Tokenizer | null;
 };
@@ -112,10 +115,12 @@ export function createVM(useCache = true): VM {
         listDepth: 0,
         localCount: 0,
         head: 0,
-      currentDefinition: null,
-      currentTokenizer: null,
-      compiler: makeCompiler(),
-    };
+        defBranchPos: -1,
+        defCheckpoint: -1,
+        defEntryCell: -1,
+        currentTokenizer: null,
+        compiler: makeCompiler(),
+      };
       registerBuiltins(vm);
       // Snapshot state AFTER builtins are registered
       cachedTestVM = vm;
@@ -133,7 +138,9 @@ export function createVM(useCache = true): VM {
       cachedTestVM.debug = false;
       cachedTestVM.listDepth = 0;
       cachedTestVM.localCount = 0;
-      cachedTestVM.currentDefinition = null;
+      cachedTestVM.defBranchPos = -1;
+      cachedTestVM.defCheckpoint = -1;
+      cachedTestVM.defEntryCell = -1;
       cachedTestVM.currentTokenizer = null;
       cachedTestVM.gp = builtinSnapshot.gp;
       cachedTestVM.head = builtinSnapshot.head;
@@ -158,7 +165,9 @@ export function createVM(useCache = true): VM {
     listDepth: 0,
     localCount: 0,
     head: 0,
-    currentDefinition: null,
+    defBranchPos: -1,
+    defCheckpoint: -1,
+    defEntryCell: -1,
     currentTokenizer: null,
     compiler: makeCompiler(),
   };

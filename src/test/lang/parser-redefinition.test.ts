@@ -1,4 +1,4 @@
-import { executeProgram } from '../../lang/interpreter';
+import { executeProgram } from '../../lang/runner';
 import { createVM, getStackData, type VM } from '../../core/vm';
 
 function captureOutput(run: () => void): string[] {

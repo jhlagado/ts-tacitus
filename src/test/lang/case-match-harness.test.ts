@@ -1,6 +1,6 @@
 import { describe, beforeEach, test, expect } from '@jest/globals';
 import { createVM, type VM, getStackData } from '../../core/vm';
-import { executeProgram } from '../../lang/interpreter';
+import { executeProgram } from '../../lang/runner';
 
 describe('Tacit case/match harness', () => {
   let vm: VM;

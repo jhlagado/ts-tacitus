@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeAll, afterAll } from '@jest/globals';
 import { createVM, getStackData } from '../../core/vm';
-import { executeProgram } from '../../lang/interpreter';
+import { executeProgram } from '../../lang/runner';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 

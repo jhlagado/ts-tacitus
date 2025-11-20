@@ -12,9 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { type VM, createVM } from '../core/vm';
-import { parse } from './parser';
-import { execute } from './interpreter';
-import { Tokenizer } from './tokenizer';
+import { executeProgram } from './runner';
 
 /** The standard file extension for Tacit source files */
 export const TACIT_FILE_EXTENSION = '.tacit';
@@ -65,9 +63,7 @@ export function processFile(vm: VM, filePath: string): boolean {
       }
 
       try {
-        const tokenizer = new Tokenizer(line);
-        parse(vm, tokenizer);
-        execute(vm, vm.compiler.BCP);
+        executeProgram(vm, line);
       } catch (error) {
         console.error(`Error in file ${filePathWithExt} at line ${i + 1}:`);
         if (error instanceof Error) {

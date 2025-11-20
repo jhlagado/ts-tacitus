@@ -45,7 +45,7 @@ import {
   NIL,
   MIN_USER_OPCODE,
 } from '@src/core';
-import { ensureNoOpenDefinition } from './definitions';
+import { ensureNoOpenDefinition } from './definition-system';
 import {
   runImmediateCode,
   ensureNoOpenConditionals,
@@ -129,7 +129,9 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
 export function parse(vm: VM, tokenizer: Tokenizer): void {
   resetCompiler(vm);
 
-  vm.currentDefinition = null;
+  vm.defBranchPos = -1;
+  vm.defCheckpoint = -1;
+  vm.defEntryCell = -1;
   const previousTokenizer = vm.currentTokenizer;
   vm.currentTokenizer = tokenizer;
   try {
@@ -142,7 +144,9 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
       emitOpcode(vm, Op.Abort);
     }
   } finally {
-    vm.currentDefinition = null;
+    vm.defBranchPos = -1;
+    vm.defCheckpoint = -1;
+    vm.defEntryCell = -1;
     vm.currentTokenizer = previousTokenizer ?? null;
   }
 }
@@ -381,7 +385,7 @@ export function emitRefSigil(vm: VM, varName: string, _tokenizer: Tokenizer): vo
   // Existing variable reference logic...
   // Inside function: allow locals and globals
   // &buf compiles to VarRef + Fetch, where Fetch returns a REF (does NOT materialize)
-  if (vm.currentDefinition) {
+  if (vm.defEntryCell !== -1) {
     if (tag === Tag.LOCAL) {
       emitOpcode(vm, Op.VarRef);
       emitUint16(vm, value);
