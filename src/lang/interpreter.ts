@@ -15,10 +15,8 @@
  */
 
 import { executeOp } from '../ops/builtins';
-import { parse } from './parser';
 import { Tagged, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
-import { Tokenizer } from './tokenizer';
 import { type VM, nextOpcode, getStackData, rpush, resetCompiler } from '../core/vm';
 
 // SEG_CODE imported from @src/core
@@ -81,20 +79,6 @@ export function execute(vm: VM, start: number): void {
 
   resetCompiler(vm);
   vm.compiler.preserve = false;
-}
-
-/**
- * Parses and executes a string of Tacit code.
- *
- * This function provides a high-level entry point for running Tacit programs.
- * It tokenizes and parses the input code, then executes the resulting bytecode.
- *
- * @param {VM} vm - The VM instance to use
- * @param {string} code - The Tacit source code to execute
- */
-export function executeProgram(vm: VM, code: string): void {
-  parse(vm, new Tokenizer(code));
-  execute(vm, vm.compiler.BCP);
 }
 
 /**

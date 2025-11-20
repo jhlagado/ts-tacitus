@@ -22,17 +22,11 @@ import {
 } from '../core/dictionary';
 import { encodeX1516 } from '../core/code-ref';
 
-export type ActiveDefinition = {
-  branchPos: number;
-  checkpoint: number; // Dictionary mark (heap position)
-  entryCell: number;
-};
-
 export function beginDefinition(
   vm: VM,
   tokenizer: Tokenizer,
 ): void {
-  if (vm.currentDefinition) {
+  if (vm.defEntryCell !== -1) {
     throw new NestedDefinitionError(getStackData(vm));
   }
 
@@ -56,12 +50,10 @@ export function beginDefinition(
   hideDictionaryHead(vm);
 
   const checkpoint = markWithLocalReset(vm);
-  const definition: ActiveDefinition = {
-    branchPos,
-    checkpoint,
-    entryCell: vm.head,
-  };
-  vm.currentDefinition = definition;
+
+  vm.defBranchPos = branchPos;
+  vm.defCheckpoint = checkpoint;
+  vm.defEntryCell = vm.head;
 
   setCompilerPreserve(vm, true);
   beginFunctionCompile(vm);
@@ -70,16 +62,17 @@ export function beginDefinition(
 export function endDefinition(
   vm: VM,
 ): void {
-  if (!vm.currentDefinition) {
+  if (vm.defEntryCell === -1) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
 
   emitOpcode(vm, Op.Exit);
   finishFunctionCompile(vm);
 
-  patchBranchOffset(vm, vm.currentDefinition.branchPos);
+  patchBranchOffset(vm, vm.defBranchPos);
 
-  const { checkpoint, entryCell } = vm.currentDefinition;
+  const checkpoint = vm.defCheckpoint;
+  const entryCell = vm.defEntryCell;
 
   forget(vm, checkpoint);
 
@@ -88,18 +81,19 @@ export function endDefinition(
   }
   unhideDictionaryHead(vm);
 
-  vm.currentDefinition = null;
+  vm.defBranchPos = -1;
+  vm.defCheckpoint = -1;
+  vm.defEntryCell = -1;
 }
 
 export function ensureNoOpenDefinition(vm: VM): void {
-  const { currentDefinition } = vm;
-  if (!currentDefinition) {
+  if (vm.defEntryCell === -1) {
     return;
   }
 
   let name = '<definition>';
   try {
-    const { name: entryName } = getDictionaryEntryInfo(vm, currentDefinition.entryCell);
+    const { name: entryName } = getDictionaryEntryInfo(vm, vm.defEntryCell);
     name = entryName;
   } catch {
     // fallback to placeholder if entry cannot be retrieved

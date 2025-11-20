@@ -11,9 +11,8 @@
 
 import { createInterface } from 'readline';
 import { createVM } from '../core/vm';
-import { parse } from './parser';
-import { execute } from './interpreter';
-import { Tokenizer } from './tokenizer';
+import { executeProgram } from './runner';
+
 import { processFile } from './file-processor';
 
 /**
@@ -97,9 +96,7 @@ export function startREPL(files: string[] = [], interactiveAfterFiles = true): v
     }
 
     try {
-      const tokenizer = new Tokenizer(command);
-      parse(vm, tokenizer);
-      execute(vm, vm.compiler.BCP);
+      executeProgram(vm, command);
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);

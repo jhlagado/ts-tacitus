@@ -23,7 +23,7 @@ import {
   SyntaxError,
   RSTACK_BASE,
 } from '@src/core';
-import { endDefinition } from '../../lang/definitions';
+import { endDefinition } from '../../lang/definition-system';
 import { executeOp } from '../builtins';
 import { Op } from '../opcodes';
 import { emitOpcode, emitUint16 } from '../../core/vm';
@@ -269,7 +269,7 @@ export const evalOp: Verb = (vm: VM) => {
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
 export const endDefinitionOp: Verb = vm => {
-  if (!vm.currentDefinition) {
+  if (vm.defEntryCell === -1) {
     throw new Error('End-definition handler not installed');
   }
   endDefinition(vm);

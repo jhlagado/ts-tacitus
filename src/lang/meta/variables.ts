@@ -78,7 +78,7 @@ function readNameAfter(
 
 export function varImmediateOp(vm: VM): void {
   const tokenizer = requireTokenizer(vm, 'var');
-  if (!vm.currentDefinition) {
+  if (vm.defEntryCell === -1) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
       getStackData(vm),
@@ -94,7 +94,7 @@ export function varImmediateOp(vm: VM): void {
 
 export function globalImmediateOp(vm: VM): void {
   const tokenizer = requireTokenizer(vm, 'global');
-  if (vm.currentDefinition) {
+  if (vm.defEntryCell !== -1) {
     throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
   }
   const varName = readNameAfter(vm, tokenizer, 'global');
@@ -167,7 +167,7 @@ export function assignImmediateOp(vm: VM): void {
 
 export function incrementImmediateOp(vm: VM): void {
   const tokenizer = requireTokenizer(vm, '+>');
-  if (!vm.currentDefinition) {
+  if (vm.defEntryCell === -1) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
       getStackData(vm),

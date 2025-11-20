@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
-import { executeProgram } from '../../lang/interpreter';
+import { executeProgram } from '../../lang/runner';
 import { getTaggedInfo, Tag } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';

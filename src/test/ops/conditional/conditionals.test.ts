@@ -4,7 +4,7 @@ IF/ELSE statements that execute code blocks based on stack conditions
 */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
-import { executeProgram } from '../../../lang/interpreter';
+import { executeProgram } from '../../../lang/runner';
 import { getStackData } from '../../../core/vm';
 
 describe('Conditional Operations', () => {
