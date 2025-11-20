@@ -1,19 +1,8 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { VM, Tagged, Tag, createVM } from '../../../core';
+import { VM, Tag, createVM } from '../../../core';
 import { STACK_BASE } from '../../../core/constants';
 import { findElement } from '../../../ops/stack';
-import { push } from '../../../core/vm';
-
-function pushValue(vm: VM, value: number, tag: Tag = Tag.NUMBER): void {
-  push(vm, Tagged(value, tag));
-}
-
-function createList(vm: VM, ...values: number[]): { start: number; end: number } {
-  const start = vm.sp - STACK_BASE;
-  values.forEach(val => pushValue(vm, val));
-  pushValue(vm, values.length, Tag.LIST);
-  return { start, end: vm.sp - STACK_BASE };
-}
+import { pushNumber, pushListLiteral, pushTaggedValue } from '../../utils/vm-test-utils';
 
 describe('findElement', () => {
   let vm: VM;
@@ -23,26 +12,26 @@ describe('findElement', () => {
   });
 
   test('should find a simple list', () => {
-    createList(vm, 1, 2);
+    pushListLiteral(vm, 1, 2);
     const [_nextSlot, size] = findElement(vm, 0);
     expect(size).toBe(3);
   });
 
   test('should return size 1 for non-list', () => {
-    pushValue(vm, 42);
-    pushValue(vm, 13);
+    pushNumber(vm, 42);
+    pushNumber(vm, 13);
 
     const [_, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should find nested lists', () => {
-    createList(vm, 1, 2);
+    pushListLiteral(vm, 1, 2);
     const [_innerNext, innerSize] = findElement(vm, 0);
     expect(innerSize).toBe(3);
 
-    pushValue(vm, 4);
-    pushValue(vm, 3, Tag.LIST);
+    pushNumber(vm, 4);
+    pushTaggedValue(vm, 3, Tag.LIST);
 
     const [_outerNext, outerSize] = findElement(vm, 0);
     expect(outerSize).toBe(4);
@@ -54,16 +43,16 @@ describe('findElement', () => {
   });
 
   test('should return size 1 when element is not a list', () => {
-    pushValue(vm, 42);
+    pushNumber(vm, 42);
 
     const [_, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should find a list with offset from the top', () => {
-    createList(vm, 1, 2);
-    pushValue(vm, 10);
-    pushValue(vm, 20);
+    pushListLiteral(vm, 1, 2);
+    pushNumber(vm, 10);
+    pushNumber(vm, 20);
 
     const [offset1, size1] = findElement(vm, 0);
     expect(size1).toBe(1);
@@ -76,20 +65,20 @@ describe('findElement', () => {
   });
 
   test('should find an empty list', () => {
-    pushValue(vm, 0, Tag.LIST);
+    pushTaggedValue(vm, 0, Tag.LIST);
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should return size 1 for invalid list structure (missing LIST tag)', () => {
-    pushValue(vm, 1, Tag.NUMBER);
+    pushNumber(vm, 1);
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
 
   test('should return size 1 for invalid list structure (size mismatch)', () => {
-    pushValue(vm, 2);
-    pushValue(vm, 1);
+    pushNumber(vm, 2);
+    pushNumber(vm, 1);
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(1);
   });
@@ -108,9 +97,9 @@ describe('findElement', () => {
   });
 
   test('should find list after pushing other values', () => {
-    createList(vm, 42, 100);
-    pushValue(vm, 500);
-    pushValue(vm, 600);
+    pushListLiteral(vm, 42, 100);
+    pushNumber(vm, 500);
+    pushNumber(vm, 600);
 
     const [offset1, size1] = findElement(vm, 0);
     expect(size1).toBe(1);
@@ -125,9 +114,9 @@ describe('findElement', () => {
   test('should handle maximum size list within limits', () => {
     const maxSize = 10;
     for (let i = 0; i < maxSize; i++) {
-      pushValue(vm, i % 1000);
+      pushNumber(vm, i % 1000);
     }
-    pushValue(vm, maxSize, Tag.LIST);
+    pushTaggedValue(vm, maxSize, Tag.LIST);
 
     const [_next, size] = findElement(vm, 0);
     expect(size).toBe(maxSize + 1);
@@ -142,9 +131,9 @@ describe('findElement', () => {
   });
 
   test('should find elements in sequence', () => {
-    createList(vm, 1, 2);
-    pushValue(vm, 42);
-    pushValue(vm, 43);
+    pushListLiteral(vm, 1, 2);
+    pushNumber(vm, 42);
+    pushNumber(vm, 43);
 
     const [offset1, size1] = findElement(vm, 0);
     expect(offset1).toBe(1);
@@ -160,7 +149,7 @@ describe('findElement', () => {
   });
 
   test('should handle list at TOS', () => {
-    createList(vm, 1, 2);
+    pushListLiteral(vm, 1, 2);
 
     const [nextSlot, size] = findElement(vm, 0);
     expect(size).toBe(3);
@@ -168,8 +157,8 @@ describe('findElement', () => {
   });
 
   test('should handle multiple lists', () => {
-    createList(vm, 3, 4);
-    createList(vm, 1);
+    pushListLiteral(vm, 3, 4);
+    pushListLiteral(vm, 1);
 
     const [offset1, size1] = findElement(vm, 0);
     expect(size1).toBe(2);

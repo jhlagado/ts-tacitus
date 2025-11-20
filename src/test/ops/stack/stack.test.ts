@@ -15,6 +15,7 @@ import {
 } from '../../../ops/stack';
 import { push, getStackData } from '../../../core/vm';
 import { createVM, VM } from '../../../core';
+import { pushListLiteral, pushNumber } from '../../utils/vm-test-utils';
 
 describe('Stack Operations', () => {
   let vm: VM;
@@ -225,18 +226,9 @@ describe('Stack Operations', () => {
 
   describe('stack utilities', () => {
     test('findElement should find elements in sequence', () => {
-      function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
-        push(vm, Tagged(value, tag));
-      }
-
-      function createList(...values: number[]): void {
-        values.forEach(val => pushValue(val));
-        pushValue(values.length, Tag.LIST);
-      }
-
-      createList(1, 2);
-      pushValue(42);
-      pushValue(43);
+      pushListLiteral(vm, 1, 2);
+      pushNumber(vm, 42);
+      pushNumber(vm, 43);
 
       const [offset1, size1] = findElement(vm, 0);
       expect(offset1).toBe(1);

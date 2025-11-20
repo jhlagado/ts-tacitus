@@ -3,6 +3,7 @@ import { VM, createVM } from '../../../core/vm';
 import { Tagged, Tag } from '../../../core/tagged';
 import { cellsRoll, findElement, cellsCopy, cellsReverse } from '../../../ops/stack';
 import { push, getStackData, depth } from '../../../core/vm';
+import { pushListLiteral, pushNumber } from '../../utils/vm-test-utils';
 
 describe('Stack Utils', () => {
   let vm: VM;
@@ -90,23 +91,14 @@ describe('Stack Utils', () => {
   });
 
   describe('findElement', () => {
-    function pushValue(value: number, tag: Tag = Tag.NUMBER): void {
-      push(vm, Tagged(value, tag));
-    }
-
-    function createList(...values: number[]): void {
-      values.forEach(val => pushValue(val));
-      pushValue(values.length, Tag.LIST);
-    }
-
     beforeEach(() => {
       vm = createVM();
     });
 
     test('should find elements in sequence', () => {
-      createList(1, 2);
-      pushValue(42);
-      pushValue(43);
+      pushListLiteral(vm, 1, 2);
+      pushNumber(vm, 42);
+      pushNumber(vm, 43);
 
       const [offset1, size1] = findElement(vm, 0);
       expect(offset1).toBe(1);
@@ -122,7 +114,7 @@ describe('Stack Utils', () => {
     });
 
     test('should handle list at TOS', () => {
-      createList(1, 2);
+      pushListLiteral(vm, 1, 2);
 
       const [nextSlot, size] = findElement(vm, 0);
       expect(size).toBe(3);
@@ -130,8 +122,8 @@ describe('Stack Utils', () => {
     });
 
     test('should handle multiple lists', () => {
-      createList(3, 4);
-      createList(1);
+      pushListLiteral(vm, 3, 4);
+      pushListLiteral(vm, 1);
 
       const [offset1, size1] = findElement(vm, 0);
       expect(size1).toBe(2);
