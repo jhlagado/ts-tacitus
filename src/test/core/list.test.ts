@@ -10,6 +10,8 @@ import {
   getTaggedInfo,
   STACK_BASE,
   GLOBAL_BASE,
+  memoryWriteCell,
+  memoryReadCell,
 } from '../../core';
 import {
   getListLength,
@@ -97,7 +99,7 @@ describe('LIST Core Utilities', () => {
       const header = peek(vm);
       expect(getListLength(header)).toBe(1);
 
-      const payload = vm.memory.readCell(vm.sp - 1);
+      const payload = memoryReadCell(vm.memory, vm.sp - 1);
       expect(isList(payload)).toBe(true);
       expect(getListLength(payload)).toBe(1);
     });
@@ -115,10 +117,10 @@ describe('LIST Core Utilities', () => {
       expect(isList(header)).toBe(true);
       expect(getListLength(header)).toBe(3);
 
-      const payload0 = vm.memory.readCell(vm.sp - 1);
-      const payload1 = vm.memory.readCell(vm.sp - 2);
-      const payload2 = vm.memory.readCell(vm.sp - 3);
-      const payload3 = vm.memory.readCell(vm.sp - 4);
+      const payload0 = memoryReadCell(vm.memory, vm.sp - 1);
+      const payload1 = memoryReadCell(vm.memory, vm.sp - 2);
+      const payload2 = memoryReadCell(vm.memory, vm.sp - 3);
+      const payload3 = memoryReadCell(vm.memory, vm.sp - 4);
 
       expect(isList(payload0)).toBe(true);
       expect(payload1).toBe(val1);
@@ -382,10 +384,10 @@ describe('LIST Core Utilities', () => {
       const e2 = Tagged(22, Tag.NUMBER);
       const e3 = Tagged(33, Tag.NUMBER);
 
-      vm.memory.writeCell(cellHeader - 3, e1);
-      vm.memory.writeCell(cellHeader - 2, e2);
-      vm.memory.writeCell(cellHeader - 1, e3);
-      vm.memory.writeCell(cellHeader, header);
+      memoryWriteCell(vm.memory, cellHeader - 3, e1);
+      memoryWriteCell(vm.memory, cellHeader - 2, e2);
+      memoryWriteCell(vm.memory, cellHeader - 1, e3);
+      memoryWriteCell(vm.memory, cellHeader, header);
 
       expect(getListElemCell(vm, header, cellHeader, 0)).toBe(cellHeader - 1);
       expect(getListElemCell(vm, header, cellHeader, 1)).toBe(cellHeader - 2);
@@ -395,7 +397,7 @@ describe('LIST Core Utilities', () => {
     it('getListBounds returns null for ref pointing to non-list', () => {
       const vm = createVM();
       const cellIndex = 10;
-      vm.memory.writeCell(GLOBAL_BASE + cellIndex, 123.456);
+      memoryWriteCell(vm.memory, GLOBAL_BASE + cellIndex, 123.456);
       const absCellIndex = GLOBAL_BASE + cellIndex;
       const ref = createRef(absCellIndex);
       expect(getListBounds(vm, ref)).toBeNull();

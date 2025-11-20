@@ -1,6 +1,6 @@
 import { describe, beforeEach, test, expect } from '@jest/globals';
 import { createVM, type VM } from '../../../core/vm';
-import { Tag, Tagged, getTaggedInfo } from '../../../core';
+import { Tag, Tagged, getTaggedInfo, memoryReadCell, digestIntern } from '../../../core';
 import { defineOp, lookupOp } from '../../../core/dictionary';
 import { refToByte, isRef } from '../../../core/refs';
 import { CELL_SIZE } from '../../../core/constants';
@@ -17,7 +17,7 @@ describe('dict define/lookup builtin (happy path)', () => {
     const name = 'my_builtin';
     const opcode = 123;
 
-    const nameAddr = vm.digest.intern(name);
+    const nameAddr = digestIntern(vm.digest, name);
     const nameTagged = Tagged(nameAddr, Tag.STRING);
     const builtinTagged = Tagged(opcode, Tag.CODE, 0);
 
@@ -34,7 +34,7 @@ describe('dict define/lookup builtin (happy path)', () => {
 
     // Dereference and verify stored payload
     const addr = refToByte(ref);
-    const stored = vm.memory.readCell(addr / CELL_SIZE);
+    const stored = memoryReadCell(vm.memory, addr / CELL_SIZE);
     const info = getTaggedInfo(stored);
     expect(info.tag).toBe(Tag.CODE);
     expect(info.value).toBe(opcode);

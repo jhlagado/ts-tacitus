@@ -2,6 +2,7 @@
 import type { VM } from '../../core/vm';
 import { createVM, push } from '../../core/vm';
 import { SEG_CODE } from '../../core/constants';
+import { memoryWrite8 } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
 
@@ -28,8 +29,8 @@ describe('Branching Behavior Check', () => {
     // But executeOp is called with the opcode. The VM reads arguments from IP.
     // So if we call executeOp(vm, Op.Branch), it will read from vm.IP.
 
-    vm.memory.write8(SEG_CODE, vm.IP, 5); // Low byte
-    vm.memory.write8(SEG_CODE, vm.IP + 1, 0); // High byte
+    memoryWrite8(vm.memory, SEG_CODE, vm.IP, 5); // Low byte
+    memoryWrite8(vm.memory, SEG_CODE, vm.IP + 1, 0); // High byte
 
     executeOp(vm, Op.Branch);
 
@@ -43,8 +44,8 @@ describe('Branching Behavior Check', () => {
     // Setup: Push 0 (false) to stack.
     // Memory: Offset +10.
 
-    vm.memory.write8(SEG_CODE, vm.IP, 10);
-    vm.memory.write8(SEG_CODE, vm.IP + 1, 0);
+    memoryWrite8(vm.memory, SEG_CODE, vm.IP, 10);
+    memoryWrite8(vm.memory, SEG_CODE, vm.IP + 1, 0);
 
     // Push 0 (falsy)
     push(vm, 0);

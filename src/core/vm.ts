@@ -19,7 +19,15 @@ import {
   compilerReset,
 } from '../lang/compiler';
 import type { Tokenizer } from '../lang/tokenizer';
-import { Memory } from './memory';
+import {
+  type Memory,
+  createMemory,
+  memoryWriteCell,
+  memoryReadCell,
+  memoryRead8,
+  memoryRead16,
+  memoryReadFloat32,
+} from './memory';
 import { lookup } from './dictionary';
 import {
   SEG_CODE,
@@ -33,7 +41,7 @@ import {
 } from './constants';
 import { getTaggedInfo, isNIL, Tag } from './tagged';
 import { decodeX1516 } from './code-ref';
-import { Digest } from '../strings/digest';
+import { type Digest, createDigest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
   StackUnderflowError,
@@ -98,10 +106,10 @@ let builtinSnapshot: { head: number; gp: number } | null = null;
 export function createVM(useCache = true): VM {
   if (useCache) {
     // Test mode: reuse cached VM with registers reset
-    if (cachedTestVM === null || builtinSnapshot === null) {
-      // First call: create VM normally, then snapshot state after builtins
-      const memory = new Memory();
-      const digest = new Digest(memory);
+      if (cachedTestVM === null || builtinSnapshot === null) {
+        // First call: create VM normally, then snapshot state after builtins
+        const memory = createMemory();
+        const digest = createDigest(memory);
       const vm: VM = {
         memory,
         IP: 0,
@@ -150,8 +158,8 @@ export function createVM(useCache = true): VM {
   }
 
   // Normal mode: create fresh VM (no caching)
-  const memory = new Memory();
-  const digest = new Digest(memory);
+  const memory = createMemory();
+  const digest = createDigest(memory);
   const vm: VM = {
     memory,
     IP: 0,
@@ -187,7 +195,7 @@ export function push(vm: VM, value: number): void {
     throw new StackOverflowError('push', getStackData(vm));
   }
 
-  vm.memory.writeCell(vm.sp, value);
+  memoryWriteCell(vm.memory, vm.sp, value);
   vm.sp += 1;
   if (vm.debug) {
     ensureInvariants(vm);
@@ -210,7 +218,7 @@ export function pop(vm: VM): number {
   if (vm.debug) {
     ensureInvariants(vm);
   }
-  return vm.memory.readCell(vm.sp);
+  return memoryReadCell(vm.memory, vm.sp);
 }
 
 /**
@@ -225,7 +233,7 @@ export function peek(vm: VM): number {
     throw new StackUnderflowError('peek', 1, getStackData(vm));
   }
 
-  return vm.memory.readCell(vm.sp - 1);
+  return memoryReadCell(vm.memory, vm.sp - 1);
 }
 
 /**
@@ -240,7 +248,7 @@ export function rpush(vm: VM, value: number): void {
     throw new ReturnStackOverflowError('rpush', getStackData(vm));
   }
 
-  vm.memory.writeCell(vm.rsp, value);
+  memoryWriteCell(vm.memory, vm.rsp, value);
   vm.rsp += 1;
   if (vm.debug) {
     ensureInvariants(vm);
@@ -263,7 +271,7 @@ export function rpop(vm: VM): number {
   if (vm.debug) {
     ensureInvariants(vm);
   }
-  return vm.memory.readCell(vm.rsp);
+  return memoryReadCell(vm.memory, vm.rsp);
 }
 
 /**
@@ -276,7 +284,7 @@ export function getStackData(vm: VM): number[] {
   const stackData: number[] = [];
   const depthCells = vm.sp - STACK_BASE;
   for (let i = 0; i < depthCells; i += 1) {
-    stackData.push(vm.memory.readCell(STACK_BASE + i));
+    stackData.push(memoryReadCell(vm.memory, STACK_BASE + i));
   }
 
   return stackData;
@@ -348,16 +356,16 @@ function _checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): voi
 }
 
 function read8(vm: { memory: Memory; IP: number }): number {
-  const value = vm.memory.read8(SEG_CODE, vm.IP);
+  const value = memoryRead8(vm.memory, SEG_CODE, vm.IP);
   vm.IP += 1;
   return value;
 }
 
 function readOp(vm: { memory: Memory; IP: number }): number {
-  const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
+  const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
   vm.IP += 1;
   if ((firstByte & 0x80) !== 0) {
-    const secondByte = vm.memory.read8(SEG_CODE, vm.IP);
+      const secondByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
     vm.IP += 1;
     const lowBits = firstByte & 0x7f;
     const highBits = secondByte << 7;
@@ -367,20 +375,20 @@ function readOp(vm: { memory: Memory; IP: number }): number {
 }
 
 function readI16(vm: { memory: Memory; IP: number }): number {
-  const unsignedValue = vm.memory.read16(SEG_CODE, vm.IP);
+  const unsignedValue = memoryRead16(vm.memory, SEG_CODE, vm.IP);
   const signedValue = (unsignedValue << 16) >> 16;
   vm.IP += 2;
   return signedValue;
 }
 
 function readU16(vm: { memory: Memory; IP: number }): number {
-  const value = vm.memory.read16(SEG_CODE, vm.IP);
+  const value = memoryRead16(vm.memory, SEG_CODE, vm.IP);
   vm.IP += 2;
   return value;
 }
 
 function readF32(vm: { memory: Memory; IP: number }): number {
-  const value = vm.memory.readFloat32(SEG_CODE, vm.IP);
+  const value = memoryReadFloat32(vm.memory, SEG_CODE, vm.IP);
   vm.IP += CELL_SIZE;
   return value;
 }
@@ -454,7 +462,7 @@ export function peekAt(vm: VM, slotOffset: number): number {
     throw new StackUnderflowError('peekAt', requiredCells, getStackData(vm));
   }
 
-  return vm.memory.readCell(vm.sp - requiredCells);
+  return memoryReadCell(vm.memory, vm.sp - requiredCells);
 }
 
 /**
@@ -467,7 +475,7 @@ export function gpush(vm: VM, value: number): void {
   if (vm.gp >= GLOBAL_SIZE) {
     throw new Error('gpush on full heap');
   }
-  vm.memory.writeCell(GLOBAL_BASE + vm.gp, value);
+  memoryWriteCell(vm.memory, GLOBAL_BASE + vm.gp, value);
   vm.gp += 1;
 }
 
@@ -481,7 +489,7 @@ export function gpeek(vm: VM): number {
   if (vm.gp === 0) {
     throw new Error('gpeek on empty heap');
   }
-  return vm.memory.readCell(GLOBAL_BASE + vm.gp - 1);
+  return memoryReadCell(vm.memory, GLOBAL_BASE + vm.gp - 1);
 }
 
 /**
@@ -495,7 +503,7 @@ export function gpop(vm: VM): number {
     throw new Error('gpop on empty heap');
   }
   vm.gp -= 1;
-  return vm.memory.readCell(GLOBAL_BASE + vm.gp);
+  return memoryReadCell(vm.memory, GLOBAL_BASE + vm.gp);
 }
 
 /**

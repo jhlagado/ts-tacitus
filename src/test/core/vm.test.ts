@@ -1,4 +1,4 @@
-import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM } from '../../core';
+import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM, memoryRead8 } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import {
   nextAddress,
@@ -127,7 +127,7 @@ describe('VM', () => {
       emitOpcode(vm, 0x56);
       const bytes: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
-        bytes.push(vm.memory.read8(SEG_CODE, i));
+        bytes.push(memoryRead8(vm.memory, SEG_CODE, i));
       }
       expect(bytes).toEqual([0x12, 0x34, 0x56]);
     });

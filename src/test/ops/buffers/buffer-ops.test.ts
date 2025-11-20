@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, VM, Tag, getTaggedInfo, getListLength, getListBounds } from '../../../core';
+import { createVM, VM, Tag, getTaggedInfo, getListLength, getListBounds, memoryReadCell } from '../../../core';
 import { executeTacitCode, testTacitCode } from '../../utils/vm-test-utils';
 import { STACK_BASE } from '../../../core/constants';
 
@@ -19,7 +19,7 @@ describe('Buffer Operations', () => {
     test('creates buffer with valid capacity', () => {
       executeTacitCode(vm, '10 buffer');
       // LIST header is at TOS, payload slots are below it
-      const header = vm.memory.readCell(vm.sp - 1);
+      const header = memoryReadCell(vm.memory, vm.sp - 1);
       const { tag, value } = getTaggedInfo(header);
       expect(tag).toBe(Tag.LIST);
       expect(value).toBe(12); // N+2 = 10+2 = 12 payload slots
@@ -30,8 +30,8 @@ describe('Buffer Operations', () => {
     test('initializes pointers to 0', () => {
       executeTacitCode(vm, '5 buffer');
       const headerCell = vm.sp - 1;
-      const readPtr = vm.memory.readCell(headerCell - 1);
-      const writePtr = vm.memory.readCell(headerCell - 2);
+      const readPtr = memoryReadCell(vm.memory, headerCell - 1);
+      const writePtr = memoryReadCell(vm.memory, headerCell - 2);
       expect(readPtr).toBe(0);
       expect(writePtr).toBe(0);
     });
@@ -43,7 +43,7 @@ describe('Buffer Operations', () => {
 
     test('creates buffer with capacity 1', () => {
       executeTacitCode(vm, '1 buffer');
-      const header = vm.memory.readCell(vm.sp - 1);
+      const header = memoryReadCell(vm.memory, vm.sp - 1);
       const { tag, value } = getTaggedInfo(header);
       expect(tag).toBe(Tag.LIST);
       expect(value).toBe(3); // N+2 = 1+2 = 3 payload slots
@@ -52,7 +52,7 @@ describe('Buffer Operations', () => {
 
     test('creates buffer with large capacity', () => {
       executeTacitCode(vm, '100 buffer');
-      const header = vm.memory.readCell(vm.sp - 1);
+      const header = memoryReadCell(vm.memory, vm.sp - 1);
       const { tag, value } = getTaggedInfo(header);
       expect(tag).toBe(Tag.LIST);
       expect(value).toBe(102); // N+2 = 100+2 = 102 payload slots
@@ -429,7 +429,7 @@ describe('Buffer Operations', () => {
       // We need to access the local variable slot
       // For now, let's use a different approach - create buffer on stack and use it
       executeTacitCode(vm, '10 buffer');
-      const bufHeader = vm.memory.readCell(vm.sp - 1);
+      const bufHeader = memoryReadCell(vm.memory, vm.sp - 1);
 
       // Write "hello" as character codes
       executeTacitCode(vm, '104 swap write', false);
@@ -450,7 +450,7 @@ describe('Buffer Operations', () => {
       // Read data in address-increasing order (data[0] through data[4])
       const chars: number[] = [];
       for (let i = 0; i < 5; i++) {
-        chars.push(vm.memory.readCell(dataBase + i));
+        chars.push(memoryReadCell(vm.memory, dataBase + i));
       }
 
       // Should be in order: h, e, l, l, o
@@ -478,14 +478,14 @@ describe('Buffer Operations', () => {
       executeTacitCode(vm, 'dup swap read drop', false);
 
       // Get buffer header
-      const bufHeader = vm.memory.readCell(vm.sp - 1);
+      const bufHeader = memoryReadCell(vm.memory, vm.sp - 1);
       const bounds = getListBounds(vm, bufHeader);
       expect(bounds).not.toBeNull();
       if (!bounds) return;
 
       const headerCell = bounds.headerCell;
-      const readPtr = vm.memory.readCell(headerCell - 1);
-      const writePtr = vm.memory.readCell(headerCell - 2);
+      const readPtr = memoryReadCell(vm.memory, headerCell - 1);
+      const writePtr = memoryReadCell(vm.memory, headerCell - 2);
 
       // Pointers should be simple numbers (not NaN-boxed)
       expect(typeof readPtr).toBe('number');

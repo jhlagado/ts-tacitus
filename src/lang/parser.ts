@@ -44,6 +44,8 @@ import {
   Tagged,
   NIL,
   MIN_USER_OPCODE,
+  digestIntern,
+  digestAdd,
 } from '@src/core';
 import { ensureNoOpenDefinition } from './definition-system';
 import {
@@ -80,7 +82,7 @@ export function tokenNext(vm: VM): { type: TokenType; raw: number } {
     case TokenType.SPECIAL:
     case TokenType.REF_SIGIL: {
       const str = String(token.value ?? '');
-      const addr = vm.digest.intern(str);
+      const addr = digestIntern(vm.digest, str);
       payload = Tagged(addr, Tag.STRING);
       break;
     }
@@ -211,7 +213,7 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
       break;
     case TokenType.STRING:
       emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, vm.digest.intern(token.value as string));
+      emitUint16(vm, digestIntern(vm.digest, token.value as string));
       break;
     case TokenType.SPECIAL:
       handleSpecial(vm, token.value as string, tokenizer);
@@ -351,7 +353,7 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
  */
 export function emitAtSymbol(vm: VM, symbolName: string, _tokenizer: Tokenizer): void {
   emitOpcode(vm, Op.LiteralString);
-  const stringAddress = vm.digest.add(symbolName);
+  const stringAddress = digestAdd(vm.digest, symbolName);
   emitUint16(vm, stringAddress);
 
   emitOpcode(vm, Op.PushSymbolRef);
@@ -439,7 +441,7 @@ function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
       continue;
     } else if (tok.type === TokenType.STRING) {
       emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, vm.digest.intern(tok.value as string));
+      emitUint16(vm, digestIntern(vm.digest, tok.value as string));
       continue;
     }
     // Allow empty path [] or numbers only for now
@@ -498,7 +500,7 @@ function parseApostropheString(vm: VM, tokenizer: Tokenizer): void {
     tokenizer.column++;
   }
   emitOpcode(vm, Op.LiteralString);
-  emitUint16(vm, vm.digest.intern(s));
+  emitUint16(vm, digestIntern(vm.digest, s));
 }
 
 /**

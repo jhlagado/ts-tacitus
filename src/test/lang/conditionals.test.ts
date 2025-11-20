@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { SEG_CODE, Tag, getTaggedInfo } from '../../core';
+import { SEG_CODE, Tag, getTaggedInfo, memoryRead16 } from '../../core';
 import { STACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { createVM, type VM, emitOpcode } from '../../core/vm';
@@ -67,7 +67,7 @@ describe('conditional immediates', () => {
 
     beginElseImmediateOp(vm);
 
-    const patchedOffset = vm.memory.read16(SEG_CODE, falseBranchPos);
+    const patchedOffset = memoryRead16(vm.memory, SEG_CODE, falseBranchPos);
     expect(patchedOffset).toBe(vm.compiler.CP - (falseBranchPos + 2));
 
     const exitPlaceholder = peekAt(vm, 1);

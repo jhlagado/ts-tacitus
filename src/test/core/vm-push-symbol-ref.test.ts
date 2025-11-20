@@ -8,7 +8,7 @@
 import { createVM, type VM } from '../../core/vm';
 import { evalOp } from '../../ops/core';
 import { Op } from '../../ops/opcodes';
-import { getTaggedInfo, Tag, Tagged } from '../../core';
+import { getTaggedInfo, memoryReadCell, Tag, Tagged } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { STACK_BASE } from '../../core/constants';
 import { define } from '../../core/dictionary';
@@ -108,7 +108,7 @@ describe('VM pushSymbolRef method', () => {
       expect(stackDepth).toBe(4);
 
       const decoded = Array.from({ length: stackDepth }, (_, i) =>
-        getTaggedInfo(vm.memory.readCell(STACK_BASE + i)),
+        getTaggedInfo(memoryReadCell(vm.memory, STACK_BASE + i)),
       );
 
       // Builtins are now stored as Tag.CODE with value < 128 (stored directly, not X1516 encoded)

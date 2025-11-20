@@ -16,6 +16,7 @@ import {
   validateListHeader,
   createGlobalRef,
   getCellFromRef,
+  memoryReadCell,
 } from '@src/core';
 import { fetchOp } from '../lists';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
@@ -76,7 +77,7 @@ export function gpopOp(vm: VM): void {
     throw new Error('gpop on empty heap');
   }
   const top = GLOBAL_BASE + vm.gp - 1;
-  const h = vm.memory.readCell(top);
+  const h = memoryReadCell(vm.memory, top);
   if (isList(h)) {
     const span = getListLength(h) + 1;
     vm.gp -= span;

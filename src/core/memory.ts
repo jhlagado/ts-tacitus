@@ -1,13 +1,13 @@
 /**
  * @file src/core/memory.ts
- * Segmented memory model for the Tacit VM.
+ * Segmented memory model for the Tacit VM implemented with plain data plus helpers.
  */
 
 import {
   MEMORY_SIZE_BYTES,
   SEG_CODE,
-  SEG_STRING,
   SEG_DATA,
+  SEG_STRING,
   RSTACK_TOP_BYTES,
   STRING_SIZE_BYTES,
   CODE_SIZE_BYTES,
@@ -17,213 +17,133 @@ import {
   CELL_SIZE,
 } from './constants';
 
-/**
- * Segmented memory implementation for the Tacit VM.
- */
-export class Memory {
-  /** Primary byte view (backing buffer). */
+export type Memory = {
   buffer: Uint8Array;
-
-  /** Alias for byte view for clarity in dual-view usage. */
   u8: Uint8Array;
-
-  /** 32-bit cell view over the same underlying buffer. */
   u32: Uint32Array;
-
-  /** DataView for mixed-size typed access (8/16/32). */
   dataView: DataView;
-  /** Alias for DataView when used along with dual views. */
   view: DataView;
+};
 
-  /**
-   * Creates a new Memory instance with initialized segments.
-   */
-  constructor() {
-    this.buffer = new Uint8Array(MEMORY_SIZE_BYTES);
-    this.u8 = this.buffer;
-    // Ensure u32 view spans the whole buffer; alignment is 4 by design.
-    this.u32 = new Uint32Array(this.buffer.buffer, 0, Math.floor(MEMORY_SIZE_BYTES / 4));
-    this.dataView = new DataView(this.buffer.buffer);
-    this.view = this.dataView;
+/**
+ * Creates a zeroed segmented memory arena.
+ */
+export function createMemory(): Memory {
+  const buffer = new Uint8Array(MEMORY_SIZE_BYTES);
+  const dataView = new DataView(buffer.buffer);
+  return {
+    buffer,
+    u8: buffer,
+    u32: new Uint32Array(buffer.buffer, 0, Math.floor(MEMORY_SIZE_BYTES / 4)),
+    dataView,
+    view: dataView,
+  };
+}
+
+function resolveAddressWithWidth(segment: number, offset: number, width: number): number {
+  let base = 0;
+  let size = 0;
+
+  switch (segment) {
+    case SEG_DATA:
+      base = DATA_BASE_BYTES;
+      size = DATA_TOP_BYTES - DATA_BASE_BYTES;
+      break;
+    case SEG_STRING:
+      base = RSTACK_TOP_BYTES;
+      size = STRING_SIZE_BYTES;
+      break;
+    case SEG_CODE:
+      base = RSTACK_TOP_BYTES + STRING_SIZE_BYTES;
+      size = CODE_SIZE_BYTES;
+      break;
+    default:
+      throw new RangeError(`Invalid segment ID: ${segment}`);
   }
 
-  private resolveAddressWithWidth(segment: number, offset: number, width: number): number {
-    let base = 0;
-    let size = 0;
-
-    switch (segment) {
-      case SEG_DATA:
-        base = DATA_BASE_BYTES;
-        size = DATA_TOP_BYTES - DATA_BASE_BYTES;
-        break;
-      case SEG_STRING:
-        base = RSTACK_TOP_BYTES;
-        size = STRING_SIZE_BYTES;
-        break;
-      case SEG_CODE:
-        base = RSTACK_TOP_BYTES + STRING_SIZE_BYTES;
-        size = CODE_SIZE_BYTES;
-        break;
-      default:
-        throw new RangeError(`Invalid segment ID: ${segment}`);
-    }
-
-    if (offset < 0 || offset + width > size) {
-      throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
-    }
-
-    return base + offset;
+  if (offset < 0 || offset + width > size) {
+    throw new RangeError(`Offset ${offset} is outside segment ${segment} bounds`);
   }
 
-  /**
-   * Resolves segmented address to linear address.
-   * @param segment The segment ID
-   * @param offset The offset within segment
-   * @returns The linear address
-   * @throws {RangeError} If segment ID is invalid
-   */
-  resolveAddress(segment: number, offset: number): number {
-    return this.resolveAddressWithWidth(segment, offset, 1);
+  return base + offset;
+}
+
+export function memoryResolveAddress(_memory: Memory, segment: number, offset: number): number {
+  return resolveAddressWithWidth(segment, offset, 1);
+}
+
+export function memoryWrite8(memory: Memory, segment: number, offset: number, value: number): void {
+  const address = resolveAddressWithWidth(segment, offset, 1);
+  memory.buffer[address] = value & 0xff;
+}
+
+export function memoryRead8(memory: Memory, segment: number, offset: number): number {
+  const address = resolveAddressWithWidth(segment, offset, 1);
+  return memory.buffer[address];
+}
+
+export function memoryWrite16(memory: Memory, segment: number, offset: number, value: number): void {
+  const address = resolveAddressWithWidth(segment, offset, 2);
+  memory.dataView.setUint16(address, value & 0xffff, true);
+}
+
+export function memoryRead16(memory: Memory, segment: number, offset: number): number {
+  const address = resolveAddressWithWidth(segment, offset, 2);
+  return memory.dataView.getUint16(address, true);
+}
+
+export function memoryWriteFloat32(memory: Memory, segment: number, offset: number, value: number): void {
+  const address = resolveAddressWithWidth(segment, offset, 4);
+  memory.dataView.setFloat32(address, value, true);
+}
+
+export function memoryReadFloat32(memory: Memory, segment: number, offset: number): number {
+  const address = resolveAddressWithWidth(segment, offset, 4);
+  return memory.dataView.getFloat32(address, true);
+}
+
+function ensureCellIndex(cellIndex: number): void {
+  if (cellIndex < 0 || cellIndex >= DATA_TOP) {
+    throw new RangeError(`Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP})`);
+  }
+}
+
+export function memoryWriteCell(memory: Memory, cellIndex: number, value: number): void {
+  ensureCellIndex(cellIndex);
+  const byteAddress = cellIndex * CELL_SIZE;
+  memory.dataView.setFloat32(byteAddress, value, true);
+}
+
+export function memoryReadCell(memory: Memory, cellIndex: number): number {
+  ensureCellIndex(cellIndex);
+  const byteAddress = cellIndex * CELL_SIZE;
+  return memory.dataView.getFloat32(byteAddress, true);
+}
+
+export function memoryDump(memory: Memory, start: number, end = 32): string {
+  if (start < 0 || end >= MEMORY_SIZE_BYTES || start > end) {
+    throw new RangeError(`Invalid memory range [${start}, ${end}]`);
   }
 
-  /**
-   * Writes an 8-bit value to memory.
-   * @param segment The segment ID
-   * @param offset The offset within segment
-   * @param value The 8-bit value
-   * @throws {RangeError} If address is out of bounds
-   */
-  write8(segment: number, offset: number, value: number): void {
-    const address = this.resolveAddressWithWidth(segment, offset, 1);
-    this.buffer[address] = value & 0xff;
+  const length = end - start + 1;
+  const bytes: string[] = [];
+  for (let i = 0; i < length; i++) {
+    const byte = memory.u8[start + i];
+    bytes.push(byte.toString(16).padStart(2, '0'));
+  }
+  return bytes.join(' ');
+}
+
+export function memoryDumpChars(memory: Memory, start: number, end = 32): string {
+  if (start < 0 || end >= MEMORY_SIZE_BYTES || start > end) {
+    throw new RangeError(`Invalid memory range [${start}, ${end}]`);
   }
 
-  /**
-   * Reads an 8-bit value from memory.
-   * @param segment The segment ID
-   * @param offset The offset within segment
-   * @returns The 8-bit value
-   * @throws {RangeError} If address is out of bounds
-   */
-  read8(segment: number, offset: number): number {
-    const address = this.resolveAddressWithWidth(segment, offset, 1);
-    return this.buffer[address];
+  const length = end - start + 1;
+  const chars: string[] = [];
+  for (let i = 0; i < length; i++) {
+    const byte = memory.u8[start + i];
+    chars.push(String.fromCharCode(byte));
   }
-
-  /**
-   * Writes a 16-bit value to memory.
-   * @param segment The segment ID
-   * @param offset The offset within segment
-   * @param value The 16-bit value
-   * @throws {RangeError} If address is out of bounds
-   */
-  write16(segment: number, offset: number, value: number): void {
-    const address = this.resolveAddressWithWidth(segment, offset, 2);
-    this.dataView.setUint16(address, value & 0xffff, true);
-  }
-
-  /**
-   * Reads a 16-bit value from memory.
-   * @param segment The segment ID
-   * @param offset The offset within segment
-   * @returns The 16-bit value
-   * @throws {RangeError} If address is out of bounds
-   */
-  read16(segment: number, offset: number): number {
-    const address = this.resolveAddressWithWidth(segment, offset, 2);
-    return this.dataView.getUint16(address, true);
-  }
-
-  /**
-   * Writes a 32-bit float to memory.
-   * @param segment The segment ID
-   * @param offset The offset within segment
-   * @param value The float value
-   * @throws {RangeError} If address is out of bounds
-   */
-  writeFloat32(segment: number, offset: number, value: number): void {
-    const address = this.resolveAddressWithWidth(segment, offset, 4);
-    this.dataView.setFloat32(address, value, true);
-  }
-  /**
-   * Reads a 32-bit float from memory.
-   * @param segment The segment ID
-   * @param offset The offset within segment (in bytes)
-   * @returns The float value
-   * @throws {RangeError} If address is out of bounds
-   */
-  readFloat32(segment: number, offset: number): number {
-    const address = this.resolveAddressWithWidth(segment, offset, 4);
-    return this.dataView.getFloat32(address, true);
-  }
-
-  /**
-   * Writes a cell (32-bit float) to memory using absolute cell addressing in the DATA segment.
-   * @param cellIndex Absolute cell index in the unified data arena
-   * @param value The cell value (float)
-   * @throws {RangeError} If cell index is out of bounds
-   */
-  writeCell(cellIndex: number, value: number): void {
-    if (cellIndex < 0 || cellIndex >= DATA_TOP) {
-      throw new RangeError(`Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP})`);
-    }
-    const byteAddress = cellIndex * CELL_SIZE;
-    this.dataView.setFloat32(byteAddress, value, true);
-  }
-
-  /**
-   * Reads a cell (32-bit float) from memory using absolute cell addressing in the DATA segment.
-   * @param cellIndex Absolute cell index in the unified data arena
-   * @returns The cell value (float)
-   * @throws {RangeError} If cell index is out of bounds
-   */
-  readCell(cellIndex: number): number {
-    if (cellIndex < 0 || cellIndex >= DATA_TOP) {
-      throw new RangeError(`Cell index ${cellIndex} is outside data arena bounds [0, ${DATA_TOP})`);
-    }
-    const byteAddress = cellIndex * CELL_SIZE;
-    return this.dataView.getFloat32(byteAddress, true);
-  }
-
-  /**
-   * Dumps memory range as hexadecimal values.
-   * @param start Starting address
-   * @param end Ending address (defaults to 32)
-   * @returns Hex string representation
-   * @throws {RangeError} If range is invalid
-   */
-  dump(start: number, end = 32): string {
-    if (start < 0 || end >= MEMORY_SIZE_BYTES || start > end) {
-      throw new RangeError(`Invalid memory range [${start}, ${end}]`);
-    }
-
-    const length = end - start + 1;
-    const result = new Array(length);
-    for (let i = 0; i < length; i++) {
-      const byte = this.u8[start + i];
-      result[i] = byte.toString(16).padStart(2, '0');
-    }
-    return result.join(' ');
-  }
-
-  /**
-   * Dumps memory range as ASCII characters.
-   * @param start Starting address
-   * @param end Ending address (defaults to 32)
-   * @returns ASCII string representation
-   * @throws {RangeError} If range is invalid
-   */
-  dumpChars(start: number, end = 32): string {
-    if (start < 0 || end >= MEMORY_SIZE_BYTES || start > end) {
-      throw new RangeError(`Invalid memory range [${start}, ${end}]`);
-    }
-
-    const length = end - start + 1;
-    const result = new Array(length);
-    for (let i = 0; i < length; i++) {
-      const byte = this.u8[start + i];
-      result[i] = String.fromCharCode(byte);
-    }
-    return result.join(' ');
-  }
+  return chars.join(' ');
 }

@@ -3,7 +3,7 @@
  * Path-based address selection operations for the Tacit VM.
  */
 
-import { type VM, type Verb, Tag, getTaggedInfo, isNIL, NIL, getListLength, isList, isRef, createRef } from '@src/core';
+import { type VM, type Verb, Tag, getTaggedInfo, isNIL, NIL, getListLength, isList, isRef, createRef, memoryReadCell } from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
@@ -20,7 +20,7 @@ export function createTargetRef(vm: VM): boolean {
   // findElement examined the cell at: vm.SP - pathSize - 1
   // Use absolute addressing: vm.sp is absolute cell index (one past TOS)
   const targetCell = vm.sp - pathSize - 1;
-  const target = vm.memory.readCell(targetCell);
+  const target = memoryReadCell(vm.memory, targetCell);
 
   if (isList(target)) {
     // Create absolute REF to the list header cell
@@ -80,12 +80,12 @@ export function processPathStep(vm: VM, pathElement: number): boolean {
 export function traverseMultiPath(vm: VM): void {
   // Read path header using absolute cell-based indexing
   const pathHeaderCell = vm.sp - 2;
-  const pathHeader = vm.memory.readCell(pathHeaderCell);
+  const pathHeader = memoryReadCell(vm.memory, pathHeaderCell);
   const pathLength = getListLength(pathHeader);
   let pathElemCell = vm.sp - 3;
 
   for (let i = 0; i < pathLength; i++) {
-    const pathElement = vm.memory.readCell(pathElemCell);
+    const pathElement = memoryReadCell(vm.memory, pathElemCell);
     pathElemCell -= 1;
 
     if (!processPathStep(vm, pathElement)) {

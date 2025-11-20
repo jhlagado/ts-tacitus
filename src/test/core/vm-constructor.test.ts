@@ -1,7 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../src/core/vm';
-import { Memory } from '../../../src/core/memory';
-import { Digest } from '../../../src/strings/digest';
 import { STACK_BASE, RSTACK_BASE } from '../../../src/core/constants';
 
 describe('VM Constructor Initialization', () => {
@@ -11,8 +9,9 @@ describe('VM Constructor Initialization', () => {
     vm = createVM();
   });
 
-  test('should initialize memory as a Memory instance', () => {
-    expect(vm.memory).toBeInstanceOf(Memory);
+  test('should initialize memory buffers', () => {
+    expect(vm.memory.buffer).toBeInstanceOf(Uint8Array);
+    expect(vm.memory.dataView).toBeInstanceOf(DataView);
   });
 
   test('should initialize IP to 0', () => {
@@ -35,8 +34,9 @@ describe('VM Constructor Initialization', () => {
     expect(vm.bp).toBe(RSTACK_BASE);
   });
 
-  test('should initialize digest as a Digest instance', () => {
-    expect(vm.digest).toBeInstanceOf(Digest);
+  test('should initialize digest structure', () => {
+    expect(typeof vm.digest.SBP).toBe('number');
+    expect(vm.digest.SBP).toBeGreaterThanOrEqual(0);
   });
 
   test('should initialize debug to false', () => {

@@ -5,7 +5,15 @@ import { ensureNoOpenConditionals } from '../../lang/meta';
 import { createVM, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
-import { SEG_CODE, Tag, getTaggedInfo, Sentinel } from '../../core';
+import {
+  SEG_CODE,
+  Tag,
+  getTaggedInfo,
+  Sentinel,
+  memoryRead8,
+  memoryRead16,
+  memoryReadFloat32,
+} from '../../core';
 import { STACK_BASE, RSTACK_BASE } from '../../core/constants';
 import { createBuiltinRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop, emitOpcode, emitFloat32 } from '../../core/vm';
@@ -158,19 +166,19 @@ describe('case immediates', () => {
 
     const skipPos = peekAt(vm, 1);
     expect(typeof skipPos).toBe('number');
-    expect(vm.memory.read16(SEG_CODE, skipPos)).toBe(0);
+    expect(memoryRead16(vm.memory, SEG_CODE, skipPos)).toBe(0);
 
-    const byteBefore = vm.memory.read8(SEG_CODE, vm.compiler.CP - 1);
+    const byteBefore = memoryRead8(vm.memory, SEG_CODE, vm.compiler.CP - 1);
     expect(byteBefore).toBe(Op.Drop);
   });
 
   test('defaultImmediate compiles sentinel literal', () => {
     defaultImmediateOp(vm);
 
-    const opcode = vm.memory.read8(SEG_CODE, 0);
+    const opcode = memoryRead8(vm.memory, SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
 
-    const encoded = vm.memory.readFloat32(SEG_CODE, 1);
+    const encoded = memoryReadFloat32(vm.memory, SEG_CODE, 1);
     const decoded = getTaggedInfo(encoded);
     expect(decoded.tag).toBe(Tag.SENTINEL);
     expect(decoded.value).toBe(Sentinel.DEFAULT);
@@ -179,9 +187,9 @@ describe('case immediates', () => {
   test('nilImmediate compiles NIL sentinel literal', () => {
     nilImmediateOp(vm);
 
-    const opcode = vm.memory.read8(SEG_CODE, 0);
+    const opcode = memoryRead8(vm.memory, SEG_CODE, 0);
     expect(opcode).toBe(Op.LiteralNumber);
-    const encoded = vm.memory.readFloat32(SEG_CODE, 1);
+    const encoded = memoryReadFloat32(vm.memory, SEG_CODE, 1);
     const decoded = getTaggedInfo(encoded);
     expect(decoded.tag).toBe(Tag.SENTINEL);
     expect(decoded.value).toBe(Sentinel.NIL);
@@ -227,10 +235,10 @@ describe('case immediates', () => {
     expect(exitPos).toBeGreaterThan(skipPos);
     rpush(vm, exitPos);
 
-    const skipOffset = vm.memory.read16(SEG_CODE, skipPos);
+    const skipOffset = memoryRead16(vm.memory, SEG_CODE, skipPos);
     expect(skipOffset).toBe(exitPos - skipPos);
 
-    const branchOperand = vm.memory.read16(SEG_CODE, exitPos);
+    const branchOperand = memoryRead16(vm.memory, SEG_CODE, exitPos);
     expect(branchOperand).toBe(0);
   });
 
@@ -266,7 +274,7 @@ describe('case immediates', () => {
 
     clauseDoImmediateOp(vm);
     const skipPos = peekAt(vm, 1);
-    expect(vm.memory.read8(SEG_CODE, skipPos + 2)).toBe(Op.Drop);
+    expect(memoryRead8(vm.memory, SEG_CODE, skipPos + 2)).toBe(Op.Drop);
 
     emitOpcode(vm, Op.Nop);
 
@@ -280,13 +288,13 @@ describe('case immediates', () => {
     expect(vm.sp - STACK_BASE).toBe(0);
 
     const finalDropPos = vm.compiler.CP - 1;
-    expect(vm.memory.read8(SEG_CODE, finalDropPos)).toBe(Op.Drop);
+    expect(memoryRead8(vm.memory, SEG_CODE, finalDropPos)).toBe(Op.Drop);
 
-    const patchedExit = vm.memory.read16(SEG_CODE, exitPos);
+    const patchedExit = memoryRead16(vm.memory, SEG_CODE, exitPos);
     const expectedExitOffset = vm.compiler.CP - (exitPos + 2);
     expect(patchedExit).toBe(expectedExitOffset);
 
-    const patchedSkip = vm.memory.read16(SEG_CODE, skipPos);
+    const patchedSkip = memoryRead16(vm.memory, SEG_CODE, skipPos);
     expect(patchedSkip).toBe(exitPos - skipPos);
   });
 
@@ -296,7 +304,7 @@ describe('case immediates', () => {
     evalOp(vm);
 
     expect(vm.sp - STACK_BASE).toBe(0);
-    expect(vm.memory.read8(SEG_CODE, vm.compiler.CP - 1)).toBe(Op.Drop);
+    expect(memoryRead8(vm.memory, SEG_CODE, vm.compiler.CP - 1)).toBe(Op.Drop);
   });
 });
 

@@ -3,8 +3,19 @@
  * List construction and conversion operations (builders).
  */
 
-import { type VM, type Verb, getTaggedInfo, Tagged, Tag, NIL } from '@src/core';
-import { getListLength, reverseSpan, isList } from '@src/core';
+import {
+  type VM,
+  type Verb,
+  getTaggedInfo,
+  Tagged,
+  Tag,
+  NIL,
+  getListLength,
+  reverseSpan,
+  isList,
+  memoryWriteCell,
+  memoryReadCell,
+} from '@src/core';
 import { getListBounds } from './core-helpers';
 import { evalOp } from '../core';
 import {
@@ -37,7 +48,7 @@ export function closeListOp(vm: VM): void {
   const headerCell = rpop(vm);
   const payloadSlots = vm.sp - headerCell - 1;
 
-  vm.memory.writeCell(headerCell, Tagged(payloadSlots, Tag.LIST));
+  memoryWriteCell(vm.memory, headerCell, Tagged(payloadSlots, Tag.LIST));
 
   const isOutermost = vm.listDepth === 1;
   if (isOutermost) {
@@ -75,7 +86,7 @@ export function makeListOp(vm: VM): void {
   }
 
   const finalizedHeader = Tagged(payloadSlots, Tag.LIST);
-  vm.memory.writeCell(retrievedHeaderCell, finalizedHeader);
+  memoryWriteCell(vm.memory, retrievedHeaderCell, finalizedHeader);
 
   const totalSpan = vm.sp - retrievedHeaderCell;
   if (totalSpan > 1) {
@@ -150,7 +161,7 @@ export function unpackOp(vm: VM): void {
   // Reference case: materialize payload slots deep→TOS order using absolute addressing
   const headerCell = info.baseCell + slotCount;
   for (let i = slotCount - 1; i >= 0; i--) {
-    const slotValue = vm.memory.readCell(headerCell - (i + 1));
+    const slotValue = memoryReadCell(vm.memory, headerCell - (i + 1));
     push(vm, slotValue);
   }
 }

@@ -8,7 +8,18 @@
  * - src/test/list-utils.ts
  * - src/test/utils/operationsTestUtils.ts
  */
-import { type VM, Tag, Tagged, getTaggedInfo, STACK_BASE, RSTACK_BASE, createVM } from '../../core';
+import {
+  type VM,
+  Tag,
+  Tagged,
+  getTaggedInfo,
+  STACK_BASE,
+  RSTACK_BASE,
+  createVM,
+  memoryReadCell,
+  digestGet,
+  tagNames,
+} from '../../core';
 import { getStackData, push as pushFn } from '../../core/vm';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -49,7 +60,7 @@ export function captureVMState(vm: VM): VMStateSnapshot {
   // vm.rsp is a cell index. Snapshot values relative to RSTACK_BASE_BYTES.
   const rstackBaseCells = RSTACK_BASE;
   for (let i = rstackBaseCells; i < vm.rsp; i++) {
-    returnStack.push(vm.memory.readCell(i));
+    returnStack.push(memoryReadCell(vm.memory, i));
   }
   return {
     stack,
@@ -78,7 +89,7 @@ export function getFormattedStack(vm: VM): string[] {
     const { tag, value: tagValue } = getTaggedInfo(value);
     switch (tag) {
       case Tag.STRING: {
-        const s = vm.digest.get(tagValue);
+        const s = digestGet(vm.digest, tagValue);
         return `STRING:${tagValue}(${s})`;
       }
       case Tag.LIST:

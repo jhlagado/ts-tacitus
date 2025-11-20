@@ -6,6 +6,7 @@
 import { type VM, peek, pop, ensureStackSize } from './vm';
 import { getTaggedInfo, Tag } from './tagged';
 import { isRef, getCellFromRef } from './refs';
+import { memoryReadCell, memoryWriteCell } from './memory';
 
 /**
  * Checks if a value is a LIST.
@@ -90,7 +91,7 @@ export function getListElemCell(
   let remainingSlots = totalSlots;
 
   while (remainingSlots > 0 && currentLogicalIndex <= logicalIndex) {
-    const currentValue = vm.memory.readCell(currentCell);
+    const currentValue = memoryReadCell(vm.memory, currentCell);
     let stepSize = 1;
 
     if (isList(currentValue)) {
@@ -153,10 +154,10 @@ export function getListBounds(
     return { header: value, baseCell: base, headerCell: hdr };
   } else if (isRef(value)) {
     let hdr = getCellFromRef(value);
-    let header = vm.memory.readCell(hdr);
+    let header = memoryReadCell(vm.memory, hdr);
     if (isRef(header)) {
       hdr = getCellFromRef(header);
-      header = vm.memory.readCell(hdr);
+      header = memoryReadCell(vm.memory, hdr);
     }
 
     if (!isList(header)) {
@@ -183,8 +184,8 @@ export function copyListPayload(
   slots: number,
 ): void {
   for (let i = 0; i < slots; i++) {
-    const val = vm.memory.readCell(srcBaseCell + i);
-    vm.memory.writeCell(destBaseCell + i, val);
+    const val = memoryReadCell(vm.memory, srcBaseCell + i);
+    memoryWriteCell(vm.memory, destBaseCell + i, val);
   }
 }
 

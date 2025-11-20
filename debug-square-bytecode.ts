@@ -5,6 +5,7 @@ import { Op } from './src/ops/opcodes';
 import { SEG_CODE } from './src/core/constants';
 import { findBytecodeAddress } from './src/core/dictionary';
 import { getTaggedInfo } from './src/core';
+import { memoryRead8, memoryRead16 } from './src/core/memory';
 
 // Initialize VM and compiler (global vm singleton)
 initializeInterpreter();
@@ -36,7 +37,7 @@ for (const [name, value] of Object.entries(Op)) {
 }
 
 for (let i = 0; i < vm.compiler.CP; i++) {
-  const byte = vm.memory.read8(SEG_CODE, i);
+  const byte = memoryRead8(vm.memory, SEG_CODE, i);
   let description = `raw byte ${byte}`;
 
   // Try to identify what this byte represents
@@ -74,8 +75,8 @@ console.log('square bytecode address:', squareAddr);
 
 // Analyze the branch structure
 console.log('\n=== Branch Analysis ===');
-if (vm.memory.read8(SEG_CODE, 0) === Op.Branch) {
-  const branchOffset = vm.memory.read16(SEG_CODE, 1);
+if (memoryRead8(vm.memory, SEG_CODE, 0) === Op.Branch) {
+  const branchOffset = memoryRead16(vm.memory, SEG_CODE, 1);
   console.log(`Branch at [0]: offset=${branchOffset}, used to skip over definition body`);
   console.log(`Square definition actual address: ${squareAddr}`);
   console.log(`Square definition starts at: ${3}`);
@@ -88,13 +89,13 @@ if (squareAddr !== undefined) {
   let pos = squareAddr;
   let step = 0;
   while (pos < vm.compiler.CP && step < 5) {
-    const firstByte = vm.memory.read8(SEG_CODE, pos);
+    const firstByte = memoryRead8(vm.memory, SEG_CODE, pos);
     let opcode = firstByte;
     let bytesUsed = 1;
 
     if ((firstByte & 0x80) !== 0) {
       // Multi-byte opcode
-      const secondByte = vm.memory.read8(SEG_CODE, pos + 1);
+      const secondByte = memoryRead8(vm.memory, SEG_CODE, pos + 1);
       const lowBits = firstByte & 0x7f;
       const highBits = secondByte << 7;
       opcode = highBits | lowBits;

@@ -3,26 +3,13 @@ import {
   isWhitespace,
   isGroupingChar,
   formatValue,
+  createVM,
+  digestAdd,
 } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { Tagged, Tag, NIL, VM } from '../../core';
 
-const testVM = {
-  digest: {
-    get: (address: number) => {
-      if (address === 100) {
-        return 'TestString';
-      }
-      return undefined;
-    },
-    add: (_str: string) => 100,
-  },
-  memory: {
-    read16: (_segment: number, offset: number) => offset,
-    readFloat32: (_segment: number, offset: number) => offset * 1.0,
-  },
-  getStackData: () => [],
-} as unknown as VM;
+const testVM = createVM() as VM;
 describe('Utility Functions', () => {
   describe('Character check functions', () => {
     test('isDigit returns true for digit characters', () => {
@@ -81,7 +68,7 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, taggedCode)).toBe('[CODE:1234]');
     });
     test('formats STRING tagged value successfully', () => {
-      const strAddr = testVM.digest.add('TestString');
+      const strAddr = digestAdd(testVM.digest, 'TestString');
       const taggedString = Tagged(strAddr, Tag.STRING);
       expect(formatValue(testVM, taggedString)).toBe('"TestString"');
     });

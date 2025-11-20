@@ -2,7 +2,7 @@
  * Tests for compiler function context and Reserve back-patching
  */
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { createVM, VM } from '../../core';
+import { createVM, memoryRead16, memoryRead8, VM } from '../../core';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
@@ -48,7 +48,7 @@ describe('Compiler Function Context', () => {
       expect(vm.compiler.CP).toBe(initialCP + 3);
 
       // Check that Reserve opcode was written
-      const reserveOpcode = vm.memory.read8(SEG_CODE, initialCP);
+      const reserveOpcode = memoryRead8(vm.memory, SEG_CODE, initialCP);
       expect(reserveOpcode).toBe(Op.Reserve);
     });
 
@@ -66,12 +66,12 @@ describe('Compiler Function Context', () => {
       const patchAddr = vm.compiler.reservePatchAddr;
 
       // Initial placeholder should be 0
-      expect(vm.memory.read16(SEG_CODE, patchAddr)).toBe(0);
+      expect(memoryRead16(vm.memory, SEG_CODE, patchAddr)).toBe(0);
 
       compilerExitFunction(vm, vm.compiler);
 
       // Should be patched with actual local count (2)
-      expect(vm.memory.read16(SEG_CODE, patchAddr)).toBe(2);
+      expect(memoryRead16(vm.memory, SEG_CODE, patchAddr)).toBe(2);
 
       forget(vm, checkpoint);
     });

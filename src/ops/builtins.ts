@@ -14,6 +14,8 @@ import {
   GLOBAL_TOP,
   createGlobalRef,
   gpushList,
+  memoryWriteCell,
+  memoryReadCell,
 } from '@src/core';
 import {
   nextUint16,
@@ -339,10 +341,10 @@ export function initVarOp(vm: VM): void {
     const absHeaderCellIndex = RSTACK_BASE + headerCell;
     const localRef = createRef(absHeaderCellIndex);
 
-    vm.memory.writeCell(slotCellIndex, localRef);
+    memoryWriteCell(vm.memory, slotCellIndex, localRef);
   } else {
     const simpleValue = pop(vm);
-    vm.memory.writeCell(slotCellIndex, simpleValue);
+    memoryWriteCell(vm.memory, slotCellIndex, simpleValue);
   }
 }
 
@@ -397,10 +399,10 @@ export function initGlobalOp(vm: VM): void {
     // For compounds, copy to global heap and store REF
     // This matches InitVar's behavior for compounds
     const heapRef = gpushList(vm);
-    vm.memory.writeCell(cell, heapRef);
+    memoryWriteCell(vm.memory, cell, heapRef);
   } else {
     const simpleValue = pop(vm);
-    vm.memory.writeCell(cell, simpleValue);
+    memoryWriteCell(vm.memory, cell, simpleValue);
   }
 }
 
@@ -431,14 +433,14 @@ export function dumpFrameOp(vm: VM): void {
     console.log('Local variable count:', localCount);
 
     for (let i = 0; i < localCount; i++) {
-      const slotValue = vm.memory.readCell(vm.bp + i);
+      const slotValue = memoryReadCell(vm.memory, vm.bp + i);
       const { tag, value } = getTaggedInfo(slotValue);
       // eslint-disable-next-line no-console
       console.log(`  Slot ${i} - tag: ${Tag[tag]}, value: ${value}`);
 
       if (isRef(slotValue)) {
         const absCellIndex = getCellFromRef(slotValue);
-        const targetValue = vm.memory.readCell(absCellIndex);
+        const targetValue = memoryReadCell(vm.memory, absCellIndex);
         const { tag: targetTag, value: targetVal } = getTaggedInfo(targetValue);
         // eslint-disable-next-line no-console
         console.log(

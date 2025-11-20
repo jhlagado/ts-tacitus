@@ -1,4 +1,4 @@
-import { SyntaxError, RSTACK_BASE, STACK_BASE } from '@src/core';
+import { SyntaxError, RSTACK_BASE, STACK_BASE, memoryRead8 } from '@src/core';
 import { SEG_CODE } from '@src/core/constants';
 import { type Op } from '../../ops/opcodes';
 import { executeOp } from '../../ops/builtins';
@@ -31,7 +31,7 @@ export function runImmediateCode(vm: VM, address: number): void {
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (vm.running) {
-    const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
+    const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;
     const opcode = nextOpcode(vm);
     executeOp(vm, opcode as Op, isUserDefined);
