@@ -10,7 +10,7 @@ import {
   getCompilePointer,
   patchUint16,
 } from '../core/vm';
-import { TokenType, type Tokenizer } from './tokenizer';
+import { TokenType, type Tokenizer, tokenizerNext } from './tokenizer';
 import { Op } from '../ops/opcodes';
 import {
   markWithLocalReset,
@@ -30,7 +30,7 @@ export function beginDefinition(
     throw new NestedDefinitionError(getStackData(vm));
   }
 
-  const nameToken = tokenizer.nextToken();
+  const nameToken = tokenizerNext(tokenizer);
   if (nameToken.type !== TokenType.WORD && nameToken.type !== TokenType.NUMBER) {
     throw new SyntaxError('Expected word name after :', getStackData(vm));
   }

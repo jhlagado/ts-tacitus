@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 import { createVM, VM } from '../../core';
 import { executeProgram } from '../../lang/runner';
 import { getTaggedInfo, Tag } from '../../core';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { getStackData } from '../../core/vm';
 
@@ -35,10 +35,10 @@ describe('Parser LIST Integration (() )', () => {
   });
 
   it('throws on unmatched LIST closing bracket', () => {
-    expect(() => parse(vm, new Tokenizer(')'))).toThrow();
+    expect(() => parse(vm, createTokenizer(')'))).toThrow();
   });
 
   it('throws on unmatched LIST opening bracket', () => {
-    expect(() => parse(vm, new Tokenizer('( 1 2 3'))).toThrow();
+    expect(() => parse(vm, createTokenizer('( 1 2 3'))).toThrow();
   });
 });

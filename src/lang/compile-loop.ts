@@ -101,12 +101,12 @@ export function emitSymbolWord(): void {
 export function emitRefSigilWord(vm: VM): void {
   ensureStackSize(vm, 1, 'emit-ref-sigil');
   const raw = pop(vm);
-  const text = decodeString(vm, raw, 'emit-ref-sigil');
+  decodeString(vm, raw, 'emit-ref-sigil');
   const tokenizer = getActiveTokenizer();
   if (!tokenizer) {
     throw new Error('emit-ref-sigil: no active tokenizer');
   }
-  emitRefSigil(vm, text, tokenizer);
+  emitRefSigil(vm, tokenizer);
 }
 
 export function finalizeCompile(vm: VM): void {

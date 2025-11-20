@@ -18,10 +18,9 @@ import {
   createVM,
   memoryReadCell,
   digestGet,
-  tagNames,
 } from '../../core';
 import { getStackData, push as pushFn } from '../../core/vm';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { execute } from '../../lang/interpreter';
 
@@ -41,7 +40,7 @@ export function executeTacitCode(vm: VM, code: string, resetStack = true): numbe
     vm.listDepth = 0;
   }
   // parse() will handle compiler reset, so we don't need to manage compiler state here
-  parse(vm, new Tokenizer(code));
+  parse(vm, createTokenizer(code));
   execute(vm, vm.compiler.BCP);
   return getStackData(vm);
 }
@@ -72,7 +71,7 @@ export function captureVMState(vm: VM): VMStateSnapshot {
 }
 
 export function executeTacitWithState(vm: VM, code: string): VMStateSnapshot {
-  parse(vm, new Tokenizer(code));
+  parse(vm, createTokenizer(code));
   execute(vm, vm.compiler.BCP);
   return captureVMState(vm);
 }

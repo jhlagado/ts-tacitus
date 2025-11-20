@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { createVM, VM } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
@@ -23,7 +23,7 @@ describe('Immediate words', () => {
 
     define(vm, 'immdup', Tagged(Op.Dup, Tag.CODE, 1));
 
-    parse(vm, new Tokenizer('immdup'));
+    parse(vm, createTokenizer('immdup'));
 
     const stack = getStackData(vm);
     expect(stack.length).toBe(2);
@@ -32,7 +32,7 @@ describe('Immediate words', () => {
   });
 
   test('executes immediate colon definitions via code references', () => {
-    parse(vm, new Tokenizer(': inc1 1 add ;'));
+    parse(vm, createTokenizer(': inc1 1 add ;'));
 
     const addr = findBytecodeAddress(vm, 'inc1');
     expect(addr).toBeDefined();
@@ -40,7 +40,7 @@ describe('Immediate words', () => {
     define(vm, 'inc1!', Tagged(encodeX1516(addr!), Tag.CODE, 1));
 
     push(vm, 5);
-    parse(vm, new Tokenizer('inc1!'));
+    parse(vm, createTokenizer('inc1!'));
 
     const stack = getStackData(vm);
     expect(stack.length).toBe(1);
@@ -106,6 +106,6 @@ describe('Immediate words', () => {
   });
 
   test('else without if raises syntax error', () => {
-    expect(() => parse(vm, new Tokenizer(': stray else ;'))).toThrow('ELSE without IF');
+    expect(() => parse(vm, createTokenizer(': stray else ;'))).toThrow('ELSE without IF');
   });
 });

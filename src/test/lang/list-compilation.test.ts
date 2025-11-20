@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { memoryRead8, SEG_CODE } from '../../core';
 import { createVM, VM } from '../../core';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { Op } from '../../ops/opcodes';
 
@@ -23,7 +23,7 @@ describe('LIST Literal Compilation', () => {
   });
 
   it('compiles a simple LIST literal: ( 1 2 3 )', () => {
-    parse(vm, new Tokenizer('( 1 2 3 )'));
+    parse(vm, createTokenizer('( 1 2 3 )'));
     const code = (() => {
       const result: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
@@ -47,7 +47,7 @@ describe('LIST Literal Compilation', () => {
   });
 
   it('compiles nested LIST literal: ( 1 ( 2 3 ) 4 )', () => {
-    parse(vm, new Tokenizer('( 1 ( 2 3 ) 4 )'));
+    parse(vm, createTokenizer('( 1 ( 2 3 ) 4 )'));
     const code = (() => {
       const result: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
