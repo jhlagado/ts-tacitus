@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { SEG_CODE, Tag, getTaggedInfo, memoryRead16 } from '../../core';
 import { STACK_BASE } from '../../core/constants';
-import { createBuiltinRef } from '../../core/code-ref';
+import { createCodeRef } from '../../core/code-ref';
 import { createVM, type VM, emitOpcode } from '../../core/vm';
 import { peekAt, push, peek } from '../../core/vm';
 import {
@@ -29,20 +29,20 @@ describe('conditional immediates', () => {
 
   test('ELSE rejects mismatched closer', () => {
     push(vm, 0);
-    push(vm, createBuiltinRef(Op.EndCase));
+    push(vm, createCodeRef(Op.EndCase));
 
     expect(() => beginElseImmediateOp(vm)).toThrow('ELSE without IF');
   });
 
   test('ELSE requires placeholder beneath closer', () => {
-    push(vm, createBuiltinRef(Op.EndIf));
+    push(vm, createCodeRef(Op.EndIf));
 
     expect(() => beginElseImmediateOp(vm)).toThrow('ELSE without IF');
   });
 
   test('ELSE complains about missing branch placeholder', () => {
     push(vm, Number.NaN);
-    push(vm, createBuiltinRef(Op.EndIf));
+    push(vm, createCodeRef(Op.EndIf));
 
     expect(() => beginElseImmediateOp(vm)).toThrow(
       'ELSE missing branch placeholder',
@@ -51,7 +51,7 @@ describe('conditional immediates', () => {
 
   test('ELSE complains about invalid branch placeholder', () => {
     push(vm, -1);
-    push(vm, createBuiltinRef(Op.EndIf));
+    push(vm, createCodeRef(Op.EndIf));
 
     expect(() => beginElseImmediateOp(vm)).toThrow(
       'ELSE invalid branch placeholder',
@@ -89,7 +89,7 @@ describe('conditional immediates', () => {
   });
 
   test('ensureNoOpenConditionals detects unclosed match', () => {
-    push(vm, createBuiltinRef(Op.EndMatch));
+    push(vm, createCodeRef(Op.EndMatch));
     expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `match`');
   });
 

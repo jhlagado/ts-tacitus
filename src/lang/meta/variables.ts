@@ -6,7 +6,6 @@ import {
   getRefArea,
   createGlobalRef,
   isNIL,
-  digestIntern,
 } from '@src/core';
 import {
   type VM,
@@ -20,65 +19,12 @@ import { define, lookup } from '../../core/dictionary';
 import { TokenType, type Tokenizer, tokenizerNext, tokenizerPushBack } from '../tokenizer';
 import { Op } from '../../ops/opcodes';
 import { getCellFromRef } from '../../core/refs';
-import { isSpecialChar } from '@src/core';
 import { GLOBAL_BASE, GLOBAL_SIZE } from '../../core/constants';
-
-function requireTokenizer(vm: VM, word: string): Tokenizer {
-  const tokenizer = vm.currentTokenizer;
-  if (!tokenizer) {
-    throw new SyntaxError(`${word} requires active tokenizer`, getStackData(vm));
-  }
-  return tokenizer;
-}
-
-function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
-  emitOpcode(vm, Op.OpenList);
-  for (;;) {
-    const tok = tokenizerNext(tokenizer);
-    if (tok.type === TokenType.SPECIAL && tok.value === ']') {
-      break;
-    }
-    if (tok.type === TokenType.NUMBER) {
-      emitOpcode(vm, Op.LiteralNumber);
-      emitFloat32(vm, tok.value as number);
-      continue;
-    }
-    if (tok.type === TokenType.STRING) {
-      emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, digestIntern(vm.digest, tok.value as string));
-      continue;
-    }
-    throw new SyntaxError(
-      'Only numeric indices or string keys are supported in bracket paths',
-      getStackData(vm),
-    );
-  }
-  emitOpcode(vm, Op.CloseList);
-}
-
-function readNameAfter(
-  vm: VM,
-  tokenizer: Tokenizer,
-  keyword: string,
-): string {
-  const token = tokenizerNext(tokenizer);
-  if (token.type !== TokenType.WORD) {
-    throw new SyntaxError(`Expected variable name after ${keyword}`, getStackData(vm));
-  }
-  const name = token.value as string;
-  if (
-    name.length === 0 ||
-    name === ':' ||
-    name === ';' ||
-    (name.length === 1 && isSpecialChar(name))
-  ) {
-    throw new SyntaxError(`Expected variable name after ${keyword}`, getStackData(vm));
-  }
-  return name;
-}
+import { compileBracketPathAsList } from '../helpers/bracket-path';
+import { ensureTokenizer, readNameAfter } from '../helpers/tokenizer-utils';
 
 export function varImmediateOp(vm: VM): void {
-  const tokenizer = requireTokenizer(vm, 'var');
+  const tokenizer = ensureTokenizer(vm, 'var');
   if (vm.defEntryCell === -1) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
@@ -94,7 +40,7 @@ export function varImmediateOp(vm: VM): void {
 }
 
 export function globalImmediateOp(vm: VM): void {
-  const tokenizer = requireTokenizer(vm, 'global');
+  const tokenizer = ensureTokenizer(vm, 'global');
   if (vm.defEntryCell !== -1) {
     throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
   }
@@ -114,7 +60,7 @@ export function globalImmediateOp(vm: VM): void {
 }
 
 export function assignImmediateOp(vm: VM): void {
-  const tokenizer = requireTokenizer(vm, '->');
+  const tokenizer = ensureTokenizer(vm, '->');
   const varName = readNameAfter(vm, tokenizer, '->');
   const symbol = lookup(vm, varName);
   if (isNIL(symbol)) {
@@ -167,7 +113,7 @@ export function assignImmediateOp(vm: VM): void {
 }
 
 export function incrementImmediateOp(vm: VM): void {
-  const tokenizer = requireTokenizer(vm, '+>');
+  const tokenizer = ensureTokenizer(vm, '+>');
   if (vm.defEntryCell === -1) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',

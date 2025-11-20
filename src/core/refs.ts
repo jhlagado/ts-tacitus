@@ -127,23 +127,6 @@ export function isRStackRef(ref: number): boolean {
 }
 
 /**
- * Gets the segment number for a REF based on its address range.
- * @param ref - REF tagged value
- * @returns Segment number (0=global, 1=stack, 2=rstack)
- * @deprecated Prefer using getRefArea() or the boolean functions (isGlobalRef, isStackRef, isRStackRef)
- */
-export function getRefSegment(ref: number): number {
-  const absByte = refToByte(ref);
-  if (absByte >= GLOBAL_BASE_BYTES && absByte < STACK_BASE_BYTES) {
-    return 0; // global
-  }
-  if (absByte >= STACK_BASE_BYTES && absByte < RSTACK_BASE_BYTES) {
-    return 1; // stack
-  }
-  return 2; // rstack
-}
-
-/**
  * Creates a REF to a local variable slot in the current frame.
  * @param vm - VM instance
  * @param slotNumber - Local variable slot number (0-based)
