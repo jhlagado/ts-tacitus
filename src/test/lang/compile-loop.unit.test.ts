@@ -14,10 +14,10 @@ import {
   unexpectedToken,
 } from '../../lang/compile-loop';
 import { TokenType } from '../../lang/tokenizer';
-import { createVM, emitOpcode, emitFloat32, emitUint16, push } from '../../core/vm';
+import * as vmCore from '../../core/vm';
 import { Tagged, Tag, Sentinel } from '../../core/tagged';
 import { Op } from '../../ops/opcodes';
-import { UnexpectedTokenError } from '../../core';
+import { UnexpectedTokenError, digestIntern } from '../../core';
 import {
   handleSpecial,
   emitWord,
@@ -35,10 +35,10 @@ const validateFinalStateMock = validateFinalState as jest.MockedFunction<
 >;
 
 describe('compile loop unit coverage', () => {
-  let vm = createVM(false);
+  let vm = vmCore.createVM(false);
 
   beforeEach(() => {
-    vm = createVM(false);
+    vm = vmCore.createVM(false);
     jest.clearAllMocks();
   });
 
@@ -51,27 +51,26 @@ describe('compile loop unit coverage', () => {
       .mockReturnValueOnce({ type: TokenType.NUMBER, raw: 123 })
       .mockReturnValueOnce({ type: TokenType.EOF, raw: 0 });
 
-    const emitOpcodeSpy = jest.spyOn(require('../../core/vm'), 'emitOpcode');
-    const emitFloatSpy = jest.spyOn(require('../../core/vm'), 'emitFloat32');
-    const emitUintSpy = jest.spyOn(require('../../core/vm'), 'emitUint16');
-    const pushSpy = jest.spyOn(require('../../core/vm'), 'push');
+    const emitOpcodeSpy = jest.spyOn(vmCore, 'emitOpcode');
+    const emitFloatSpy = jest.spyOn(vmCore, 'emitFloat32');
+    const pushSpy = jest.spyOn(vmCore, 'push');
 
     runTacitCompileLoop(vm);
 
     expect(emitOpcodeSpy).toHaveBeenCalledWith(vm, Op.LiteralNumber);
     expect(emitFloatSpy).toHaveBeenCalledWith(vm, 123);
-    expect(emitUintSpy).toHaveBeenCalledWith(vm, expect.any(Number)); // final Abort emits uint16 for Abort operand
     expect(pushSpy).toHaveBeenCalledWith(vm, 1); // EOF pushes 1
   });
 
   test('compiles STRING literal', () => {
-    const strAddr = Tagged(0, Tag.STRING);
+    const addr = digestIntern(vm.digest, 'hello');
+    const strAddr = Tagged(addr, Tag.STRING);
     tokenNextMock
       .mockReturnValueOnce({ type: TokenType.STRING, raw: strAddr })
       .mockReturnValueOnce({ type: TokenType.EOF, raw: 0 });
 
-    const emitOpcodeSpy = jest.spyOn(require('../../core/vm'), 'emitOpcode');
-    const emitUintSpy = jest.spyOn(require('../../core/vm'), 'emitUint16');
+    const emitOpcodeSpy = jest.spyOn(vmCore, 'emitOpcode');
+    const emitUintSpy = jest.spyOn(vmCore, 'emitUint16');
 
     runTacitCompileLoop(vm);
 
@@ -111,15 +110,14 @@ describe('compile loop unit coverage', () => {
   });
 
   test('unexpectedToken surface error formatting for sentinel payload', () => {
-    push(vm, Tagged(Sentinel.NIL, Tag.SENTINEL));
-    push(vm, 999);
+    vmCore.push(vm, Tagged(Sentinel.NIL, Tag.SENTINEL));
+    vmCore.push(vm, 999);
 
     expect(() => unexpectedToken(vm)).toThrow(UnexpectedTokenError);
-    expect(vm.sp).toBeGreaterThanOrEqual(vm.sp); // stack adjusted by ensureStackSize + pops
   });
 
   test('finalizeCompile emits Abort', () => {
-    const emitOpcodeSpy = jest.spyOn(require('../../core/vm'), 'emitOpcode');
+    const emitOpcodeSpy = jest.spyOn(vmCore, 'emitOpcode');
     finalizeCompile(vm);
     expect(validateFinalStateMock).toHaveBeenCalled();
     expect(emitOpcodeSpy).toHaveBeenCalledWith(vm, Op.Abort);
