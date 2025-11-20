@@ -1,7 +1,7 @@
 import { type VM } from '../core/vm';
 import { parse } from './parser';
 import { execute } from './interpreter';
-import { Tokenizer } from './tokenizer';
+import { createTokenizer } from './tokenizer';
 
 /**
  * Parses and executes a string of Tacit code.
@@ -13,6 +13,6 @@ import { Tokenizer } from './tokenizer';
  * @param {string} code - The Tacit source code to execute
  */
 export function executeProgram(vm: VM, code: string): void {
-  parse(vm, new Tokenizer(code));
+  parse(vm, createTokenizer(code));
   execute(vm, vm.compiler.BCP);
 }

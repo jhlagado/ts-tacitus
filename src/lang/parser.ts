@@ -30,7 +30,13 @@ import {
   depth,
   pop,
 } from '../core/vm';
-import { type Token, type Tokenizer, TokenType } from './tokenizer';
+import {
+  type Token,
+  type Tokenizer,
+  TokenType,
+  tokenizerNext,
+  tokenizerPushBack,
+} from './tokenizer';
 import {
   isSpecialChar,
   getTaggedInfo,
@@ -70,7 +76,7 @@ export function tokenNext(vm: VM): { type: TokenType; raw: number } {
     throw new Error('token-next: no active tokenizer');
   }
 
-  const token = tokenizer.nextToken();
+  const token = tokenizerNext(tokenizer);
   let payload: number;
 
   switch (token.type) {
@@ -164,7 +170,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
 export function parseProgram(vm: VM, tokenizer: Tokenizer): void {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
-    const token = tokenizer.nextToken();
+    const token = tokenizerNext(tokenizer);
     if (token.type === TokenType.EOF) {
       break;
     }
@@ -225,7 +231,7 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
       emitAtSymbol(vm, token.value as string, tokenizer);
       break;
     case TokenType.REF_SIGIL:
-      emitRefSigil(vm, token.value as string, tokenizer);
+      emitRefSigil(vm, tokenizer);
       break;
     // WORD_QUOTE removed: backtick word-address literals no longer supported
   }
@@ -297,14 +303,14 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
     emitUint16(vm, tagValue);
     emitOpcode(vm, Op.Load);
 
-    const nextToken = tokenizer.nextToken();
+    const nextToken = tokenizerNext(tokenizer);
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
       compileBracketPathAsList(vm, tokenizer);
       emitOpcode(vm, Op.Select);
       emitOpcode(vm, Op.Load);
       emitOpcode(vm, Op.Nip);
     } else {
-      tokenizer.pushBack(nextToken);
+    tokenizerPushBack(tokenizer, nextToken);
     }
     return;
   }
@@ -321,14 +327,14 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
     emitOpcode(vm, Op.GlobalRef);
     emitUint16(vm, offset);
 
-    const nextToken = tokenizer.nextToken();
+    const nextToken = tokenizerNext(tokenizer);
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
       compileBracketPathAsList(vm, tokenizer);
       emitOpcode(vm, Op.Select);
       emitOpcode(vm, Op.Load);
       emitOpcode(vm, Op.Nip);
     } else {
-      tokenizer.pushBack(nextToken);
+      tokenizerPushBack(tokenizer, nextToken);
       emitOpcode(vm, Op.Load);
     }
     return;
@@ -369,7 +375,12 @@ export function emitAtSymbol(vm: VM, symbolName: string, _tokenizer: Tokenizer):
  * @param {ParserState} state - The current parser state
  * @throws {Error} If variable is undefined or not a local variable
  */
-export function emitRefSigil(vm: VM, varName: string, _tokenizer: Tokenizer): void {
+export function emitRefSigil(vm: VM, tokenizer: Tokenizer): void {
+  const nextToken = tokenizerNext(tokenizer);
+  if (nextToken.type !== TokenType.WORD) {
+    throw new SyntaxError('Expected variable name after &', getStackData(vm));
+  }
+  const varName = nextToken.value as string;
   const tval = lookup(vm, varName);
   if (isNIL(tval)) {
     throw new UndefinedWordError(varName, getStackData(vm));
@@ -431,7 +442,7 @@ function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
   emitOpcode(vm, Op.OpenList);
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
-    const tok = tokenizer.nextToken();
+    const tok = tokenizerNext(tokenizer);
     if (tok.type === TokenType.SPECIAL && tok.value === ']') {
       break;
     }

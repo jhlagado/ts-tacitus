@@ -17,7 +17,7 @@ import {
   getStackData,
 } from '../../core/vm';
 import { define, lookup } from '../../core/dictionary';
-import { TokenType, type Tokenizer } from '../tokenizer';
+import { TokenType, type Tokenizer, tokenizerNext, tokenizerPushBack } from '../tokenizer';
 import { Op } from '../../ops/opcodes';
 import { getCellFromRef } from '../../core/refs';
 import { isSpecialChar } from '@src/core';
@@ -34,7 +34,7 @@ function requireTokenizer(vm: VM, word: string): Tokenizer {
 function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
   emitOpcode(vm, Op.OpenList);
   for (;;) {
-    const tok = tokenizer.nextToken();
+    const tok = tokenizerNext(tokenizer);
     if (tok.type === TokenType.SPECIAL && tok.value === ']') {
       break;
     }
@@ -61,7 +61,7 @@ function readNameAfter(
   tokenizer: Tokenizer,
   keyword: string,
 ): string {
-  const token = tokenizer.nextToken();
+  const token = tokenizerNext(tokenizer);
   if (token.type !== TokenType.WORD) {
     throw new SyntaxError(`Expected variable name after ${keyword}`, getStackData(vm));
   }
@@ -124,7 +124,7 @@ export function assignImmediateOp(vm: VM): void {
     );
   }
   const info = getTaggedInfo(symbol);
-  const maybeBracket = tokenizer.nextToken();
+  const maybeBracket = tokenizerNext(tokenizer);
 
   if (info.tag === Tag.LOCAL) {
     emitOpcode(vm, Op.VarRef);
@@ -136,7 +136,7 @@ export function assignImmediateOp(vm: VM): void {
       emitOpcode(vm, Op.Nip);
       emitOpcode(vm, Op.Store);
     } else {
-      tokenizer.pushBack(maybeBracket);
+      tokenizerPushBack(tokenizer, maybeBracket);
       emitOpcode(vm, Op.Store);
     }
     return;
@@ -154,7 +154,7 @@ export function assignImmediateOp(vm: VM): void {
       emitOpcode(vm, Op.Nip);
       emitOpcode(vm, Op.Store);
     } else {
-      tokenizer.pushBack(maybeBracket);
+      tokenizerPushBack(tokenizer, maybeBracket);
       emitOpcode(vm, Op.Store);
     }
     return;
@@ -183,7 +183,7 @@ export function incrementImmediateOp(vm: VM): void {
   if (info.tag !== Tag.LOCAL) {
     throw new SyntaxError(`${varName} is not a local variable`, getStackData(vm));
   }
-  const maybeBracket = tokenizer.nextToken();
+  const maybeBracket = tokenizerNext(tokenizer);
   emitOpcode(vm, Op.VarRef);
   emitUint16(vm, info.value);
   if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
@@ -198,7 +198,7 @@ export function incrementImmediateOp(vm: VM): void {
     emitOpcode(vm, Op.Swap);
     emitOpcode(vm, Op.Store);
   } else {
-    tokenizer.pushBack(maybeBracket);
+    tokenizerPushBack(tokenizer, maybeBracket);
     emitOpcode(vm, Op.Swap);
     emitOpcode(vm, Op.Over);
     emitOpcode(vm, Op.Fetch);

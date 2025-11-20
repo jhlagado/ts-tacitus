@@ -2,7 +2,7 @@ import { describe, expect, test, beforeAll, afterAll } from '@jest/globals';
 import { createVM, getStackData } from '../../core/vm';
 import { executeProgram } from '../../lang/runner';
 import { parse } from '../../lang/parser';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 
 describe('Tacit compile loop feature flag', () => {
   const previous = process.env.TACIT_COMPILE_LOOP;
@@ -33,7 +33,7 @@ describe('Tacit compile loop feature flag', () => {
 
   test('Tacit compile loop emits bytecode for literal', () => {
     const vm = createVM(false);
-    parse(vm, new Tokenizer('42'));
+    parse(vm, createTokenizer('42'));
     expect(vm.compiler.CP - vm.compiler.BCP).toBeGreaterThan(0);
   });
 });

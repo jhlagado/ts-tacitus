@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
 import { ensureNoOpenConditionals } from '../../lang/meta';
 import { createVM, VM } from '../../core';
@@ -115,12 +115,12 @@ describe('case control flow', () => {
   });
 
   test('raises when do appears without a surrounding case', () => {
-    expect(() => parse(vm, new Tokenizer('1 do 2 ;'))).toThrow("'do' without open case");
+    expect(() => parse(vm, createTokenizer('1 do 2 ;'))).toThrow("'do' without open case");
   });
 
   test('detects unclosed case constructs during final validation', () => {
     try {
-      parse(vm, new Tokenizer('1 case 1 do 2 ;'));
+      parse(vm, createTokenizer('1 case 1 do 2 ;'));
       expect(getStackData(vm).some((value: unknown) => Number.isNaN(value as number))).toBe(true);
       expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed case');
     } catch (error) {

@@ -1,25 +1,25 @@
-import { Token, Tokenizer, TokenType, TokenValue } from '../../lang/tokenizer';
+import { createTokenizer, Token, tokenizerNext, tokenizerPushBack, TokenType, TokenValue } from '../../lang/tokenizer';
 
 describe('Tokenizer', () => {
   function getTokenValues(input: string): TokenValue[] {
-    const tokenizer = new Tokenizer(input);
+    const tokenizer = createTokenizer(input);
     const values: TokenValue[] = [];
-    let token = tokenizer.nextToken();
+    let token = tokenizerNext(tokenizer);
     while (token.type !== TokenType.EOF) {
       values.push(token.value);
-      token = tokenizer.nextToken();
+      token = tokenizerNext(tokenizer);
     }
 
     return values;
   }
 
   function getAllTokens(input: string): Token[] {
-    const tokenizer = new Tokenizer(input);
+    const tokenizer = createTokenizer(input);
     const tokens: Token[] = [];
-    let token = tokenizer.nextToken();
+    let token = tokenizerNext(tokenizer);
     while (token.type !== TokenType.EOF) {
       tokens.push(token);
-      token = tokenizer.nextToken();
+      token = tokenizerNext(tokenizer);
     }
 
     return tokens;
@@ -128,8 +128,8 @@ describe('Tokenizer', () => {
     expect(values).toEqual([5, 3, 'add', 10, 20, 'sub', 'swap']);
   });
   test('should handle empty input', () => {
-    const tokenizer = new Tokenizer('');
-    expect(tokenizer.nextToken().type).toBe(TokenType.EOF);
+    const tokenizer = createTokenizer('');
+    expect(tokenizerNext(tokenizer).type).toBe(TokenType.EOF);
   });
 
   test('should tokenize complex expressions', () => {
@@ -198,30 +198,30 @@ describe('Tokenizer', () => {
   });
 
   test('should track line and column numbers', () => {
-    const tokenizer = new Tokenizer('hello\nworld');
-    const token1 = tokenizer.nextToken();
-    const token2 = tokenizer.nextToken();
-    expect(tokenizer.getPosition().line).toBe(2);
+    const tokenizer = createTokenizer('hello\nworld');
+    const token1 = tokenizerNext(tokenizer);
+    const token2 = tokenizerNext(tokenizer);
+    expect(tokenizer.line).toBe(2);
     expect(token1.value).toBe('hello');
     expect(token2.value).toBe('world');
   });
 
   test('should allow pushing back a token', () => {
-    const tokenizer = new Tokenizer('5 10');
-    const token1 = tokenizer.nextToken();
+    const tokenizer = createTokenizer('5 10');
+    const token1 = tokenizerNext(tokenizer);
     expect(token1.value).toBe(5);
-    tokenizer.pushBack(token1);
-    const token1Again = tokenizer.nextToken();
-    const token2 = tokenizer.nextToken();
+    tokenizerPushBack(tokenizer, token1);
+    const token1Again = tokenizerNext(tokenizer);
+    const token2 = tokenizerNext(tokenizer);
     expect(token1Again.value).toBe(5);
     expect(token2.value).toBe(10);
   });
   test('should throw error when pushing back multiple tokens', () => {
-    const tokenizer = new Tokenizer('5 10');
-    const token1 = tokenizer.nextToken();
-    const token2 = tokenizer.nextToken();
-    tokenizer.pushBack(token2);
-    expect(() => tokenizer.pushBack(token1)).toThrow('Cannot push back more than one token');
+    const tokenizer = createTokenizer('5 10');
+    const token1 = tokenizerNext(tokenizer);
+    const token2 = tokenizerNext(tokenizer);
+    tokenizerPushBack(tokenizer, token2);
+    expect(() => tokenizerPushBack(tokenizer, token1)).toThrow('Cannot push back more than one token');
   });
 
   test('should tokenize string literals', () => {
@@ -238,8 +238,8 @@ describe('Tokenizer', () => {
   });
   test('should throw error for unterminated string', () => {
     expect(() => {
-      const tokenizer = new Tokenizer('"Unterminated string');
-      while (tokenizer.nextToken().type !== TokenType.EOF) {
+      const tokenizer = createTokenizer('"Unterminated string');
+      while (tokenizerNext(tokenizer).type !== TokenType.EOF) {
         /* empty */
       }
     }).toThrow('Unterminated string literal');

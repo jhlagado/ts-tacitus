@@ -12,7 +12,7 @@ import {
 import { Op } from '../../ops/opcodes';
 import { verifyTaggedValue } from '../utils/vm-test-utils';
 import { parse } from '../../lang/parser';
-import { Tokenizer } from '../../lang/tokenizer';
+import { createTokenizer } from '../../lang/tokenizer';
 import { executeTacitCode } from '../utils/vm-test-utils';
 import { getStackData } from '../../core/vm';
 
@@ -168,12 +168,12 @@ describe('match/with control flow', () => {
   });
 
   test('raises when with appears without a surrounding match', () => {
-    expect(() => parse(vm, new Tokenizer('with ;'))).toThrow('with without match');
+    expect(() => parse(vm, createTokenizer('with ;'))).toThrow('with without match');
   });
 
   test('raises when match is not closed by final semicolon', () => {
     try {
-      parse(vm, new Tokenizer('match dup 0 eq with drop 1 ;'));
+      parse(vm, createTokenizer('match dup 0 eq with drop 1 ;'));
       // If parse did not throw, the construct must still be marked open.
       expect(getStackData(vm).some((value: number) => Number.isNaN(value))).toBe(true);
       expect(() => ensureNoOpenConditionals(vm)).toThrow('Unclosed `match`');
