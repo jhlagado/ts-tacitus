@@ -458,7 +458,7 @@ Call user word:    [0x80|low] [high]  (2 bytes) -> direct bytecode jump
    - ✅ Consolidated tests into proper location (`interpreter-operations.test.ts`)
 
 3. **✅ COMPLETE: Create VM-level code reference utilities**
-   - ✅ Add `createBuiltinRef(opcode: number)` helper function
+   - ✅ Use `createCodeRef(opcode: number)` for builtin opcodes (< 128)
    - ✅ Add `createCodeRef(bytecodeAddr: number)` helper function
    - ✅ Add `isBuiltinRef(value: number)` and `isCodeRef(value: number)` utilities
    - ✅ Add `isExecutableRef()`, `getBuiltinOpcode()`, `getCodeAddress()` utilities

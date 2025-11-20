@@ -63,7 +63,7 @@ A capsule is produced inside a colon definition by executing `capsule`. The sour
 
 1. **Validate and swap closer (compile-time)**
    - Ensure a colon definition is open: the data stack must contain `Op.EndDefinition`.
-   - Replace the closer by pushing `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
+   - Replace the closer by pushing `createCodeRef(Op.EndCapsule)` so the shared terminator emits the capsule-specific epilogue.
 
 2. **Emit `Op.ExitConstructor`**
    - `capsule` emits a single opcode `Op.ExitConstructor` that performs the freeze and unwinds the frame in one step. At runtime it:

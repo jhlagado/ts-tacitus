@@ -8,7 +8,6 @@ import {
   emitRefSigil,
   validateFinalState,
   tokenNext,
-  getActiveTokenizer,
 } from './parser';
 import { TokenType } from './tokenizer';
 
@@ -22,25 +21,42 @@ export function runTacitCompileLoop(vm: VM): void {
         push(vm, 1);
         return;
       case TokenType.NUMBER:
-        push(vm, raw);
-        emitNumberWord(vm);
+        emitOpcode(vm, Op.LiteralNumber);
+        emitFloat32(vm, raw);
         break;
-      case TokenType.STRING:
-        push(vm, raw);
-        emitStringWord(vm);
+      case TokenType.STRING: {
+        const text = getStringFromToken(vm, raw, 'emit-string');
+        emitOpcode(vm, Op.LiteralString);
+        emitUint16(vm, digestIntern(vm.digest, text));
         break;
-      case TokenType.SPECIAL:
-        push(vm, raw);
-        handleSpecialWord(vm);
+      }
+      case TokenType.SPECIAL: {
+        const text = getStringFromToken(vm, raw, 'handle-special');
+        const tokenizer = vm.currentTokenizer;
+        if (!tokenizer) {
+          throw new Error('handle-special: no active tokenizer');
+        }
+        handleSpecial(vm, text, tokenizer);
         break;
-      case TokenType.WORD:
-        push(vm, raw);
-        emitWordCall(vm);
+      }
+      case TokenType.WORD: {
+        const text = getStringFromToken(vm, raw, 'emit-word');
+        const tokenizer = vm.currentTokenizer;
+        if (!tokenizer) {
+          throw new Error('emit-word: no active tokenizer');
+        }
+        emitWord(vm, text, tokenizer);
         break;
-      case TokenType.REF_SIGIL:
-        push(vm, raw);
-        emitRefSigilWord(vm);
+      }
+      case TokenType.REF_SIGIL: {
+        getStringFromToken(vm, raw, 'emit-ref-sigil');
+        const tokenizer = vm.currentTokenizer;
+        if (!tokenizer) {
+          throw new Error('emit-ref-sigil: no active tokenizer');
+        }
+        emitRefSigil(vm, tokenizer);
         break;
+      }
       default:
         push(vm, raw);
         push(vm, type);
@@ -49,64 +65,12 @@ export function runTacitCompileLoop(vm: VM): void {
   }
 }
 
-function decodeString(vm: VM, raw: number, context: string): string {
+function getStringFromToken(vm: VM, raw: number, context: string): string {
   const info = getTaggedInfo(raw);
   if (info.tag !== Tag.STRING) {
     throw new Error(`${context}: expected STRING`);
   }
   return digestGet(vm.digest, info.value);
-}
-
-export function emitNumberWord(vm: VM): void {
-  ensureStackSize(vm, 1, 'emit-number');
-  const value = pop(vm);
-  emitOpcode(vm, Op.LiteralNumber);
-  emitFloat32(vm, value);
-}
-
-export function emitStringWord(vm: VM): void {
-  ensureStackSize(vm, 1, 'emit-string');
-  const raw = pop(vm);
-  const text = decodeString(vm, raw, 'emit-string');
-  emitOpcode(vm, Op.LiteralString);
-  emitUint16(vm, digestIntern(vm.digest, text));
-}
-
-export function handleSpecialWord(vm: VM): void {
-  ensureStackSize(vm, 1, 'handle-special');
-  const raw = pop(vm);
-  const text = decodeString(vm, raw, 'handle-special');
-  const tokenizer = getActiveTokenizer();
-  if (!tokenizer) {
-    throw new Error('handle-special: no active tokenizer');
-  }
-  handleSpecial(vm, text, tokenizer);
-}
-
-export function emitWordCall(vm: VM): void {
-  ensureStackSize(vm, 1, 'emit-word');
-  const raw = pop(vm);
-  const text = decodeString(vm, raw, 'emit-word');
-  const tokenizer = getActiveTokenizer();
-  if (!tokenizer) {
-    throw new Error('emit-word: no active tokenizer');
-  }
-  emitWord(vm, text, tokenizer);
-}
-
-export function emitSymbolWord(): void {
-  throw new Error('emit-symbol removed; use ref sigil helpers instead.');
-}
-
-export function emitRefSigilWord(vm: VM): void {
-  ensureStackSize(vm, 1, 'emit-ref-sigil');
-  const raw = pop(vm);
-  decodeString(vm, raw, 'emit-ref-sigil');
-  const tokenizer = getActiveTokenizer();
-  if (!tokenizer) {
-    throw new Error('emit-ref-sigil: no active tokenizer');
-  }
-  emitRefSigil(vm, tokenizer);
 }
 
 export function finalizeCompile(vm: VM): void {

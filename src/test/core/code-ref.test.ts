@@ -5,7 +5,7 @@
  * Verifies creation, validation, and extraction of code references for the unified @symbol system.
  */
 
-import { createBuiltinRef, createCodeRef, encodeX1516, decodeX1516 } from '../../core';
+import { createCodeRef, encodeX1516, decodeX1516 } from '../../core';
 import {
   isBuiltinRef,
   isFuncRef,
@@ -15,7 +15,6 @@ import {
 } from '../utils/core-test-utils';
 import { Tagged, getTaggedInfo, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
-import { MIN_USER_OPCODE } from '../../core';
 
 describe('Code Reference Utilities', () => {
   describe('X1516 Encoding/Decoding', () => {
@@ -94,38 +93,6 @@ describe('Code Reference Utilities', () => {
     });
   });
 
-  describe('createBuiltinRef', () => {
-    test('should create valid builtin references (now returns Tag.CODE)', () => {
-      const addRef = createBuiltinRef(Op.Add);
-      const { tag, value } = getTaggedInfo(addRef);
-
-      // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN for unified dispatch
-      expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(Op.Add); // Stored directly, not X1516 encoded
-    });
-
-    test('should handle various valid opcodes (now returns Tag.CODE)', () => {
-      const testOpcodes = [0, 1, 50, 100, 127];
-
-      testOpcodes.forEach(opcode => {
-        const ref = createBuiltinRef(opcode);
-        const { tag, value } = getTaggedInfo(ref);
-
-        // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN
-        expect(tag).toBe(Tag.CODE);
-        expect(value).toBe(opcode); // Stored directly, not X1516 encoded
-      });
-    });
-
-    test('should reject invalid opcodes', () => {
-      expect(() => createBuiltinRef(-1)).toThrow('Invalid builtin opcode: -1');
-      expect(() => createBuiltinRef(MIN_USER_OPCODE)).toThrow(
-        `Invalid builtin opcode: ${MIN_USER_OPCODE}`,
-      );
-      expect(() => createBuiltinRef(1000)).toThrow('Invalid builtin opcode: 1000');
-    });
-  });
-
   describe('createCodeRef', () => {
     test('should create valid code references with X1516 encoding', () => {
       const codeRef = createCodeRef(1000);
@@ -137,7 +104,7 @@ describe('Code Reference Utilities', () => {
     });
 
     test('should handle various valid addresses with X1516 encoding (or direct for < 128)', () => {
-      const testAddresses = [0, 1, 8192, 32767];
+      const testAddresses = [0, 1, 64, 127, 8192, 32767];
 
       testAddresses.forEach(addr => {
         const ref = createCodeRef(addr);
@@ -164,7 +131,7 @@ describe('Code Reference Utilities', () => {
 
   describe('isBuiltinRef', () => {
     test('should identify builtin references correctly', () => {
-      const builtinRef = createBuiltinRef(Op.Add);
+      const builtinRef = createCodeRef(Op.Add);
 
       expect(isBuiltinRef(builtinRef)).toBe(true);
     });
@@ -194,12 +161,11 @@ describe('Code Reference Utilities', () => {
     });
 
     test('should reject non-code references', () => {
-      // createBuiltinRef now returns Tag.CODE, so it IS a code reference
       const numberValue = 42;
       const stringRef = Tagged(100, Tag.STRING);
 
-      // Builtin refs are now Tag.CODE, so they are code references
-      const builtinRef = createBuiltinRef(Op.Add);
+      // Builtin opcodes (< 128) also use Tag.CODE references
+      const builtinRef = createCodeRef(Op.Add);
       expect(isFuncRef(builtinRef)).toBe(true);
 
       expect(isFuncRef(numberValue)).toBe(false);
@@ -215,7 +181,7 @@ describe('Code Reference Utilities', () => {
 
   describe('isExecutableRef', () => {
     test('should identify all executable references', () => {
-      const builtinRef = createBuiltinRef(Op.Add);
+      const builtinRef = createCodeRef(Op.Add);
       const codeRef = createCodeRef(1000);
 
       expect(isExecutableRef(builtinRef)).toBe(true);
@@ -238,7 +204,7 @@ describe('Code Reference Utilities', () => {
       const testOpcodes = [Op.Add, Op.Dup, Op.Multiply, Op.Drop];
 
       testOpcodes.forEach(opcode => {
-        const ref = createBuiltinRef(opcode);
+        const ref = createCodeRef(opcode);
         const extractedOpcode = getBuiltinOpcode(ref);
 
         expect(extractedOpcode).toBe(opcode);
@@ -267,11 +233,10 @@ describe('Code Reference Utilities', () => {
     });
 
     test('should reject non-code references', () => {
-      // createBuiltinRef now returns Tag.CODE, so it IS a code reference
-      const builtinRef = createBuiltinRef(Op.Add);
+      const builtinRef = createCodeRef(Op.Add);
       const numberValue = 42;
 
-      // Builtin refs are now Tag.CODE, so getCodeAddress works on them
+      // Builtin refs are Tag.CODE, so getCodeAddress works on them
       expect(getCodeAddress(builtinRef)).toBe(Op.Add);
       expect(() => getCodeAddress(numberValue)).toThrow('Value is not a code reference');
     });
@@ -279,13 +244,12 @@ describe('Code Reference Utilities', () => {
 
   describe('integration with evalOp', () => {
     test('should create references compatible with enhanced evalOp', () => {
-      const builtinRef = createBuiltinRef(Op.Add);
+      const builtinRef = createCodeRef(Op.Add);
       const codeRef = createCodeRef(1000);
 
       const { tag: builtinTag, value: builtinValue } = getTaggedInfo(builtinRef);
       const { tag: codeTag, value: codeValue } = getTaggedInfo(codeRef);
 
-      // createBuiltinRef now returns Tag.CODE instead of Tag.BUILTIN
       expect(builtinTag).toBe(Tag.CODE);
       expect(builtinValue).toBe(Op.Add); // Stored directly, not X1516 encoded
       expect(codeTag).toBe(Tag.CODE);
@@ -297,7 +261,7 @@ describe('Code Reference Utilities', () => {
       const originalOpcode = Op.Multiply;
       const originalAddr = 12345;
 
-      const builtinRef = createBuiltinRef(originalOpcode);
+      const builtinRef = createCodeRef(originalOpcode);
       const codeRef = createCodeRef(originalAddr);
 
       const extractedOpcode = getBuiltinOpcode(builtinRef);

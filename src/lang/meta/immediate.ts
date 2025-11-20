@@ -1,5 +1,5 @@
 import { SyntaxError, Tag, getTaggedInfo, Tagged, Sentinel } from '@src/core';
-import { createBuiltinRef } from '../../core/code-ref';
+import { createCodeRef } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import {
   type VM,
@@ -17,11 +17,11 @@ import {
   patchUint16,
 } from '../../core/vm';
 
-const ENDMATCH_CODE_REF = createBuiltinRef(Op.EndMatch);
-const ENDWITH_CODE_REF = createBuiltinRef(Op.EndWith);
-const ENDCASE_CODE_REF = createBuiltinRef(Op.EndCase);
-const ENDOF_CODE_REF = createBuiltinRef(Op.EndOf);
-const ENDIF_CODE_REF = createBuiltinRef(Op.EndIf);
+const ENDMATCH_CODE_REF = createCodeRef(Op.EndMatch);
+const ENDWITH_CODE_REF = createCodeRef(Op.EndWith);
+const ENDCASE_CODE_REF = createCodeRef(Op.EndCase);
+const ENDOF_CODE_REF = createCodeRef(Op.EndOf);
+const ENDIF_CODE_REF = createCodeRef(Op.EndIf);
 
 // --- Match / With ---
 
@@ -73,7 +73,7 @@ export function beginCapsuleImmediateOp(vm: VM): void {
 
   // Swap closer: EndDefinition -> EndCapsule
   pop(vm);
-  push(vm, createBuiltinRef(Op.EndCapsule));
+  push(vm, createCodeRef(Op.EndCapsule));
 
   // Emit constructor-exit opcode
   emitOpcode(vm, Op.ExitConstructor);

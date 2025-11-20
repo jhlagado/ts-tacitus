@@ -15,7 +15,7 @@ import {
   memoryReadFloat32,
 } from '../../core';
 import { STACK_BASE, RSTACK_BASE } from '../../core/constants';
-import { createBuiltinRef } from '../../core/code-ref';
+import { createCodeRef } from '../../core/code-ref';
 import { peekAt, peek, rpush, rpop, push, pop, emitOpcode, emitFloat32 } from '../../core/vm';
 import {
   beginCaseImmediateOp,
@@ -261,7 +261,7 @@ describe('case immediates', () => {
     pop(vm); // remove EndCase to simulate misuse
 
     push(vm, 42);
-    push(vm, createBuiltinRef(Op.EndOf));
+    push(vm, createCodeRef(Op.EndOf));
 
     expect(() => evalOp(vm)).toThrow('clause closer without do');
   });

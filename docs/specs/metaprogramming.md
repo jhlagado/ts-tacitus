@@ -34,7 +34,7 @@ Immediate words run inside the VM instance used for compilation—no shadow inte
 
 - Defined as `eval` with the immediate flag set.
 - Requires the data stack to be non-empty; otherwise raises `Unexpected semicolon`.
-- Pops the top value and evaluates it. Openers are responsible for pushing a suitable closer reference (usually `createBuiltinRef(opcode)`); if the value is not executable, `eval` simply pushes it back, so mis-matched `;` produce errors rapidly.
+- Pops the top value and evaluates it. Openers are responsible for pushing a suitable closer reference (usually `createCodeRef(opcode)`); if the value is not executable, `eval` simply pushes it back, so mis-matched `;` produce errors rapidly.
 - Because closers live on the data stack, nested constructs naturally unwind LIFO-style.
 
 ### Compile-time stack discipline
@@ -55,7 +55,7 @@ Closers validate invariants when invoked. Missing placeholders or unexpected sta
 3. Emit `Branch +0` to skip over the body during runtime entry; record the operand address for later patching.
 4. Snapshot the symbol-table checkpoint so we can roll back if compilation fails.
 5. Mark that we are compiling a function and preserve the compiler buffer.
-6. Push `createBuiltinRef(Op.EndDefinition)` onto the data stack so the next `;` will resolve it.
+6. Push `createCodeRef(Op.EndDefinition)` onto the data stack so the next `;` will resolve it.
 
 ### Closer (`enddef`)
 
@@ -83,7 +83,7 @@ cond  if   …true-branch…   else   …false-branch…   ;
 
 1. **`if` (immediate)**
    - Emit `IfFalseBranch +0`; push the operand address (`p_false`) onto the data stack.
-   - Push `createBuiltinRef(Op.EndIf)` so the terminator can execute it later.
+   - Push `createCodeRef(Op.EndIf)` so the terminator can execute it later.
 2. **True branch**
    - Compiled as straight-line code. The guard value will have been consumed at runtime by `IfFalseBranch`.
 3. **`else` (optional immediate)**

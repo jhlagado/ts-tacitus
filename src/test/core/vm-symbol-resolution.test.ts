@@ -9,7 +9,7 @@
 import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
-import { Tag, getTaggedInfo, Tagged, createBuiltinRef, createCodeRef } from '../../core';
+import { Tag, getTaggedInfo, Tagged, createCodeRef } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { resolveSymbol, push, pop } from '../../core/vm';
 import { define, markWithLocalReset, forget, findBytecodeAddress } from '../../core/dictionary';
@@ -120,7 +120,7 @@ describe('VM Symbol Resolution', () => {
       define(vm, 'test', Tagged(encodeX1516(1500), Tag.CODE, 0));
 
       const multiplyResolved = resolveSymbol(vm, 'multiply');
-      const multiplyDirect = createBuiltinRef(Op.Multiply);
+      const multiplyDirect = createCodeRef(Op.Multiply);
 
       expect(multiplyResolved).toBe(multiplyDirect);
 

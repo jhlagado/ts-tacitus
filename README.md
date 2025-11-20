@@ -70,7 +70,7 @@ ts-tacitus/
 ├── docs/
 │   ├── specs/       Language specifications
 │   ├── plans/       Implementation plans
-│   │   └── done/    Completed plans (project history)
+│   │   └── done/    Completed plans (project history — do not modify)
 │   └── learn/       Tutorials and guides
 └── scripts/         Development utilities
 ```
@@ -81,7 +81,7 @@ ts-tacitus/
 
 **Plan-Based Execution**: Specifications guide detailed implementation plans with clear phases, test requirements, and exit criteria.
 
-**Project History**: Completed plans in `docs/plans/done/` document the project's evolution and design decisions.
+**Project History**: Completed plans in `docs/plans/done/` document the project's evolution and design decisions. These files are historical artifacts—never edit them; add new plans outside `docs/plans/done/` instead.
 
 ## Quick Start
 

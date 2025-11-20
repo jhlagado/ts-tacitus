@@ -8,7 +8,7 @@
 
 import { createVM, type VM } from '../../core/vm';
 import { push, getStackData } from '../../core/vm';
-import { createBuiltinRef } from '../../core';
+import { createCodeRef } from '../../core';
 import { Tagged, Tag } from '../../core';
 import { Op } from '../../ops/opcodes';
 import { evalOp } from '../../ops/core';
@@ -24,7 +24,7 @@ describe('VM Unified Dispatch', () => {
     test('should execute built-in Add operation directly', () => {
       push(vm, 2);
       push(vm, 3);
-      push(vm, createBuiltinRef(Op.Add));
+      push(vm, createCodeRef(Op.Add));
 
       evalOp(vm);
 
@@ -33,7 +33,7 @@ describe('VM Unified Dispatch', () => {
 
     test('should execute built-in Dup operation directly', () => {
       push(vm, 42);
-      push(vm, createBuiltinRef(Op.Dup));
+      push(vm, createCodeRef(Op.Dup));
 
       evalOp(vm);
 
@@ -43,7 +43,7 @@ describe('VM Unified Dispatch', () => {
     test('should execute built-in Swap operation', () => {
       push(vm, 1);
       push(vm, 2);
-      push(vm, createBuiltinRef(Op.Swap));
+      push(vm, createCodeRef(Op.Swap));
 
       evalOp(vm);
 
@@ -54,7 +54,7 @@ describe('VM Unified Dispatch', () => {
       push(vm, 1);
       push(vm, 2);
       push(vm, 3);
-      push(vm, createBuiltinRef(Op.Drop));
+      push(vm, createCodeRef(Op.Drop));
 
       evalOp(vm);
 
@@ -147,7 +147,7 @@ describe('VM Unified Dispatch', () => {
 
     test('should handle stack underflow in built-ins', () => {
       push(vm, 5);
-      push(vm, createBuiltinRef(Op.Add));
+      push(vm, createCodeRef(Op.Add));
 
       expect(() => evalOp(vm)).toThrow();
     });
@@ -163,7 +163,7 @@ describe('VM Unified Dispatch', () => {
 
       push(vm, 2);
       push(vm, 3);
-      push(vm, createBuiltinRef(Op.Add));
+      push(vm, createCodeRef(Op.Add));
       evalOp(vm);
 
       expect(vm.rsp).toBe(originalRSP);
@@ -173,15 +173,15 @@ describe('VM Unified Dispatch', () => {
     test('should handle complex sequences efficiently', () => {
       push(vm, 2);
       push(vm, 3);
-      push(vm, createBuiltinRef(Op.Add));
+      push(vm, createCodeRef(Op.Add));
       evalOp(vm);
 
       push(vm, 4);
       push(vm, 5);
-      push(vm, createBuiltinRef(Op.Add));
+      push(vm, createCodeRef(Op.Add));
       evalOp(vm);
 
-      push(vm, createBuiltinRef(Op.Multiply));
+      push(vm, createCodeRef(Op.Multiply));
       evalOp(vm);
 
       expect(getStackData(vm)).toEqual([45]);

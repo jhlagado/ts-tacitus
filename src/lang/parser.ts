@@ -63,15 +63,10 @@ import {
 import { lookup } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
 import { runTacitCompileLoop } from './compile-loop';
-
-let activeTokenizer: Tokenizer | null = null;
-
-export function getActiveTokenizer(): Tokenizer | null {
-  return activeTokenizer;
-}
+import { compileBracketPathAsList } from './helpers/bracket-path';
 
 export function tokenNext(vm: VM): { type: TokenType; raw: number } {
-  const tokenizer = getActiveTokenizer();
+  const tokenizer = vm.currentTokenizer;
   if (!tokenizer) {
     throw new Error('token-next: no active tokenizer');
   }
@@ -107,7 +102,6 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
     return false;
   }
 
-  activeTokenizer = tokenizer;
   const stackDepthBefore = depth(vm);
   try {
     runTacitCompileLoop(vm);
@@ -121,7 +115,6 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
     }
     return handledFlag !== 0;
   } finally {
-    activeTokenizer = null;
   }
 }
 
@@ -228,7 +221,9 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
       emitWord(vm, token.value as string, tokenizer);
       break;
     case TokenType.SYMBOL:
-      emitAtSymbol(vm, token.value as string, tokenizer);
+      emitOpcode(vm, Op.LiteralString);
+      emitUint16(vm, digestIntern(vm.digest, token.value as string));
+      emitOpcode(vm, Op.PushSymbolRef);
       break;
     case TokenType.REF_SIGIL:
       emitRefSigil(vm, tokenizer);
@@ -357,14 +352,6 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
  * @param {string} symbolName - The symbol name after @ (without the @ prefix)
  * @param {ParserState} state - Current parser state (unused but maintains consistency)
  */
-export function emitAtSymbol(vm: VM, symbolName: string, _tokenizer: Tokenizer): void {
-  emitOpcode(vm, Op.LiteralString);
-  const stringAddress = digestAdd(vm.digest, symbolName);
-  emitUint16(vm, stringAddress);
-
-  emitOpcode(vm, Op.PushSymbolRef);
-}
-
 /**
  * Process &variable tokens for explicit reference access.
  *
@@ -437,33 +424,6 @@ export function emitRefSigil(vm: VM, tokenizer: Tokenizer): void {
  * Compiles a bracket path like [0 1] into a list literal on the stack.
  * Supports numeric indices; closes on ']'.
  */
-function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
-  // Build list: OpenList, emit elements, CloseList
-  emitOpcode(vm, Op.OpenList);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  while (true) {
-    const tok = tokenizerNext(tokenizer);
-    if (tok.type === TokenType.SPECIAL && tok.value === ']') {
-      break;
-    }
-    if (tok.type === TokenType.NUMBER) {
-      emitOpcode(vm, Op.LiteralNumber);
-      emitFloat32(vm, tok.value as number);
-      continue;
-    } else if (tok.type === TokenType.STRING) {
-      emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, digestIntern(vm.digest, tok.value as string));
-      continue;
-    }
-    // Allow empty path [] or numbers only for now
-    throw new SyntaxError(
-      'Only numeric indices or string keys are supported in bracket paths',
-      getStackData(vm),
-    );
-  }
-  emitOpcode(vm, Op.CloseList);
-}
-
 /**
  * Process special tokens such as (, ), `, and postfix list selectors.
  *

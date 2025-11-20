@@ -4,7 +4,6 @@
  */
 
 import { Tag, Tagged } from './tagged';
-import { MAX_BUILTIN_OPCODE } from './constants';
 
 /**
  * Encodes a 15-bit address into X1516 format.
@@ -42,22 +41,6 @@ export function decodeX1516(encoded: number): number {
     );
   }
   return (high << 7) | (low & 0x7f);
-}
-
-/**
- * Creates a tagged reference to a built-in operation.
- * @deprecated This function now returns Tag.CODE instead of Tag.BUILTIN for unified dispatch.
- * Use createCodeRef() or Tagged(opcode, Tag.CODE) for new code.
- * @param opcode The opcode of the built-in operation (0-127)
- * @returns A Tag.CODE tagged value (stored directly, not X1516 encoded)
- * @throws {Error} If opcode is out of range
- */
-export function createBuiltinRef(opcode: number): number {
-  if (opcode < 0 || opcode > MAX_BUILTIN_OPCODE) {
-    throw new Error(`Invalid builtin opcode: ${opcode}. Must be in range 0-${MAX_BUILTIN_OPCODE}.`);
-  }
-  // Return Tag.CODE instead of Tag.BUILTIN for unified dispatch
-  return Tagged(opcode, Tag.CODE);
 }
 
 /**

@@ -1,23 +1,15 @@
 import { SyntaxError, Tag, getTaggedInfo } from '@src/core';
-import { createBuiltinRef, decodeX1516 } from '../../core/code-ref';
+import { createCodeRef, decodeX1516 } from '../../core/code-ref';
 import { Op } from '../../ops/opcodes';
 import { emitUserWordCall, getStackData, push, type VM } from '../../core/vm';
 import { beginDefinition } from '../definition-system';
-import type { Tokenizer } from '../tokenizer';
 import { getDictionaryEntryInfo } from '../../core/dictionary';
+import { ensureTokenizer } from '../helpers/tokenizer-utils';
 
-const ENDDEF_CODE_REF = createBuiltinRef(Op.EndDefinition);
-
-function requireTokenizer(vm: VM): Tokenizer {
-  const tokenizer = vm.currentTokenizer;
-  if (!tokenizer) {
-    throw new SyntaxError('Tokenizer is not available for ":"', getStackData(vm));
-  }
-  return tokenizer;
-}
+const ENDDEF_CODE_REF = createCodeRef(Op.EndDefinition);
 
 export function beginDefinitionImmediateOp(vm: VM): void {
-  beginDefinition(vm, requireTokenizer(vm));
+  beginDefinition(vm, ensureTokenizer(vm, ':'));
   push(vm, ENDDEF_CODE_REF);
 }
 
