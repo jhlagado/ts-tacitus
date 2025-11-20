@@ -9,6 +9,7 @@
  */
 
 import type { Digest } from './digest';
+import { digestAdd } from './digest';
 import { Tag, Tagged } from '../core/tagged';
 
 /**
@@ -24,7 +25,7 @@ import { Tag, Tagged } from '../core/tagged';
  * @throws {Error} If the string is too long or if there's not enough space in the digest
  */
 export function stringCreate(digest: Digest, value: string): number {
-  const address = digest.add(value);
+  const address = digestAdd(digest, value);
 
   return Tagged(address, Tag.STRING);
 }

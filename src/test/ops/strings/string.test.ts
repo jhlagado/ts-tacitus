@@ -1,5 +1,5 @@
-import { Memory } from '../../../core/memory';
-import { Digest } from '../../../../src/strings/digest';
+import { type Memory, createMemory } from '../../../core';
+import { type Digest, createDigest, digestGet, digestLength } from '../../../../src/strings/digest';
 import { stringCreate } from '../../../../src/strings/string';
 import { Tag, getTaggedInfo } from '../../../core/tagged';
 
@@ -7,15 +7,15 @@ describe('stringCreate', () => {
   let memory: Memory;
   let digest: Digest;
   beforeEach(() => {
-    memory = new Memory();
-    digest = new Digest(memory);
+    memory = createMemory();
+    digest = createDigest(memory);
   });
   test('should create a tagged string with Tag.STRING', () => {
     const value = 'hello';
     const taggedValue = stringCreate(digest, value);
     const { tag, value: address } = getTaggedInfo(taggedValue);
     expect(tag).toBe(Tag.STRING);
-    expect(digest.get(address)).toBe(value);
+    expect(digestGet(digest, address)).toBe(value);
   });
   test('should create distinct tagged strings for multiple calls', () => {
     const str1 = 'foo';
@@ -25,14 +25,14 @@ describe('stringCreate', () => {
     const { value: address1 } = getTaggedInfo(tagged1);
     const { value: address2 } = getTaggedInfo(tagged2);
     expect(address1).not.toBe(address2);
-    expect(digest.get(address1)).toBe(str1);
-    expect(digest.get(address2)).toBe(str2);
+    expect(digestGet(digest, address1)).toBe(str1);
+    expect(digestGet(digest, address2)).toBe(str2);
   });
   test('should handle empty strings correctly', () => {
     const value = '';
     const taggedValue = stringCreate(digest, value);
     const { value: address } = getTaggedInfo(taggedValue);
-    expect(digest.get(address)).toBe(value);
+    expect(digestGet(digest, address)).toBe(value);
   });
   test('should throw an error if the string exceeds maximum length', () => {
     const longString = 'a'.repeat(256);
@@ -43,19 +43,19 @@ describe('stringCreate', () => {
     const taggedValues = strings.map(s => stringCreate(digest, s));
     taggedValues.forEach((tagged, index) => {
       const { value: address } = getTaggedInfo(tagged);
-      expect(digest.get(address)).toBe(strings[index]);
+      expect(digestGet(digest, address)).toBe(strings[index]);
     });
   });
   test('should report the correct length for a non-empty string', () => {
     const value = 'hello';
     const taggedValue = stringCreate(digest, value);
     const { value: address } = getTaggedInfo(taggedValue);
-    expect(digest.length(address)).toBe(value.length);
+    expect(digestLength(digest, address)).toBe(value.length);
   });
   test('should report the correct length for an empty string', () => {
     const value = '';
     const taggedValue = stringCreate(digest, value);
     const { value: address } = getTaggedInfo(taggedValue);
-    expect(digest.length(address)).toBe(value.length);
+    expect(digestLength(digest, address)).toBe(value.length);
   });
 });

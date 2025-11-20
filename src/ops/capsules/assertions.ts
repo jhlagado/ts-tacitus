@@ -1,4 +1,4 @@
-import { type VM, Tag, getTaggedInfo, getListBounds, getListLength } from '@src/core';
+import { type VM, Tag, getTaggedInfo, getListBounds, getListLength, memoryReadCell } from '@src/core';
 
 /**
  * Asserts that the provided value is a well-formed capsule list.
@@ -19,7 +19,7 @@ export function assertCapsuleShape(vm: VM, value: number, label = 'capsule'): vo
     throw new Error(`Expected ${label} payload to contain at least CODE_REF`);
   }
 
-  const codeCell = vm.memory.readCell(info.headerCell - 1);
+  const codeCell = memoryReadCell(vm.memory, info.headerCell - 1);
 
   const { tag: codeTag } = getTaggedInfo(codeCell);
   if (codeTag !== Tag.CODE) {

@@ -15,7 +15,7 @@
  */
 
 import { executeOp } from '../ops/builtins';
-import { Tagged, Tag, SEG_CODE, RSTACK_BASE } from '@src/core';
+import { Tagged, Tag, SEG_CODE, RSTACK_BASE, memoryRead8 } from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 import { type VM, nextOpcode, getStackData, rpush, resetCompiler } from '../core/vm';
 
@@ -44,7 +44,7 @@ export function execute(vm: VM, start: number): void {
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (vm.running && vm.IP < vm.compiler.CP) {
-    const firstByte = vm.memory.read8(SEG_CODE, vm.IP);
+    const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
     const isUserDefined = (firstByte & 0x80) !== 0;
 
     const functionIndex = nextOpcode(vm);
@@ -57,7 +57,7 @@ export function execute(vm: VM, start: number): void {
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
         const originalIP = vm.IP - (isUserDefined ? 2 : 1);
-        const rawValue = vm.memory.read8(SEG_CODE, originalIP);
+        const rawValue = memoryRead8(vm.memory, SEG_CODE, originalIP);
         throw new Error(`Invalid opcode: ${rawValue}`);
       }
 

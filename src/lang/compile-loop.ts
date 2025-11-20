@@ -1,4 +1,4 @@
-import { Tag, getTaggedInfo, UnexpectedTokenError } from '@src/core';
+import { Tag, getTaggedInfo, UnexpectedTokenError, digestGet, digestIntern } from '@src/core';
 import type { VM } from '@src/core';
 import { ensureStackSize, pop, getStackData, emitOpcode, push, emitFloat32, emitUint16 } from '../core/vm';
 import { Op } from '../ops/opcodes';
@@ -54,7 +54,7 @@ function decodeString(vm: VM, raw: number, context: string): string {
   if (info.tag !== Tag.STRING) {
     throw new Error(`${context}: expected STRING`);
   }
-  return vm.digest.get(info.value);
+  return digestGet(vm.digest, info.value);
 }
 
 export function emitNumberWord(vm: VM): void {
@@ -69,7 +69,7 @@ export function emitStringWord(vm: VM): void {
   const raw = pop(vm);
   const text = decodeString(vm, raw, 'emit-string');
   emitOpcode(vm, Op.LiteralString);
-  emitUint16(vm, vm.digest.intern(text));
+  emitUint16(vm, digestIntern(vm.digest, text));
 }
 
 export function handleSpecialWord(vm: VM): void {
@@ -127,7 +127,7 @@ function formatTokenValue(vm: VM, raw: number): string {
   const info = getTaggedInfo(raw);
   switch (info.tag) {
     case Tag.STRING:
-      return vm.digest.get(info.value);
+      return digestGet(vm.digest, info.value);
     case Tag.SENTINEL:
       return `sentinel(${info.value})`;
     default:

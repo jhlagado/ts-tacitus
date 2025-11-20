@@ -6,14 +6,15 @@
  */
 
 import type { Memory } from './memory';
+import { memoryReadFloat32, memoryWriteFloat32, memoryResolveAddress } from './memory';
 
 // Basic cell-level memory accessors built on current Memory API
 export function loadCell(mem: Memory, segment: number, at: number): number {
-  return mem.readFloat32(segment, at << 2);
+  return memoryReadFloat32(mem, segment, at << 2);
 }
 
 export function storeCell(mem: Memory, segment: number, at: number, value: number): void {
-  mem.writeFloat32(segment, at << 2, value);
+  memoryWriteFloat32(mem, segment, at << 2, value);
 }
 
 // Memmove semantics for cells within a single segment
@@ -29,7 +30,7 @@ export function copyCells(
   }
 
   // Compute absolute cell indices in the unified buffer and use copyWithin
-  const baseByte = mem.resolveAddress(segment, 0);
+  const baseByte = memoryResolveAddress(mem, segment, 0);
   const baseCell = baseByte >> 2;
   const absDst = baseCell + dst;
   const absSrc = baseCell + src;
@@ -44,6 +45,6 @@ export function fillCells(
   value: number,
 ): void {
   for (let i = 0; i < len; i++) {
-    mem.writeFloat32(segment, (dst + i) << 2, value);
+    memoryWriteFloat32(mem, segment, (dst + i) << 2, value);
   }
 }

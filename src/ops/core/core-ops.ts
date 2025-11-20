@@ -22,6 +22,7 @@ import {
   getTaggedInfo,
   SyntaxError,
   RSTACK_BASE,
+  digestGet,
 } from '@src/core';
 import { endDefinition } from '../../lang/definition-system';
 import { executeOp } from '../builtins';
@@ -578,7 +579,7 @@ export const pushSymbolRefOp: Verb = (vm: VM) => {
     throw new Error('pushSymbolRef expects a string on the stack');
   }
 
-  const symbolName = vm.digest.get(value);
+  const symbolName = digestGet(vm.digest, value);
 
   pushSymbolRef(vm, symbolName);
 };

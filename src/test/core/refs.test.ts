@@ -17,6 +17,8 @@ import {
   GLOBAL_BASE_BYTES,
   GLOBAL_BASE,
   STACK_BASE,
+  memoryWriteCell,
+  memoryReadCell,
 } from '../../core';
 import { createVM, type VM } from '../../core/vm';
 import { fetchOp, storeOp } from '../../ops/lists';
@@ -84,13 +86,13 @@ describe('REF utilities', () => {
 
   test('readRef operates via REF', () => {
     const ref = createRef(GLOBAL_BASE + 10);
-    vm.memory.writeCell(GLOBAL_BASE + 10, 321.25);
+    memoryWriteCell(vm.memory, GLOBAL_BASE + 10, 321.25);
     expect(readRef(vm, ref)).toBeCloseTo(321.25);
   });
 
   test('fetchOp materializes value via REF', () => {
     const cellIndex = 15;
-    vm.memory.writeCell(GLOBAL_BASE + cellIndex, 777.5);
+    memoryWriteCell(vm.memory, GLOBAL_BASE + cellIndex, 777.5);
     const ref = createRef(GLOBAL_BASE + cellIndex);
     push(vm, ref);
     fetchOp(vm);
@@ -103,7 +105,7 @@ describe('REF utilities', () => {
     push(vm, 123.456);
     push(vm, ref);
     storeOp(vm);
-    expect(vm.memory.readCell(GLOBAL_BASE + cellIndex)).toBeCloseTo(123.456);
+    expect(memoryReadCell(vm.memory, GLOBAL_BASE + cellIndex)).toBeCloseTo(123.456);
   });
 });
 

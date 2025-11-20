@@ -8,6 +8,8 @@ import { isRef, getCellFromRef } from './refs';
 import { getListLength } from './list';
 import { type VM, pop, push, getStackData } from './vm';
 import { decodeX1516 } from './code-ref';
+import { memoryReadCell } from './memory';
+import { digestGet } from '../strings/digest';
 
 /**
  * Formats float with reasonable precision.
@@ -56,7 +58,7 @@ export function formatAtomicValue(vm: VM, value: number): string {
       }
 
     case Tag.STRING: {
-      const str = vm.digest.get(tagValue);
+      const str = digestGet(vm.digest, tagValue);
       if (str) {
         return formatString(str);
       }
@@ -144,7 +146,7 @@ export function formatValue(vm: VM, value: number): string {
 
   if (isRef(value)) {
     const cell = getCellFromRef(value);
-    const header = vm.memory.readCell(cell);
+    const header = memoryReadCell(vm.memory, cell);
     const { tag: headerTag } = getTaggedInfo(header);
     if (headerTag === Tag.LIST) {
       const slotCount = getListLength(header);
@@ -154,7 +156,7 @@ export function formatValue(vm: VM, value: number): string {
       const originalSP = vm.sp;
       const baseCell = cell - slotCount;
       for (let i = 0; i < slotCount; i++) {
-        const elem = vm.memory.readCell(baseCell + i);
+        const elem = memoryReadCell(vm.memory, baseCell + i);
         push(vm, elem);
       }
       const formatted = formatList(vm, header);
@@ -167,7 +169,7 @@ export function formatValue(vm: VM, value: number): string {
   const { value: tagValue } = getTaggedInfo(value);
   switch (tag) {
     case Tag.STRING: {
-      const str = vm.digest.get(tagValue);
+      const str = digestGet(vm.digest, tagValue);
       return str ? formatString(str) : `[String:${tagValue}]`;
     }
     case Tag.NUMBER:

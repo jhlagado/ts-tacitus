@@ -1,6 +1,7 @@
 // Quick debug script to understand base address calculation
 const { executeTacitCode, resetVM } = require('./src/test/utils/vm-test-utils.ts');
 const { vm } = require('./src/core/globalState.ts');
+const { memoryReadFloat32 } = require('./dist/core/memory.js');
 
 try {
   resetVM();
@@ -18,7 +19,7 @@ try {
   // List header should be at SP - 4
   const headerAddr = spBytes - CELL_SIZE;
   console.log('Header should be at addr:', headerAddr);
-  const header = vm.memory.readFloat32(0, headerAddr);
+  const header = memoryReadFloat32(vm.memory, 0, headerAddr);
   console.log('Header value:', header);
   
   // Calculate base address

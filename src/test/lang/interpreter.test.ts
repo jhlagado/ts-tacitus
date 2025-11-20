@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import { createVM, VM } from '../../core';
+import { createVM, VM, memoryWrite8 } from '../../core';
 import { execute } from '../../lang/interpreter';
 import { Op } from '../../ops/opcodes';
 import { SEG_CODE } from '../../core';
@@ -67,7 +67,7 @@ describe('Interpreter', () => {
   describe('Error handling', () => {
     test('should handle invalid opcodes', () => {
       vm.compiler.CP = vm.compiler.BCP + 1;
-      vm.memory.write8(SEG_CODE, vm.compiler.BCP, 110);
+      memoryWrite8(vm.memory, SEG_CODE, vm.compiler.BCP, 110);
 
       let errorThrown = false;
       let errorMessage = '';

@@ -6,7 +6,16 @@
  * behind these helpers without touching individual op implementations.
  */
 
-import { type VM, isList, getListLength, Tagged, Tag, isNumber } from '@src/core';
+import {
+  type VM,
+  isList,
+  getListLength,
+  Tagged,
+  Tag,
+  isNumber,
+  memoryReadCell,
+  memoryWriteCell,
+} from '@src/core';
 import { pop, push, peek, ensureStackSize } from '../core/vm';
 
 type NumberOp1 = (x: number) => number;
@@ -303,18 +312,18 @@ export function unaryRecursive(vm: VM, opName: string, f: NumberOp1): void {
   // Transform the top copy in place using direct memory writes
   // vm.sp points to one past TOS, so header is at vm.sp - 1
   const headerCell = vm.sp - 1;
-  const headerVal = vm.memory.readCell(headerCell);
+  const headerVal = memoryReadCell(vm.memory, headerCell);
   const copySlots = getListLength(headerVal);
   for (let i = 0; i < copySlots; i++) {
     const cellIndex = headerCell - (i + 1);
-    const v = vm.memory.readCell(cellIndex);
+    const v = memoryReadCell(vm.memory, cellIndex);
     if (isList(v)) {
       continue;
     } // leave headers untouched
     if (!isNumber(v)) {
       throw new Error('broadcast type mismatch');
     }
-    vm.memory.writeCell(cellIndex, f(v));
+    memoryWriteCell(vm.memory, cellIndex, f(v));
   }
 
   // Remove the original list under the transformed copy

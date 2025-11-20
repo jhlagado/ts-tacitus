@@ -16,6 +16,7 @@ import {
   TOTAL_DATA,
   CELL_SIZE,
 } from './constants';
+import { memoryReadCell, memoryWriteCell } from './memory';
 
 /**
  * Creates a REF tagged value from a cell index.
@@ -64,7 +65,7 @@ export function refToByte(ref: number): number {
  */
 export function readRef(vm: VM, ref: number): number {
   const cell = getCellFromRef(ref);
-  return vm.memory.readCell(cell);
+  return memoryReadCell(vm.memory, cell);
 }
 
 /**
@@ -184,5 +185,5 @@ export function createGlobalRef(cellIndex: number): number {
  */
 export function writeRef(vm: VM, ref: number, value: number): void {
   const cell = getCellFromRef(ref);
-  vm.memory.writeCell(cell, value);
+  memoryWriteCell(vm.memory, cell, value);
 }

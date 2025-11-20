@@ -1,4 +1,4 @@
-import { type VM, RSTACK_BASE, Tagged, Tag, createRef, getTaggedInfo } from '@src/core';
+import { type VM, RSTACK_BASE, Tagged, Tag, createRef, getTaggedInfo, memoryReadCell } from '@src/core';
 import { emitOpcode } from '../../core/vm';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 import { Op } from '../opcodes';
@@ -25,8 +25,8 @@ export function exitConstructorOp(vm: VM): void {
   push(vm, createRef(absHeaderCellIndex));
 
   // Restore caller BP and return address from beneath the frame root
-  const savedBP = vm.memory.readCell(RSTACK_BASE + oldBpRel - 1);
-  const returnAddr = vm.memory.readCell(RSTACK_BASE + oldBpRel - 2);
+  const savedBP = memoryReadCell(vm.memory, RSTACK_BASE + oldBpRel - 1);
+  const returnAddr = memoryReadCell(vm.memory, RSTACK_BASE + oldBpRel - 2);
 
   // Saved BP stored as relative cells on return stack; restore as absolute
   vm.bp = Math.trunc(savedBP) + RSTACK_BASE;

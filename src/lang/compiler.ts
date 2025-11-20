@@ -3,7 +3,17 @@
  * Bytecode compiler for the Tacit language.
  */
 
-import { type VM, Tag, Tagged, SEG_CODE, MIN_USER_OPCODE, InvalidOpcodeAddressError } from '@src/core';
+import {
+  type VM,
+  Tag,
+  Tagged,
+  SEG_CODE,
+  MIN_USER_OPCODE,
+  InvalidOpcodeAddressError,
+  memoryWrite8,
+  memoryWrite16,
+  memoryWriteFloat32,
+} from '@src/core';
 import { encodeX1516 } from '../core/code-ref';
 import { Op } from '../ops/opcodes';
 
@@ -26,18 +36,18 @@ export function makeCompiler(): CompilerState {
 }
 
 export function compilerCompile8(vm: VM, compiler: CompilerState, value: number): void {
-  vm.memory.write8(SEG_CODE, compiler.CP, value);
+  memoryWrite8(vm.memory, SEG_CODE, compiler.CP, value);
   compiler.CP += 1;
 }
 
 export function compilerCompile16(vm: VM, compiler: CompilerState, value: number): void {
   const unsignedValue = value & 0xffff;
-  vm.memory.write16(SEG_CODE, compiler.CP, unsignedValue);
+  memoryWrite16(vm.memory, SEG_CODE, compiler.CP, unsignedValue);
   compiler.CP += 2;
 }
 
 export function compilerCompileFloat32(vm: VM, compiler: CompilerState, value: number): void {
-  vm.memory.writeFloat32(SEG_CODE, compiler.CP, value);
+  memoryWriteFloat32(vm.memory, SEG_CODE, compiler.CP, value);
   compiler.CP += 4;
 }
 
@@ -79,7 +89,7 @@ export function compilerReset(compiler: CompilerState): void {
 }
 
 export function compilerPatch16(vm: VM, _compiler: CompilerState, address: number, value: number): void {
-  vm.memory.write16(SEG_CODE, address, value);
+  memoryWrite16(vm.memory, SEG_CODE, address, value);
 }
 
 export function compilerPatchOpcode(
@@ -93,12 +103,12 @@ export function compilerPatchOpcode(
   }
 
   if (opcodeAddress < MIN_USER_OPCODE) {
-    vm.memory.write8(SEG_CODE, address, opcodeAddress);
+    memoryWrite8(vm.memory, SEG_CODE, address, opcodeAddress);
     return;
   }
 
-  vm.memory.write8(SEG_CODE, address, 0x80 | (opcodeAddress & 0x7f));
-  vm.memory.write8(SEG_CODE, address + 1, (opcodeAddress >> 7) & 0xff);
+  memoryWrite8(vm.memory, SEG_CODE, address, 0x80 | (opcodeAddress & 0x7f));
+  memoryWrite8(vm.memory, SEG_CODE, address + 1, (opcodeAddress >> 7) & 0xff);
 }
 
 export function compilerEnterFunction(compiler: CompilerState): void {

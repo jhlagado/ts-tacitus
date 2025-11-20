@@ -1,4 +1,4 @@
-import { formatAtomicValue, formatValue, formatList, Tag, Tagged } from '../../core';
+import { formatAtomicValue, formatValue, formatList, Tag, Tagged, digestIntern } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { createVM, type VM } from '../../core/vm';
 import { push, getStackData } from '../../core/vm';
@@ -36,7 +36,7 @@ describe('Format Utils', () => {
     describe('string values', () => {
       test('should format valid strings from digest', () => {
         const testString = 'hello world';
-        const stringAddr = vm.digest.intern(testString);
+        const stringAddr = digestIntern(vm.digest, testString);
         const stringValue = Tagged(stringAddr, Tag.STRING);
         expect(formatAtomicValue(vm, stringValue)).toBe(`"${testString}"`);
       });
@@ -48,14 +48,14 @@ describe('Format Utils', () => {
 
       test('should format empty strings', () => {
         const emptyString = '';
-        const stringAddr = vm.digest.intern(emptyString);
+        const stringAddr = digestIntern(vm.digest, emptyString);
         const stringValue = Tagged(stringAddr, Tag.STRING);
         expect(formatAtomicValue(vm, stringValue)).toBe(`[String:${stringAddr}]`);
       });
 
       test('should format strings with escape sequences', () => {
         const escapedString = 'hello\n"world"\t\\test';
-        const stringAddr = vm.digest.intern(escapedString);
+        const stringAddr = digestIntern(vm.digest, escapedString);
         const stringValue = Tagged(stringAddr, Tag.STRING);
         expect(formatAtomicValue(vm, stringValue)).toBe(`"hello\\n\\"world\\"\\t\\\\test"`);
       });
@@ -92,7 +92,7 @@ describe('Format Utils', () => {
       });
 
       test('should format string values', () => {
-        const strAddr = vm.digest.intern('test string');
+        const strAddr = digestIntern(vm.digest, 'test string');
         const stringValue = Tagged(strAddr, Tag.STRING);
         expect(formatValue(vm, stringValue)).toBe('"test string"');
       });
@@ -134,7 +134,7 @@ describe('Format Utils', () => {
 
     describe('integration tests', () => {
       test('should handle mixed data types in complex structures', () => {
-        const strAddr = vm.digest.intern('hello');
+        const strAddr = digestIntern(vm.digest, 'hello');
         push(vm, 3.14);
         push(vm, 42);
         push(vm, Tagged(strAddr, Tag.STRING));
@@ -158,7 +158,7 @@ describe('Format Utils', () => {
 
       test('formats strings with carriage return escape', () => {
         const s = 'line1\rline2';
-        const addr = vm.digest.intern(s);
+        const addr = digestIntern(vm.digest, s);
         const tagged = Tagged(addr, Tag.STRING);
         expect(formatValue(vm, tagged)).toBe('"line1\\rline2"');
       });

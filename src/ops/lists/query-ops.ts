@@ -25,6 +25,9 @@ import {
   areValuesEqual,
   getRefArea,
   copyListPayload,
+  memoryReadCell,
+  memoryWriteCell,
+  digestGet,
 } from '@src/core';
 import { getListBounds } from './core-helpers';
 import { dropOp } from '../stack';
@@ -77,7 +80,7 @@ export function sizeOp(vm: VM): void {
   let currCell = info.headerCell - 1;
   let remainingSlots = slotCount;
   while (remainingSlots > 0) {
-    const v = vm.memory.readCell(currCell);
+    const v = memoryReadCell(vm.memory, currCell);
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elementCount++;
     remainingSlots -= span;
@@ -138,7 +141,7 @@ export function elemOp(vm: VM): void {
   let remainingSlots = slotCount;
 
   while (remainingSlots > 0 && currentLogicalIndex <= idx) {
-    const currentValue = vm.memory.readCell(currentCell);
+    const currentValue = memoryReadCell(vm.memory, currentCell);
     let stepSize = 1;
     const elementStartCell = currentCell;
 
@@ -174,11 +177,11 @@ export function fetchOp(vm: VM): void {
   }
   // Dereference
   const addrCell = getCellFromRef(addressValue);
-  const value = vm.memory.readCell(addrCell);
+  const value = memoryReadCell(vm.memory, addrCell);
   if (isList(value)) {
     const slotCount = getListLength(value);
     for (let i = slotCount - 1; i >= 0; i--) {
-      const slotValue = vm.memory.readCell(addrCell - (i + 1));
+      const slotValue = memoryReadCell(vm.memory, addrCell - (i + 1));
       push(vm, slotValue);
     }
     push(vm, value);
@@ -206,12 +209,12 @@ export function loadOp(vm: VM): void {
 
   // First dereference
   let addr2Cell = getCellFromRef(input);
-  let value = vm.memory.readCell(addr2Cell);
+  let value = memoryReadCell(vm.memory, addr2Cell);
 
   // Optional second dereference if the loaded value is itself a reference
   if (isRef(value)) {
     addr2Cell = getCellFromRef(value);
-    value = vm.memory.readCell(addr2Cell);
+    value = memoryReadCell(vm.memory, addr2Cell);
   }
 
   // Materialize if final value is a LIST header
@@ -221,7 +224,7 @@ export function loadOp(vm: VM): void {
     // Use same formula as fetchOp: addr2Cell - (i + 1)
     for (let i = slotCount - 1; i >= 0; i--) {
       const payloadCellIndex = addr2Cell - (i + 1);
-      const slotValue = vm.memory.readCell(payloadCellIndex);
+      const slotValue = memoryReadCell(vm.memory, payloadCellIndex);
       push(vm, slotValue);
     }
     push(vm, value); // Push header last (TOS)
@@ -253,7 +256,7 @@ type SlotInfo = {
 function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   // Resolution of slot location and (optional) one-level indirection
   const rootAbsCell = getCellFromRef(addressValue);
-  const rootValue = vm.memory.readCell(rootAbsCell);
+  const rootValue = memoryReadCell(vm.memory, rootAbsCell);
 
   // Classify absolute address to legacy segment/address pair for compatibility
   const classify = (cell: number): SlotAddress => {
@@ -271,7 +274,7 @@ function resolveSlot(vm: VM, addressValue: number): SlotInfo {
   let existingValue = rootValue;
   if (isRef(rootValue)) {
     resolvedCell = getCellFromRef(rootValue);
-    existingValue = vm.memory.readCell(resolvedCell);
+    existingValue = memoryReadCell(vm.memory, resolvedCell);
   }
 
   const root = classify(rootAbsCell);
@@ -307,7 +310,7 @@ function discardCompoundSource(vm: VM, rhsTag: Tag): void {
  */
 function initializeGlobalCompound(vm: VM, cell: number): void {
   const heapRef = gpushList(vm);
-  vm.memory.writeCell(cell, heapRef);
+  memoryWriteCell(vm.memory, cell, heapRef);
 }
 
 /**
@@ -325,7 +328,7 @@ function copyFromRef(
 ): void {
   const targetBaseCell = targetHeaderCell - slotCount;
   copyListPayload(vm, rhsInfo.baseCell, targetBaseCell, slotCount);
-  vm.memory.writeCell(targetHeaderCell, rhsInfo.header);
+  memoryWriteCell(vm.memory, targetHeaderCell, rhsInfo.header);
 }
 
 /**
@@ -379,19 +382,19 @@ function storeGlobal(vm: VM, cell: number, rhsValue: number): void {
     // Pop the REF and materialize using loadOp logic
     pop(vm);
     const addrCell = getCellFromRef(rhsValue);
-    let value = vm.memory.readCell(addrCell);
+    let value = memoryReadCell(vm.memory, addrCell);
 
     // Optional second dereference if the loaded value is itself a reference
     if (isRef(value)) {
       const addr2Cell = getCellFromRef(value);
-      value = vm.memory.readCell(addr2Cell);
+      value = memoryReadCell(vm.memory, addr2Cell);
 
       // If it's a list, materialize it
       if (isList(value)) {
         const slotCount = getListLength(value);
         for (let i = slotCount - 1; i >= 0; i--) {
           const payloadCellIndex = addr2Cell - (i + 1);
-          const slotValue = vm.memory.readCell(payloadCellIndex);
+          const slotValue = memoryReadCell(vm.memory, payloadCellIndex);
           push(vm, slotValue);
         }
         push(vm, value);
@@ -404,7 +407,7 @@ function storeGlobal(vm: VM, cell: number, rhsValue: number): void {
       const slotCount = getListLength(value);
       for (let i = slotCount - 1; i >= 0; i--) {
         const payloadCellIndex = addrCell - (i + 1);
-        const slotValue = vm.memory.readCell(payloadCellIndex);
+        const slotValue = memoryReadCell(vm.memory, payloadCellIndex);
         push(vm, slotValue);
       }
       push(vm, value);
@@ -413,14 +416,14 @@ function storeGlobal(vm: VM, cell: number, rhsValue: number): void {
     }
   }
 
-  const existingValue = vm.memory.readCell(cell);
+  const existingValue = memoryReadCell(vm.memory, cell);
   const valueIsCompound = isList(peek(vm));
   const existingIsCompound = !isNIL(existingValue) && isList(existingValue);
 
   // Simple value assignment
   if (!valueIsCompound && !existingIsCompound) {
     const simpleValue = pop(vm);
-    vm.memory.writeCell(cell, simpleValue);
+    memoryWriteCell(vm.memory, cell, simpleValue);
     return;
   }
 
@@ -492,7 +495,7 @@ function storeSimpleValue(vm: VM, slot: SlotInfo, rhsValue: number): void {
   const existingIsCompound = !isNIL(slot.existingValue) && isList(slot.existingValue);
   if (!valueIsCompound && !existingIsCompound) {
     pop(vm);
-    vm.memory.writeCell(slot.rootCell, value);
+    memoryWriteCell(vm.memory, slot.rootCell, value);
     return;
   }
 
@@ -569,7 +572,7 @@ export function walkOp(vm: VM): void {
   }
   const hdr = info.headerCell;
   const cell = hdr - (idx + 1);
-  const v = vm.memory.readCell(cell);
+  const v = memoryReadCell(vm.memory, cell);
   const nextIdx = idx + 1;
   push(vm, nextIdx);
   if (isList(v)) {
@@ -605,14 +608,14 @@ export function findOp(vm: VM): void {
   for (let i = 0; i < slotCount; i += 2) {
     const keyCell = hdr - 1 - i;
     const valCell = hdr - 1 - (i + 1);
-    const currentKey = vm.memory.readCell(keyCell);
+    const currentKey = memoryReadCell(vm.memory, keyCell);
     if (areValuesEqual(currentKey, key)) {
       push(vm, createRef(valCell));
       return;
     }
     const { tag: keyTag, value: keyValue } = getTaggedInfo(currentKey);
     if (keyTag === Tag.STRING) {
-      const keyStr = vm.digest.get(keyValue);
+      const keyStr = digestGet(vm.digest, keyValue);
       if (keyStr === 'default') {
         defaultCell = valCell;
       }
@@ -657,7 +660,7 @@ export function keysOp(vm: VM): void {
   const hdr = info.headerCell;
   for (let i = keyCount - 1; i >= 0; i--) {
     const keyCell = hdr - 1 - i * 2;
-    const keyValue = vm.memory.readCell(keyCell);
+    const keyValue = memoryReadCell(vm.memory, keyCell);
     push(vm, keyValue);
   }
   push(vm, Tagged(keyCount, Tag.LIST));
@@ -695,7 +698,7 @@ export function valuesOp(vm: VM): void {
   const hdr = info.headerCell;
   for (let i = valueCount - 1; i >= 0; i--) {
     const valCell = hdr - 1 - (i * 2 + 1);
-    const valueValue = vm.memory.readCell(valCell);
+    const valueValue = memoryReadCell(vm.memory, valCell);
     push(vm, valueValue);
   }
   push(vm, Tagged(valueCount, Tag.LIST));

@@ -7,6 +7,7 @@ import { type VM, peek } from './vm';
 import { GLOBAL_SIZE, GLOBAL_BASE, STACK_BASE } from './constants';
 import { createGlobalRef } from './refs';
 import { getListLength, validateListHeader, dropList, copyListPayload } from './list';
+import { memoryWriteCell } from './memory';
 
 function ensureGlobalCapacity(vm: VM, cellsNeeded: number): void {
   if (cellsNeeded > 0 && vm.gp + cellsNeeded > GLOBAL_SIZE) {
@@ -31,7 +32,7 @@ export type ListSource = {
 export function gpushVal(vm: VM, value: number): number {
   ensureGlobalCapacity(vm, 1);
   const idx = vm.gp;
-  vm.memory.writeCell(GLOBAL_BASE + idx, value);
+  memoryWriteCell(vm.memory, GLOBAL_BASE + idx, value);
   vm.gp = idx + 1;
   return createGlobalRef(idx);
 }
@@ -50,7 +51,7 @@ export function gpushListFrom(vm: VM, source: ListSource): number {
   const dst = vm.gp;
   copyListPayload(vm, source.baseCell, GLOBAL_BASE + dst, n);
   const hdr = dst + n;
-  vm.memory.writeCell(GLOBAL_BASE + hdr, source.header);
+  memoryWriteCell(vm.memory, GLOBAL_BASE + hdr, source.header);
   vm.gp = dst + span;
   return createGlobalRef(hdr);
 }
@@ -73,7 +74,7 @@ export function gpushList(vm: VM): number {
   if (n === 0) {
     ensureGlobalCapacity(vm, 1);
     const hdr = vm.gp;
-    vm.memory.writeCell(GLOBAL_BASE + hdr, h);
+    memoryWriteCell(vm.memory, GLOBAL_BASE + hdr, h);
     vm.gp = hdr + 1;
     dropList(vm);
     return createGlobalRef(hdr);
@@ -84,7 +85,7 @@ export function gpushList(vm: VM): number {
   const src = vm.sp - STACK_BASE - (n + 1);
   copyListPayload(vm, STACK_BASE + src, GLOBAL_BASE + dst, n);
   const hdr = dst + n;
-  vm.memory.writeCell(GLOBAL_BASE + hdr, h);
+  memoryWriteCell(vm.memory, GLOBAL_BASE + hdr, h);
   vm.gp = hdr + 1;
   dropList(vm);
   return createGlobalRef(hdr);

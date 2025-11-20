@@ -14,6 +14,8 @@ import {
   RSTACK_BASE,
   dropList,
   copyListPayload,
+  memoryReadCell,
+  memoryWriteCell,
 } from '@src/core';
 import { rdepth, push, peek, ensureStackSize, rpush } from '../core/vm';
 
@@ -43,7 +45,7 @@ export function rpushList(vm: VM): number {
 
   let elementCell = vm.sp - STACK_BASE - (slotCount + 1);
   for (let i = 0; i < slotCount; i++) {
-    const value = vm.memory.readCell(STACK_BASE + elementCell);
+    const value = memoryReadCell(vm.memory, STACK_BASE + elementCell);
     rpush(vm, value);
     elementCell += 1;
   }
@@ -63,7 +65,7 @@ export function rpushList(vm: VM): number {
  */
 export function loadListFromReturn(vm: VM, headerCell: number): void {
   const headerCellIndex = RSTACK_BASE + headerCell;
-  const header = vm.memory.readCell(headerCellIndex);
+  const header = memoryReadCell(vm.memory, headerCellIndex);
 
   if (!isList(header)) {
     throw new Error('Expected LIST header');
@@ -78,7 +80,7 @@ export function loadListFromReturn(vm: VM, headerCell: number): void {
 
   const baseCell = headerCell - slotCount;
   for (let i = 0; i < slotCount; i++) {
-    const element = vm.memory.readCell(RSTACK_BASE + baseCell + i);
+    const element = memoryReadCell(vm.memory, RSTACK_BASE + baseCell + i);
     push(vm, element);
   }
   push(vm, header);
@@ -132,13 +134,13 @@ export function updateList(vm: VM, targetHeaderCell: number): void {
 
   validateListHeader(vm);
   const slotCount = getListLength(header);
-  const existingHeader = vm.memory.readCell(targetHeaderCell);
+  const existingHeader = memoryReadCell(vm.memory, targetHeaderCell);
   if (!isCompatible(existingHeader, header)) {
     throw new Error('Incompatible compound assignment: slot count or type mismatch');
   }
 
   if (slotCount === 0) {
-    vm.memory.writeCell(targetHeaderCell, header);
+    memoryWriteCell(vm.memory, targetHeaderCell, header);
     dropList(vm);
     return;
   }
@@ -147,7 +149,7 @@ export function updateList(vm: VM, targetHeaderCell: number): void {
   const srcBaseCell = vm.sp - STACK_BASE - (slotCount + 1);
   const targetBaseCell = targetHeaderCell - slotCount;
   copyListPayload(vm, STACK_BASE + srcBaseCell, targetBaseCell, slotCount);
-  vm.memory.writeCell(targetHeaderCell, header);
+  memoryWriteCell(vm.memory, targetHeaderCell, header);
   dropList(vm);
 }
 

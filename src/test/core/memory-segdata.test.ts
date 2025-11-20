@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { createVM, type VM } from '../../core/vm';
 import { CELL_SIZE } from '../../core/constants';
+import { memoryReadCell } from '../../core';
 import { push, rpush } from '../../core/vm';
 
 describe('SEG_DATA unified access (Phase B)', () => {
@@ -14,7 +15,7 @@ describe('SEG_DATA unified access (Phase B)', () => {
     push(vm, 42);
     const depthAbs = vm.sp; // absolute cells
     const offsetBytes = (depthAbs - 1) * CELL_SIZE;
-    const viaData = vm.memory.readCell(offsetBytes / CELL_SIZE);
+    const viaData = memoryReadCell(vm.memory, offsetBytes / CELL_SIZE);
     expect(viaData).toBe(42);
   });
 
@@ -22,7 +23,7 @@ describe('SEG_DATA unified access (Phase B)', () => {
     rpush(vm, 7);
     const depthAbs = vm.rsp; // absolute cells
     const offsetBytes = (depthAbs - 1) * CELL_SIZE;
-    const viaData = vm.memory.readCell(offsetBytes / CELL_SIZE);
+    const viaData = memoryReadCell(vm.memory, offsetBytes / CELL_SIZE);
     expect(viaData).toBe(7);
   });
 });

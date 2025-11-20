@@ -9,6 +9,7 @@ import {
 import { createRef } from '../../../core/refs';
 import { Tagged, Tag } from '../../../core/tagged';
 import { push, getStackData } from '../../../core/vm';
+import { memoryReadCell } from '../../../core';
 
 describe('Global heap primitives', () => {
   let vm: VM;
@@ -26,7 +27,7 @@ describe('Global heap primitives', () => {
     expect(vm.gp).toBe(baseGp + 1);
     expect(vm.sp - STACK_BASE).toBe(0);
     const cellIndex = baseGp;
-    expect(vm.memory.readCell(GLOBAL_BASE + cellIndex)).toBe(42);
+    expect(memoryReadCell(vm.memory, GLOBAL_BASE + cellIndex)).toBe(42);
   });
 
   test('gpush copies list payload and leaves no result', () => {
@@ -37,10 +38,10 @@ describe('Global heap primitives', () => {
     expect(vm.gp).toBe(baseGp + 3);
     expect(vm.sp - STACK_BASE).toBe(0);
     const cellIndex = baseGp + 2; // header at baseGp+2 after pushing 2 values
-    const header = vm.memory.readCell(GLOBAL_BASE + cellIndex);
+    const header = memoryReadCell(vm.memory, GLOBAL_BASE + cellIndex);
     expect(header).toBe(Tagged(2, Tag.LIST));
-    expect(vm.memory.readCell(GLOBAL_BASE + cellIndex - 1)).toBe(1);
-    expect(vm.memory.readCell(GLOBAL_BASE + cellIndex - 2)).toBe(2);
+    expect(memoryReadCell(vm.memory, GLOBAL_BASE + cellIndex - 1)).toBe(1);
+    expect(memoryReadCell(vm.memory, GLOBAL_BASE + cellIndex - 2)).toBe(2);
   });
 
   test('gpeek materialises list contents without altering heap', () => {
@@ -88,7 +89,7 @@ describe('Global heap primitives', () => {
     gpushOp(vm);
     expect(vm.gp).toBe(baseGp + 2);
     // The second heap cell stores the resolved simple value
-    expect(vm.memory.readCell(GLOBAL_BASE + baseGp + 1)).toBe(7);
+    expect(memoryReadCell(vm.memory, GLOBAL_BASE + baseGp + 1)).toBe(7);
   });
 
   test('gpeek rejects empty heap', () => {

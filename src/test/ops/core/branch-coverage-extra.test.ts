@@ -1,6 +1,6 @@
 import { createVM, type VM, emitUint16 } from '../../../core/vm';
 import { groupLeftOp, groupRightOp, endIfOp, endWithOp, exitOp } from '../../../ops/core/core-ops';
-import { SEG_CODE } from '../../../core';
+import { memoryRead16, SEG_CODE } from '../../../core';
 import { RSTACK_BASE } from '../../../core/constants';
 import { push, rpush, pop } from '../../../core/vm';
 
@@ -71,7 +71,7 @@ describe('Core ops extra branch coverage', () => {
     push(vm, pos);
     endIfOp(vm);
     // Should have patched the placeholder to point to current CP (fallthrough)
-    const patched = vm.memory.read16(SEG_CODE, pos);
+    const patched = memoryRead16(vm.memory, SEG_CODE, pos);
     expect(typeof patched).toBe('number');
   });
 });

@@ -6,6 +6,7 @@ import { createVM, type VM, emitUint16 } from '../../../core/vm';
 import { initVarOp } from '../../../ops/builtins';
 import { RSTACK_BASE } from '../../../core/constants';
 import { push, getStackData } from '../../../core/vm';
+import { memoryReadCell } from '../../../core';
 
 describe('InitVar Opcode', () => {
   let vm: VM;
@@ -30,7 +31,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Verify value was stored in correct slot
-    const storedValue = vm.memory.readCell(vm.bp + 5);
+    const storedValue = memoryReadCell(vm.memory, vm.bp + 5);
     expect(storedValue).toBe(42);
 
     // Verify stack is empty
@@ -44,7 +45,7 @@ describe('InitVar Opcode', () => {
     emitUint16(vm, 0); // slot 0
     initVarOp(vm);
 
-    const storedValue = vm.memory.readCell(vm.bp);
+    const storedValue = memoryReadCell(vm.memory, vm.bp);
     expect(storedValue).toBe(123);
   });
 
@@ -55,7 +56,7 @@ describe('InitVar Opcode', () => {
     emitUint16(vm, 3); // slot 3
     initVarOp(vm);
 
-    const storedValue = vm.memory.readCell(vm.bp + 3);
+    const storedValue = memoryReadCell(vm.memory, vm.bp + 3);
     expect(storedValue).toBe(-99.5);
   });
 
@@ -66,7 +67,7 @@ describe('InitVar Opcode', () => {
     emitUint16(vm, 20); // large slot number within bounds
     initVarOp(vm);
 
-    const storedValue = vm.memory.readCell(vm.bp + 20);
+    const storedValue = memoryReadCell(vm.memory, vm.bp + 20);
     expect(storedValue).toBe(777);
   });
 
@@ -77,7 +78,7 @@ describe('InitVar Opcode', () => {
     emitUint16(vm, 7); // slot 7
     initVarOp(vm);
 
-    const storedValue = vm.memory.readCell(vm.bp + 7);
+    const storedValue = memoryReadCell(vm.memory, vm.bp + 7);
     expect(storedValue).toBeCloseTo(3.14159);
   });
 
@@ -109,9 +110,9 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Verify all values stored correctly
-    expect(vm.memory.readCell(vm.bp + 0)).toBe(10);
-    expect(vm.memory.readCell(vm.bp + 1)).toBe(20);
-    expect(vm.memory.readCell(vm.bp + 2)).toBe(30);
+    expect(memoryReadCell(vm.memory, vm.bp + 0)).toBe(10);
+    expect(memoryReadCell(vm.memory, vm.bp + 1)).toBe(20);
+    expect(memoryReadCell(vm.memory, vm.bp + 2)).toBe(30);
 
     // Stack should be empty
     expect(getStackData(vm)).toEqual([]);
@@ -131,7 +132,7 @@ describe('InitVar Opcode', () => {
     initVarOp(vm);
 
     // Should have new value
-    const storedValue = vm.memory.readCell(vm.bp + 5);
+    const storedValue = memoryReadCell(vm.memory, vm.bp + 5);
     expect(storedValue).toBe(200);
   });
 });

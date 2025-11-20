@@ -3,7 +3,15 @@
  * but are only used in tests. Moving them here keeps the main codebase clean.
  */
 
-import { type VM, getTaggedInfo, Tagged, Tag, tagNames } from '../../core';
+import {
+  type VM,
+  getTaggedInfo,
+  Tagged,
+  Tag,
+  tagNames,
+  memoryReadCell,
+  memoryWriteCell,
+} from '../../core';
 import { push, ensureStackSize } from '../../core/vm';
 import { decodeX1516 } from '../../core/code-ref';
 
@@ -48,11 +56,11 @@ function _reverseSpan(vm: VM, spanSize: number): void {
     const left = start + i;
     const right = end - i;
 
-    const leftVal = vm.memory.readCell(left);
-    const rightVal = vm.memory.readCell(right);
+    const leftVal = memoryReadCell(vm.memory, left);
+    const rightVal = memoryReadCell(vm.memory, right);
 
-    vm.memory.writeCell(left, rightVal);
-    vm.memory.writeCell(right, leftVal);
+    memoryWriteCell(vm.memory, left, rightVal);
+    memoryWriteCell(vm.memory, right, leftVal);
   }
 }
 

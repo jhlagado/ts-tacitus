@@ -11,6 +11,8 @@ import {
   StackUnderflowError,
   VMError,
   STACK_BASE,
+  memoryReadCell,
+  memoryWriteCell,
 } from '@src/core';
 import { depth, push, pop, peek, ensureStackSize, getStackData } from '../../core/vm';
 
@@ -34,7 +36,7 @@ export function findElement(vm: VM, startSlot = 0): [number, number] {
   }
 
   const cellIndex = vm.sp - startSlot - 1;
-  const value = vm.memory.readCell(cellIndex);
+  const value = memoryReadCell(vm.memory, cellIndex);
   const { tag, value: tagValue } = getTaggedInfo(value);
 
   if (tag === Tag.LIST) {
@@ -58,7 +60,7 @@ export function cellsCopy(vm: VM, startSlot: number, slotCount: number): void {
   }
 
   for (let i = 0; i < slotCount; i++) {
-    const slot = vm.memory.readCell(STACK_BASE + startSlot + i);
+    const slot = memoryReadCell(vm.memory, STACK_BASE + startSlot + i);
     push(vm, slot);
   }
 }
@@ -80,11 +82,11 @@ export function cellsReverse(vm: VM, startSlot: number, slotCount: number): void
   let rightCell = STACK_BASE + startSlot + slotCount - 1;
 
   while (leftCell < rightCell) {
-    const temp = vm.memory.readCell(leftCell);
-    const rightVal = vm.memory.readCell(rightCell);
+    const temp = memoryReadCell(vm.memory, leftCell);
+    const rightVal = memoryReadCell(vm.memory, rightCell);
 
-    vm.memory.writeCell(leftCell, rightVal);
-    vm.memory.writeCell(rightCell, temp);
+    memoryWriteCell(vm.memory, leftCell, rightVal);
+    memoryWriteCell(vm.memory, rightCell, temp);
 
     leftCell += 1;
     rightCell -= 1;
@@ -229,7 +231,7 @@ export const overOp: Verb = (vm: VM) => {
     const secondAbsCell = vm.sp - (topSlots + secondSlots);
 
     for (let i = 0; i < secondSlots; i++) {
-      const value = vm.memory.readCell(secondAbsCell + i);
+      const value = memoryReadCell(vm.memory, secondAbsCell + i);
       push(vm, value);
     }
   } catch (error) {
@@ -391,8 +393,8 @@ export const nipOp: Verb = (vm: VM) => {
       const nosStartCell = vm.sp - (tosSize + nosSize);
 
       for (let i = 0; i < tosSize; i++) {
-        const value = vm.memory.readCell(tosStartCell + i);
-        vm.memory.writeCell(nosStartCell + i, value);
+        const value = memoryReadCell(vm.memory, tosStartCell + i);
+        memoryWriteCell(vm.memory, nosStartCell + i, value);
       }
 
       vm.sp -= nosSize;

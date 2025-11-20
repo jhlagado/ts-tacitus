@@ -6,6 +6,7 @@ import {
   getRefArea,
   createGlobalRef,
   isNIL,
+  digestIntern,
 } from '@src/core';
 import {
   type VM,
@@ -44,7 +45,7 @@ function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
     }
     if (tok.type === TokenType.STRING) {
       emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, vm.digest.intern(tok.value as string));
+      emitUint16(vm, digestIntern(vm.digest, tok.value as string));
       continue;
     }
     throw new SyntaxError(

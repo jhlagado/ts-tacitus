@@ -16,6 +16,8 @@ import {
   isList,
   NIL,
   STACK_BASE,
+  memoryReadCell,
+  memoryWriteCell,
 } from '@src/core';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 import { Tagged } from '@src/core';
@@ -56,8 +58,8 @@ function resolveBuffer(
  * @returns [readPtr, writePtr] as logical indices (0..N-1)
  */
 function getBufferPointers(vm: VM, headerCell: number): [number, number] {
-  const readPtr = vm.memory.readCell(headerCell - 1);
-  const writePtr = vm.memory.readCell(headerCell - 2);
+  const readPtr = memoryReadCell(vm.memory, headerCell - 1);
+  const writePtr = memoryReadCell(vm.memory, headerCell - 2);
   return [readPtr, writePtr];
 }
 
@@ -99,7 +101,7 @@ function getValueBelowBuffer(
     throw new Error(`${opName}: expected value before buffer`);
   }
 
-  const value = vm.memory.readCell(valueHeaderIndex);
+  const value = memoryReadCell(vm.memory, valueHeaderIndex);
   const valueSpan = getElementSpan(value);
   const valueStart = valueHeaderIndex - (valueSpan - 1);
 
@@ -144,8 +146,8 @@ function cleanupAfterValue(
   for (let i = 0; i < bufferSpan; i++) {
     const sourceIndex = bufferStart + i;
     const destIndex = valueStart + i;
-    const cell = vm.memory.readCell(sourceIndex);
-    vm.memory.writeCell(destIndex, cell);
+    const cell = memoryReadCell(vm.memory, sourceIndex);
+    memoryWriteCell(vm.memory, destIndex, cell);
   }
   vm.sp -= valueSpan;
 }
@@ -181,8 +183,8 @@ export function bufferOp(vm: VM): void {
   const headerCell = vm.sp - 1;
 
   // Initialize readPtr = 0 at headerCell - 1 (store as raw number, logical index)
-  vm.memory.writeCell(headerCell - 1, 0); // readPtr
-  vm.memory.writeCell(headerCell - 2, 0); // writePtr
+  memoryWriteCell(vm.memory, headerCell - 1, 0); // readPtr
+  memoryWriteCell(vm.memory, headerCell - 2, 0); // writePtr
 }
 
 /**
@@ -298,8 +300,8 @@ export function writeOp(vm: VM): void {
 
   const dataBase = getDataBase(headerCell, capacity);
   const slotIndex = normalizeIndex(writePtr, capacity);
-  vm.memory.writeCell(dataBase + slotIndex, x);
-  vm.memory.writeCell(headerCell - 2, writePtr + 1);
+  memoryWriteCell(vm.memory, dataBase + slotIndex, x);
+  memoryWriteCell(vm.memory, headerCell - 2, writePtr + 1);
 
   cleanup();
 }
@@ -330,9 +332,9 @@ export function unwriteOp(vm: VM): void {
   const dataBase = getDataBase(headerCell, capacity);
   const newWritePtr = writePtr - 1;
   const slotIndex = normalizeIndex(newWritePtr, capacity);
-  const result = vm.memory.readCell(dataBase + slotIndex);
+  const result = memoryReadCell(vm.memory, dataBase + slotIndex);
 
-  vm.memory.writeCell(headerCell - 2, newWritePtr);
+  memoryWriteCell(vm.memory, headerCell - 2, newWritePtr);
   dropOp(vm);
   push(vm, result);
 }
@@ -362,9 +364,9 @@ export function readOp(vm: VM): void {
 
   const dataBase = getDataBase(headerCell, capacity);
   const slotIndex = normalizeIndex(readPtr, capacity);
-  const result = vm.memory.readCell(dataBase + slotIndex);
+  const result = memoryReadCell(vm.memory, dataBase + slotIndex);
 
-  vm.memory.writeCell(headerCell - 1, readPtr + 1);
+  memoryWriteCell(vm.memory, headerCell - 1, readPtr + 1);
   dropOp(vm);
   push(vm, result);
 }
@@ -410,8 +412,8 @@ export function unreadOp(vm: VM): void {
   const dataBase = getDataBase(headerCell, capacity);
   const newReadPtr = readPtr - 1;
   const slotIndex = normalizeIndex(newReadPtr, capacity);
-  vm.memory.writeCell(dataBase + slotIndex, x);
-  vm.memory.writeCell(headerCell - 1, newReadPtr);
+  memoryWriteCell(vm.memory, dataBase + slotIndex, x);
+  memoryWriteCell(vm.memory, headerCell - 1, newReadPtr);
 
   cleanup();
 }

@@ -6,7 +6,7 @@
 import { type VM, Tagged, Tag, NIL } from '@src/core';
 import { getListLength, isList } from '@src/core';
 import { getListBounds } from './core-helpers';
-import { isRef } from '@src/core';
+import { isRef, memoryReadCell } from '@src/core';
 import { findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
 
@@ -33,7 +33,7 @@ export function tailOp(vm: VM): void {
 
   const hdr = info.headerCell;
   const firstElemCell = hdr - 1;
-  const firstElem = vm.memory.readCell(firstElemCell);
+  const firstElem = memoryReadCell(vm.memory, firstElemCell);
   const firstElemSpan = isList(firstElem) ? getListLength(firstElem) + 1 : 1;
   const newSlotCount = slotCount - firstElemSpan;
 
@@ -50,7 +50,7 @@ export function tailOp(vm: VM): void {
   } else {
     for (let i = 0; i < newSlotCount; i++) {
       const elemCell = firstElemCell - firstElemSpan - i;
-      const elem = vm.memory.readCell(elemCell);
+      const elem = memoryReadCell(vm.memory, elemCell);
       push(vm, elem);
     }
     push(vm, Tagged(newSlotCount, Tag.LIST));
@@ -82,7 +82,7 @@ export function headOp(vm: VM): void {
 
   const hdr = info.headerCell;
   const firstElementCell = hdr - 1;
-  const firstElement = vm.memory.readCell(firstElementCell);
+  const firstElement = memoryReadCell(vm.memory, firstElementCell);
 
   if (isList(firstElement)) {
     const elementSlotCount = getListLength(firstElement);
@@ -90,12 +90,12 @@ export function headOp(vm: VM): void {
     if (targetIsDirectList) {
       vm.sp -= elementSlotCount + 1;
       for (let i = elementSlotCount; i >= 0; i--) {
-        const slotValue = vm.memory.readCell(firstElementCell - i);
+        const slotValue = memoryReadCell(vm.memory, firstElementCell - i);
         push(vm, slotValue);
       }
     } else {
       for (let i = 0; i < elementSlotCount; i++) {
-        const slotValue = vm.memory.readCell(firstElementCell - (elementSlotCount - 1 - i));
+        const slotValue = memoryReadCell(vm.memory, firstElementCell - (elementSlotCount - 1 - i));
         push(vm, slotValue);
       }
       push(vm, firstElement);
@@ -133,7 +133,7 @@ export function reverseOp(vm: VM): void {
   let remainingSlots = slotCount;
   const elements: { start: number; span: number }[] = [];
   while (remainingSlots > 0) {
-    const v = vm.memory.readCell(currentCell);
+    const v = memoryReadCell(vm.memory, currentCell);
     const span = isList(v) ? getListLength(v) + 1 : 1;
     elements.push({ start: currentCell, span });
     currentCell -= span;
@@ -147,15 +147,15 @@ export function reverseOp(vm: VM): void {
   for (let e = elements.length - 1; e >= 0; e--) {
     const { start, span } = elements[e];
     if (span === 1) {
-      const val = vm.memory.readCell(start);
+      const val = memoryReadCell(vm.memory, start);
       push(vm, val);
     } else {
       const payloadSlots = span - 1;
       for (let i = payloadSlots - 1; i >= 0; i--) {
-        const slotVal = vm.memory.readCell(start - (i + 1));
+        const slotVal = memoryReadCell(vm.memory, start - (i + 1));
         push(vm, slotVal);
       }
-      const headerVal = vm.memory.readCell(start);
+      const headerVal = memoryReadCell(vm.memory, start);
       push(vm, headerVal);
     }
   }
@@ -171,7 +171,7 @@ export function concatOp(vm: VM): void {
 
   const readCellAtOffset = (offsetSlots: number): number => {
     const cell = stackCellFromTop(vm, offsetSlots);
-    return vm.memory.readCell(cell);
+    return memoryReadCell(vm.memory, cell);
   };
 
   const rhsTop = readCellAtOffset(0);
@@ -203,7 +203,7 @@ export function concatOp(vm: VM): void {
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
         const cellIndex = op.headerCell - 1 - i;
-        slots.push(vm.memory.readCell(cellIndex));
+        slots.push(memoryReadCell(vm.memory, cellIndex));
       }
       return slots;
     }
@@ -213,7 +213,7 @@ export function concatOp(vm: VM): void {
       const slots: number[] = [];
       for (let i = 0; i < s; i++) {
         const cell = hdr - 1 - i;
-        slots.push(vm.memory.readCell(cell));
+        slots.push(memoryReadCell(vm.memory, cell));
       }
       return slots;
     }

@@ -9,7 +9,7 @@ import {
   getFormattedStack,
 } from '../../utils/vm-test-utils';
 // Use core index re-exports to ensure consistent tag decoding
-import { getTaggedInfo, Tag, createVM, VM } from '../../../core';
+import { getTaggedInfo, Tag, createVM, VM, memoryReadCell } from '../../../core';
 import { STACK_BASE } from '../../../core/constants';
 
 function expectTopIsListWith(values: number[], stack: number[]): void {
@@ -74,7 +74,7 @@ describe('Ref-to-list assignment fast path', () => {
     const decoded = Array.from(
       { length: vm.sp - STACK_BASE },
       (_value: unknown, i: number): ReturnType<typeof getTaggedInfo> =>
-        getTaggedInfo(vm.memory.readCell(STACK_BASE + i)),
+        getTaggedInfo(memoryReadCell(vm.memory, STACK_BASE + i)),
     );
 
     expect(decoded.slice(-4, -1).map(entry => entry.value)).toEqual([6, 5, 4]);

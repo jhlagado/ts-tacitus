@@ -1,5 +1,5 @@
 import { Op } from '../../ops/opcodes';
-import { createVM, VM } from '../../core';
+import { createVM, VM, digestGet } from '../../core';
 import { parse } from '../../lang/parser';
 import { Tokenizer } from '../../lang/tokenizer';
 import { executeProgram } from '../../lang/runner';
@@ -89,7 +89,7 @@ describe('Comprehensive Parser Tests', () => {
       expect(next8(vm)).toBe(Op.LiteralString);
       const addr = nextInt16(vm);
       expect(addr).toBeGreaterThan(0);
-      const str = vm.digest.get(addr);
+      const str = digestGet(vm.digest, addr);
       expect(str).toBe('');
     });
     test('should parse string literals with spaces', () => {
@@ -97,7 +97,7 @@ describe('Comprehensive Parser Tests', () => {
       vm.IP = 0;
       expect(next8(vm)).toBe(Op.LiteralString);
       const addr = nextInt16(vm);
-      const str = vm.digest.get(addr);
+      const str = digestGet(vm.digest, addr);
       expect(str).toBe('hello world');
     });
   });
@@ -108,7 +108,7 @@ describe('Comprehensive Parser Tests', () => {
       vm.IP = 0;
       expect(next8(vm)).toBe(Op.LiteralString);
       const addr = nextInt16(vm);
-      const str = vm.digest.get(addr);
+      const str = digestGet(vm.digest, addr);
       expect(str).toBe('test-symbol');
     });
   });

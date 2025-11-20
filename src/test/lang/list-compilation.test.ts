@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { SEG_CODE } from '../../core';
+import { memoryRead8, SEG_CODE } from '../../core';
 import { createVM, VM } from '../../core';
 import { Tokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -27,7 +27,7 @@ describe('LIST Literal Compilation', () => {
     const code = (() => {
       const result: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
-        result.push(vm.memory.read8(SEG_CODE, i));
+        result.push(memoryRead8(vm.memory, SEG_CODE, i));
       }
       return result;
     })();
@@ -51,7 +51,7 @@ describe('LIST Literal Compilation', () => {
     const code = (() => {
       const result: number[] = [];
       for (let i = 0; i < vm.compiler.CP; i++) {
-        result.push(vm.memory.read8(SEG_CODE, i));
+        result.push(memoryRead8(vm.memory, SEG_CODE, i));
       }
       return result;
     })();
