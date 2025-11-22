@@ -15,9 +15,9 @@ describe('findOp default branch coverage', () => {
 
   test('find returns default value reference when key not found', () => {
     // Build a maplist: ('a' 1 'default' 99 'b' 2)
-    const a = stringCreate(vm.digest, 'a');
-    const def = stringCreate(vm.digest, 'default');
-    const b = stringCreate(vm.digest, 'b');
+    const a = stringCreate(vm.compile.digest, 'a');
+    const def = stringCreate(vm.compile.digest, 'default');
+    const b = stringCreate(vm.compile.digest, 'b');
     // Push payload in value-then-key order so keys appear directly under header
     push(vm, 2);
     push(vm, b);
@@ -28,7 +28,7 @@ describe('findOp default branch coverage', () => {
     push(vm, Tagged(6, Tag.LIST));
 
     // Push missing key and perform find (find expects ( key target -- ref ))
-    const missing = stringCreate(vm.digest, 'nope');
+    const missing = stringCreate(vm.compile.digest, 'nope');
     push(vm, missing);
     // At this point, TOS is key and below is the LIST header; call find directly
     findOp(vm);

@@ -27,12 +27,12 @@ export function runTacitCompileLoop(vm: VM): void {
       case TokenType.STRING: {
         const text = getStringFromToken(vm, raw, 'emit-string');
         emitOpcode(vm, Op.LiteralString);
-        emitUint16(vm, digestIntern(vm.digest, text));
+        emitUint16(vm, digestIntern(vm.compile.digest, text));
         break;
       }
       case TokenType.SPECIAL: {
         const text = getStringFromToken(vm, raw, 'handle-special');
-        const tokenizer = vm.tokenizer;
+        const tokenizer = vm.compile.tokenizer;
         if (!tokenizer) {
           throw new Error('handle-special: no active tokenizer');
         }
@@ -41,7 +41,7 @@ export function runTacitCompileLoop(vm: VM): void {
       }
       case TokenType.WORD: {
         const text = getStringFromToken(vm, raw, 'emit-word');
-        const tokenizer = vm.tokenizer;
+        const tokenizer = vm.compile.tokenizer;
         if (!tokenizer) {
           throw new Error('emit-word: no active tokenizer');
         }
@@ -50,7 +50,7 @@ export function runTacitCompileLoop(vm: VM): void {
       }
       case TokenType.REF_SIGIL: {
         getStringFromToken(vm, raw, 'emit-ref-sigil');
-        const tokenizer = vm.tokenizer;
+        const tokenizer = vm.compile.tokenizer;
         if (!tokenizer) {
           throw new Error('emit-ref-sigil: no active tokenizer');
         }
@@ -70,7 +70,7 @@ function getStringFromToken(vm: VM, raw: number, context: string): string {
   if (info.tag !== Tag.STRING) {
     throw new Error(`${context}: expected STRING`);
   }
-  return digestGet(vm.digest, info.value);
+  return digestGet(vm.compile.digest, info.value);
 }
 
 export function finalizeCompile(vm: VM): void {
@@ -91,7 +91,7 @@ function formatTokenValue(vm: VM, raw: number): string {
   const info = getTaggedInfo(raw);
   switch (info.tag) {
     case Tag.STRING:
-      return digestGet(vm.digest, info.value);
+      return digestGet(vm.compile.digest, info.value);
     case Tag.SENTINEL:
       return `sentinel(${info.value})`;
     default:

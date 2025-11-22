@@ -37,11 +37,11 @@ export function executeTacitCode(vm: VM, code: string, resetStack = true): numbe
     vm.sp = STACK_BASE;
     vm.rsp = RSTACK_BASE;
     vm.bp = RSTACK_BASE;
-    vm.listDepth = 0;
+    vm.compile.listDepth = 0;
   }
   // parse() will handle compiler reset, so we don't need to manage compiler state here
   parse(vm, createTokenizer(code));
-  execute(vm, vm.compiler.BCP);
+  execute(vm, vm.compile.BCP);
   return getStackData(vm);
 }
 
@@ -72,7 +72,7 @@ export function captureVMState(vm: VM): VMStateSnapshot {
 
 export function executeTacitWithState(vm: VM, code: string): VMStateSnapshot {
   parse(vm, createTokenizer(code));
-  execute(vm, vm.compiler.BCP);
+  execute(vm, vm.compile.BCP);
   return captureVMState(vm);
 }
 
@@ -88,7 +88,7 @@ export function getFormattedStack(vm: VM): string[] {
     const { tag, value: tagValue } = getTaggedInfo(value);
     switch (tag) {
       case Tag.STRING: {
-        const s = digestGet(vm.digest, tagValue);
+        const s = digestGet(vm.compile.digest, tagValue);
         return `STRING:${tagValue}(${s})`;
       }
       case Tag.LIST:

@@ -270,7 +270,7 @@ export const evalOp: Verb = (vm: VM) => {
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
 export const endDefinitionOp: Verb = vm => {
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     throw new Error('End-definition handler not installed');
   }
   endDefinition(vm);
@@ -296,13 +296,13 @@ export const endIfOp: Verb = (vm: VM) => {
     throw new SyntaxError('Invalid branch placeholder for ENDIF', getStackData(vm));
   }
 
-  const endAddress = vm.compiler.CP;
+  const endAddress = vm.compile.CP;
   const branchOffset = endAddress - (branchPos + 2);
 
-  const prevCP = vm.compiler.CP;
-  vm.compiler.CP = branchPos;
+  const prevCP = vm.compile.CP;
+  vm.compile.CP = branchPos;
   emitUint16(vm, branchOffset);
-  vm.compiler.CP = prevCP;
+  vm.compile.CP = prevCP;
 };
 
 /**
@@ -327,16 +327,16 @@ export const endWithOp: Verb = (vm: VM) => {
   }
 
   emitOpcode(vm, Op.Branch);
-  const exitOperandPos = vm.compiler.CP;
+  const exitOperandPos = vm.compile.CP;
   emitUint16(vm, 0);
 
   rpush(vm, exitOperandPos);
 
-  const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
-  const prevCP = vm.compiler.CP;
-  vm.compiler.CP = skipPos;
+  const fallthroughOffset = vm.compile.CP - (skipPos + 2);
+  const prevCP = vm.compile.CP;
+  vm.compile.CP = skipPos;
   emitUint16(vm, fallthroughOffset);
-  vm.compiler.CP = prevCP;
+  vm.compile.CP = prevCP;
 };
 
 /**
@@ -372,16 +372,16 @@ export const endOfOp: Verb = (vm: VM) => {
   }
 
   emitOpcode(vm, Op.Branch);
-  const exitOperandPos = vm.compiler.CP;
+  const exitOperandPos = vm.compile.CP;
   emitUint16(vm, 0);
 
   rpush(vm, exitOperandPos);
 
-  const fallthroughOffset = vm.compiler.CP - (skipPos + 2);
-  const prevCP = vm.compiler.CP;
-  vm.compiler.CP = skipPos;
+  const fallthroughOffset = vm.compile.CP - (skipPos + 2);
+  const prevCP = vm.compile.CP;
+  vm.compile.CP = skipPos;
   emitUint16(vm, fallthroughOffset);
-  vm.compiler.CP = prevCP;
+  vm.compile.CP = prevCP;
 };
 
 /**
@@ -410,12 +410,12 @@ export const endMatchOp: Verb = (vm: VM) => {
     }
 
     const exitPos = Math.trunc(rawExitPos);
-    const exitOffset = vm.compiler.CP - (exitPos + 2);
+    const exitOffset = vm.compile.CP - (exitPos + 2);
 
-    const prevCP = vm.compiler.CP;
-    vm.compiler.CP = exitPos;
+    const prevCP = vm.compile.CP;
+    vm.compile.CP = exitPos;
     emitUint16(vm, exitOffset);
-    vm.compiler.CP = prevCP;
+    vm.compile.CP = prevCP;
   }
 
   if (vm.rsp !== savedRSPAbs) {
@@ -443,7 +443,7 @@ export const endCaseOp: Verb = (vm: VM) => {
   const savedRSPAbs = RSTACK_BASE + savedRSPRel;
 
   emitOpcode(vm, Op.Drop);
-  const exitTarget = vm.compiler.CP;
+  const exitTarget = vm.compile.CP;
 
   while (vm.rsp > savedRSPAbs) {
     const rawExitPos = rpop(vm);
@@ -454,10 +454,10 @@ export const endCaseOp: Verb = (vm: VM) => {
     const exitPos = Math.trunc(rawExitPos);
     const exitOffset = exitTarget - (exitPos + 2);
 
-    const prevCP = vm.compiler.CP;
-    vm.compiler.CP = exitPos;
+    const prevCP = vm.compile.CP;
+    vm.compile.CP = exitPos;
     emitUint16(vm, exitOffset);
-    vm.compiler.CP = prevCP;
+    vm.compile.CP = prevCP;
   }
 
   if (vm.rsp !== savedRSPAbs) {
@@ -579,7 +579,7 @@ export const pushSymbolRefOp: Verb = (vm: VM) => {
     throw new Error('pushSymbolRef expects a string on the stack');
   }
 
-  const symbolName = digestGet(vm.digest, value);
+  const symbolName = digestGet(vm.compile.digest, value);
 
   pushSymbolRef(vm, symbolName);
 };

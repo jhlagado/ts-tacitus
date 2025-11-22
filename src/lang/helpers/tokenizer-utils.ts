@@ -3,7 +3,7 @@ import { getStackData } from '../../core/vm';
 import { tokenizerNext, TokenType, type Tokenizer } from '../tokenizer';
 
 export function ensureTokenizer(vm: VM, keyword: string): Tokenizer {
-  const tokenizer = vm.tokenizer;
+  const tokenizer = vm.compile.tokenizer;
   if (!tokenizer) {
     throw new SyntaxError(`${keyword} requires active tokenizer`, getStackData(vm));
   }

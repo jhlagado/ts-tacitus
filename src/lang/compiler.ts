@@ -5,6 +5,7 @@
 
 import {
   type VM,
+  type Digest,
   Tag,
   Tagged,
   SEG_CODE,
@@ -14,24 +15,41 @@ import {
   memoryWrite16,
   memoryWriteFloat32,
 } from '@src/core';
+import type { Tokenizer } from './tokenizer';
 import { encodeX1516 } from '../core/code-ref';
 import { Op } from '../ops/opcodes';
 
-export type CompilerState = {
+export interface CompilerState {
   CP: number;
   BCP: number;
   preserve: boolean;
   isInFunction: boolean;
   reservePatchAddr: number;
-};
+  digest: Digest;
+  listDepth: number;
+  head: number;
+  localCount: number;
+  defBranchPos: number;
+  defCheckpoint: number;
+  defEntryCell: number;
+  tokenizer: Tokenizer | null;
+}
 
-export function makeCompiler(): CompilerState {
+export function makeCompiler(digest: Digest): CompilerState {
   return {
     CP: 0,
     BCP: 0,
     preserve: false,
     isInFunction: false,
     reservePatchAddr: -1,
+    digest,
+    listDepth: 0,
+    head: 0,
+    localCount: 0,
+    defBranchPos: -1,
+    defCheckpoint: -1,
+    defEntryCell: -1,
+    tokenizer: null,
   };
 }
 
@@ -126,7 +144,7 @@ export function compilerEmitReserveIfNeeded(vm: VM, compiler: CompilerState): vo
 
 export function compilerExitFunction(vm: VM, compiler: CompilerState): void {
   if (compiler.isInFunction && compiler.reservePatchAddr !== -1) {
-    compilerPatch16(vm, compiler, compiler.reservePatchAddr, vm.localCount);
+    compilerPatch16(vm, compiler, compiler.reservePatchAddr, vm.compile.localCount);
   }
 
   compiler.isInFunction = false;

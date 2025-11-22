@@ -70,17 +70,17 @@ function getEntryPayload(vm: VM, entryCellIndex: number): number {
 }
 
 export function hideDictionaryHead(vm: VM): void {
-  if (vm.head === 0) {
+  if (vm.compile.head === 0) {
     throw new Error('Cannot hide head: dictionary is empty');
   }
-  setEntryNameMeta(vm, vm.head, 1);
+  setEntryNameMeta(vm, vm.compile.head, 1);
 }
 
 export function unhideDictionaryHead(vm: VM): void {
-  if (vm.head === 0) {
+  if (vm.compile.head === 0) {
     throw new Error('Cannot unhide head: dictionary is empty');
   }
-  setEntryNameMeta(vm, vm.head, 0);
+  setEntryNameMeta(vm, vm.compile.head, 0);
 }
 
 export function getDictionaryEntryInfo(
@@ -96,7 +96,7 @@ export function getDictionaryEntryInfo(
   }
   const payload = getEntryPayload(vm, entryCellIndex);
   const nameAddr = nameInfo.value;
-  const name = digestGet(vm.digest, nameAddr);
+  const name = digestGet(vm.compile.digest, nameAddr);
   return {
     payload,
     hidden: nameInfo.meta === 1,
@@ -108,29 +108,29 @@ export function getDictionaryEntryInfo(
 export function getDictionaryHeadInfo(
   vm: VM,
 ): { payload: number; hidden: boolean; nameAddr: number; name: string } | undefined {
-  if (vm.head === 0) {
+  if (vm.compile.head === 0) {
     return undefined;
   }
-  return getDictionaryEntryInfo(vm, vm.head);
+  return getDictionaryEntryInfo(vm, vm.compile.head);
 }
 
 // Unified define: store a fully-formed tagged payload under an interned name
 export function define(vm: VM, name: string, payloadTagged: number): void {
-  const nameAddr = digestIntern(vm.digest, name);
+  const nameAddr = digestIntern(vm.compile.digest, name);
   const nameTagged = Tagged(nameAddr, Tag.STRING);
   // Create prevRef as REF (or NIL if head is 0)
-  const prevRef = vm.head === 0 ? NIL : createGlobalRef(vm.head);
+  const prevRef = vm.compile.head === 0 ? NIL : createGlobalRef(vm.compile.head);
   gpush(vm, prevRef);
   gpush(vm, payloadTagged);
   gpush(vm, nameTagged);
   gpush(vm, Tagged(3, Tag.LIST));
   // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE)
-  vm.head = vm.gp - 1;
+  vm.compile.head = vm.gp - 1;
 }
 
 export function lookup(vm: VM, name: string): number {
-  const target = digestIntern(vm.digest, name);
-  let cur = vm.head; // cell index (0 = NIL)
+  const target = digestIntern(vm.compile.digest, name);
+  let cur = vm.compile.head; // cell index (0 = NIL)
 
   while (cur !== 0) {
     const hdr = memoryReadCell(vm.memory, cur);
@@ -171,7 +171,7 @@ export function mark(vm: VM): number {
 
 // Mark with localCount reset (needed for function definitions)
 export function markWithLocalReset(vm: VM): number {
-  vm.localCount = 0;
+  vm.compile.localCount = 0;
   return mark(vm);
 }
 
@@ -212,7 +212,7 @@ export function forget(vm: VM, markCellIndex: number): void {
   }
   vm.gp = gpNew;
   // Update head to point to the most recent entry, or 0 if heap is empty
-  vm.head = vm.gp === 0 ? 0 : vm.gp - 1;
+  vm.compile.head = vm.gp === 0 ? 0 : vm.gp - 1;
 }
 
 // ============================================================================
@@ -276,9 +276,9 @@ export function defineOp(vm: VM): void {
     pop(vm);
   }
 
-  const prev = vm.head;
+  const prev = vm.compile.head;
   const hdr = pushEntryToHeap(vm, prev, valRef, name);
-  vm.head = hdr;
+  vm.compile.head = hdr;
 }
 
 // lookup: ( name — ref|NIL )
@@ -289,7 +289,7 @@ export function lookupOp(vm: VM): void {
     throw new Error('lookup expects STRING name');
   }
 
-  const nameStr = digestGet(vm.digest, getTaggedInfo(name).value);
+  const nameStr = digestGet(vm.compile.digest, getTaggedInfo(name).value);
   const result = lookup(vm, nameStr);
   push(vm, result);
 }
@@ -324,7 +324,7 @@ export function dictFirstOffOp(_vm: VM): void {
 // Debug: dump heap-backed dictionary
 export function dumpDictOp(vm: VM): void {
   const lines: string[] = [];
-  let cur = vm.head; // cell index (0 = NIL)
+  let cur = vm.compile.head; // cell index (0 = NIL)
   let i = 0;
   while (cur !== 0) {
     const header = memoryReadCell(vm.memory, cur);
@@ -337,7 +337,7 @@ export function dumpDictOp(vm: VM): void {
     const entryName = memoryReadCell(vm.memory, baseCell + 2);
     const nameInfo = getTaggedInfo(entryName);
     const nameStr =
-      nameInfo.tag === Tag.STRING ? digestGet(vm.digest, nameInfo.value) : `?tag:${nameInfo.tag}`;
+      nameInfo.tag === Tag.STRING ? digestGet(vm.compile.digest, nameInfo.value) : `?tag:${nameInfo.tag}`;
     let prevStr = 'NIL';
     if (!isNIL(prevRefValue)) {
       const { tag } = getTaggedInfo(prevRefValue);

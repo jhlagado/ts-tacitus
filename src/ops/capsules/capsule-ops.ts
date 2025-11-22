@@ -65,7 +65,7 @@ export function endCapsuleOp(vm: VM): void {
   // Emit the capsule-specific epilogue for the dispatch body
   emitOpcode(vm, Op.ExitDispatch);
   // Finalise the surrounding colon definition (replaces EndDefinition closer)
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     throw new Error('End-definition handler not installed');
   }
   endDefinition(vm);

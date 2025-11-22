@@ -14,7 +14,7 @@ describe('VM Instruction Pointer Operations', () => {
     vm = createVM();
     vm.debug = false;
     vm.ip = 0; // Ensure ip starts at 0 for each test
-    vm.compiler.CP = 0; // Reset compiler pointer for clean bytecode writing
+    vm.compile.CP = 0; // Reset compiler pointer for clean bytecode writing
   });
 
   test('next8 should read a byte and advance ip by 1', () => {

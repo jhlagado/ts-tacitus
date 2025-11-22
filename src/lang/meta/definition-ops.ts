@@ -14,11 +14,11 @@ export function beginDefinitionImmediateOp(vm: VM): void {
 }
 
 export function recurseImmediateOp(vm: VM): void {
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     throw new SyntaxError('RECURSE outside definition', getStackData(vm));
   }
 
-  const entryInfo = getDictionaryEntryInfo(vm, vm.defEntryCell);
+  const entryInfo = getDictionaryEntryInfo(vm, vm.compile.defEntryCell);
   if (!entryInfo.hidden) {
     throw new SyntaxError('RECURSE requires active definition', getStackData(vm));
   }

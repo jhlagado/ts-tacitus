@@ -18,9 +18,9 @@ export function runImmediateCode(vm: VM, address: number): void {
   const savedBP = vm.bp;
   const savedRSPRel = rdepth(vm);
   const savedRunning = vm.running;
-  const savedCP = vm.compiler.CP;
-  const savedBCP = vm.compiler.BCP;
-  const savedPreserve = vm.compiler.preserve;
+  const savedCP = vm.compile.CP;
+  const savedBCP = vm.compile.BCP;
+  const savedPreserve = vm.compile.preserve;
 
   rpush(vm, savedIP);
   // Save BP (relative cells) and set new frame
@@ -43,7 +43,7 @@ export function runImmediateCode(vm: VM, address: number): void {
   vm.running = savedRunning;
   vm.ip = savedIP;
   vm.bp = savedBP;
-  vm.compiler.CP = savedCP;
-  vm.compiler.BCP = savedBCP;
-  vm.compiler.preserve = savedPreserve;
+  vm.compile.CP = savedCP;
+  vm.compile.BCP = savedBCP;
+  vm.compile.preserve = savedPreserve;
 }

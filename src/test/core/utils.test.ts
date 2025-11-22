@@ -68,7 +68,7 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, taggedCode)).toBe('[CODE:1234]');
     });
     test('formats STRING tagged value successfully', () => {
-      const strAddr = digestAdd(testVM.digest, 'TestString');
+      const strAddr = digestAdd(testVM.compile.digest, 'TestString');
       const taggedString = Tagged(strAddr, Tag.STRING);
       expect(formatValue(testVM, taggedString)).toBe('"TestString"');
     });

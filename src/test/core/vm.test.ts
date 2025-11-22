@@ -1,4 +1,11 @@
-import { VM, STACK_SIZE_BYTES, RSTACK_SIZE_BYTES, SEG_CODE, createVM, memoryRead8 } from '../../core';
+import {
+  VM,
+  STACK_SIZE_BYTES,
+  RSTACK_SIZE_BYTES,
+  SEG_CODE,
+  createVM,
+  memoryRead8,
+} from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import {
   nextAddress,
@@ -113,20 +120,20 @@ describe('VM', () => {
 
   describe('Compiler and dictionary initialization', () => {
     test('should initialize the compiler with the VM instance', () => {
-      expect(vm.compiler).toBeDefined();
-      expect(typeof vm.compiler).toBe('object');
-      expect(vm.compiler).toHaveProperty('CP');
+      expect(vm.compile).toBeDefined();
+      expect(typeof vm.compile).toBe('object');
+      expect(vm.compile).toHaveProperty('CP');
     });
     test('should initialize the dictionary with builtins', () => {
       // Builtins are registered during VM initialization, so head should be > 0
-      expect(vm.head).toBeGreaterThan(0);
+      expect(vm.compile.head).toBeGreaterThan(0);
     });
     test('should expose compiled bytes in code segment', () => {
       emitOpcode(vm, 0x12);
       emitOpcode(vm, 0x34);
       emitOpcode(vm, 0x56);
       const bytes: number[] = [];
-      for (let i = 0; i < vm.compiler.CP; i++) {
+      for (let i = 0; i < vm.compile.CP; i++) {
         bytes.push(memoryRead8(vm.memory, SEG_CODE, i));
       }
       expect(bytes).toEqual([0x12, 0x34, 0x56]);

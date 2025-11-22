@@ -16,7 +16,7 @@ describe('Dictionary payload types', () => {
   describe('Local variables (Tag.LOCAL)', () => {
     test('defineLocal creates LOCAL entry with slot number', () => {
       const name = 'x';
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, name, Tagged(slot, Tag.LOCAL));
       const tv = lookup(vm, name);
       expect(tv).toBeDefined();
@@ -29,11 +29,11 @@ describe('Dictionary payload types', () => {
     });
 
     test('multiple locals get sequential slot numbers', () => {
-      const slotA = vm.localCount++;
+      const slotA = vm.compile.localCount++;
       define(vm, 'a', Tagged(slotA, Tag.LOCAL));
-      const slotB = vm.localCount++;
+      const slotB = vm.compile.localCount++;
       define(vm, 'b', Tagged(slotB, Tag.LOCAL));
-      const slotC = vm.localCount++;
+      const slotC = vm.compile.localCount++;
       define(vm, 'c', Tagged(slotC, Tag.LOCAL));
 
       const a = getTaggedInfo(lookup(vm, 'a')!);
@@ -49,7 +49,7 @@ describe('Dictionary payload types', () => {
     });
 
     test('locals can be looked up by name', () => {
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'counter', Tagged(slot, Tag.LOCAL));
       const tv = lookup(vm, 'counter');
       expect(isNIL(tv)).toBe(false);
@@ -231,7 +231,7 @@ describe('Dictionary payload types', () => {
     test('can define BUILTIN, CODE, and LOCAL in same dictionary', () => {
       define(vm, 'add-op', Tagged(42, Tag.CODE, 0));
       define(vm, 'user-func', Tagged(encodeX1516(0x1000), Tag.CODE, 0));
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'local-var', Tagged(slot, Tag.LOCAL));
 
       const builtin = getTaggedInfo(lookup(vm, 'add-op')!);
@@ -246,7 +246,7 @@ describe('Dictionary payload types', () => {
     test('can define BUILTIN, CODE, LOCAL, and REF in same dictionary', () => {
       define(vm, 'add-op', Tagged(42, Tag.CODE, 0));
       define(vm, 'user-func', Tagged(encodeX1516(0x1000), Tag.CODE, 0));
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'local-var', Tagged(slot, Tag.LOCAL));
       const testRef = createGlobalRef(10);
       define(vm, 'pointer', testRef);
@@ -266,7 +266,7 @@ describe('Dictionary payload types', () => {
       define(vm, 'add-op', Tagged(42, Tag.CODE, 0));
       const codeRef = createCodeRef(0x2000);
       define(vm, 'code-ref', codeRef);
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'local-var', Tagged(slot, Tag.LOCAL));
       const testRef = createGlobalRef(10);
       define(vm, 'pointer', testRef);
@@ -286,7 +286,7 @@ describe('Dictionary payload types', () => {
       // Define same name with different types
       define(vm, 'foo', Tagged(10, Tag.CODE, 0));
       define(vm, 'foo', Tagged(encodeX1516(0x2000), Tag.CODE, 0));
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'foo', Tagged(slot, Tag.LOCAL));
 
       // Should find the most recent (LOCAL)
@@ -299,13 +299,13 @@ describe('Dictionary payload types', () => {
   describe('Mark and forget (scope management)', () => {
     test('mark returns current heap position', () => {
       const initialGp = vm.gp;
-      const initialHead = vm.head;
+      const initialHead = vm.compile.head;
 
       // Define some entries
       define(vm, 'global1', Tagged(1, Tag.CODE, 0));
       define(vm, 'global2', Tagged(2, Tag.CODE, 0));
       const gpAfter = vm.gp;
-      const headAfter = vm.head;
+      const headAfter = vm.compile.head;
 
       const markPos = mark(vm);
       expect(markPos).toBe(gpAfter);
@@ -318,12 +318,12 @@ describe('Dictionary payload types', () => {
       define(vm, 'global-a', Tagged(10, Tag.CODE, 0));
       define(vm, 'global-b', Tagged(20, Tag.CODE, 0));
       const markPos = mark(vm);
-      const headAtMark = vm.head;
+      const headAtMark = vm.compile.head;
 
       // Define local entries (should be removed by forget)
-      const slotX = vm.localCount++;
+      const slotX = vm.compile.localCount++;
       define(vm, 'local-x', Tagged(slotX, Tag.LOCAL));
-      const slotY = vm.localCount++;
+      const slotY = vm.compile.localCount++;
       define(vm, 'local-y', Tagged(slotY, Tag.LOCAL));
       define(vm, 'temp-op', Tagged(99, Tag.CODE, 0));
 
@@ -345,7 +345,7 @@ describe('Dictionary payload types', () => {
       expect(isNIL(lookup(vm, 'global-b'))).toBe(false);
 
       // Head should be restored
-      expect(vm.head).toBe(headAtMark);
+      expect(vm.compile.head).toBe(headAtMark);
       expect(vm.gp).toBe(markPos);
     });
 
@@ -355,14 +355,14 @@ describe('Dictionary payload types', () => {
       const outerMark = mark(vm);
 
       // Inner scope 1
-      const slot1X = vm.localCount++;
+      const slot1X = vm.compile.localCount++;
       define(vm, 'inner1-x', Tagged(slot1X, Tag.LOCAL));
-      const slot1Y = vm.localCount++;
+      const slot1Y = vm.compile.localCount++;
       define(vm, 'inner1-y', Tagged(slot1Y, Tag.LOCAL));
       const inner1Mark = mark(vm);
 
       // Inner scope 2
-      const slot2A = vm.localCount++;
+      const slot2A = vm.compile.localCount++;
       define(vm, 'inner2-a', Tagged(slot2A, Tag.LOCAL));
       const inner2Mark = mark(vm);
 
@@ -387,83 +387,83 @@ describe('Dictionary payload types', () => {
 
     test('forget with empty dictionary sets head to 0', () => {
       // Clear dictionary and reset heap to get empty state
-      vm.head = 0;
+      vm.compile.head = 0;
       vm.gp = 0;
 
       const markPos = mark(vm);
-      expect(vm.head).toBe(0);
+      expect(vm.compile.head).toBe(0);
       expect(vm.gp).toBe(0);
 
       // Add and remove entries
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'temp', Tagged(slot, Tag.LOCAL));
-      expect(vm.head).not.toBe(0);
+      expect(vm.compile.head).not.toBe(0);
       forget(vm, markPos);
 
-      expect(vm.head).toBe(0);
+      expect(vm.compile.head).toBe(0);
       expect(vm.gp).toBe(0);
     });
 
     test('forget updates head correctly', () => {
       define(vm, 'test', Tagged(1, Tag.CODE, 0));
       const markPos = mark(vm);
-      const headBefore = vm.head;
+      const headBefore = vm.compile.head;
 
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'local', Tagged(slot, Tag.LOCAL));
       forget(vm, markPos);
 
-      expect(vm.head).toBe(headBefore);
+      expect(vm.compile.head).toBe(headBefore);
       // Verify head is a valid cell index
-      expect(vm.head).toBeGreaterThanOrEqual(0);
+      expect(vm.compile.head).toBeGreaterThanOrEqual(0);
     });
   });
 
   describe('Local variable slot allocation', () => {
     test('localCount increments for each local', () => {
-      expect(vm.localCount).toBe(0);
-      const slotA = vm.localCount++;
+      expect(vm.compile.localCount).toBe(0);
+      const slotA = vm.compile.localCount++;
       define(vm, 'a', Tagged(slotA, Tag.LOCAL));
-      expect(vm.localCount).toBe(1);
-      const slotB = vm.localCount++;
+      expect(vm.compile.localCount).toBe(1);
+      const slotB = vm.compile.localCount++;
       define(vm, 'b', Tagged(slotB, Tag.LOCAL));
-      expect(vm.localCount).toBe(2);
-      const slotC = vm.localCount++;
+      expect(vm.compile.localCount).toBe(2);
+      const slotC = vm.compile.localCount++;
       define(vm, 'c', Tagged(slotC, Tag.LOCAL));
-      expect(vm.localCount).toBe(3);
+      expect(vm.compile.localCount).toBe(3);
     });
 
     test('localCount persists after mark (mark only tracks heap position)', () => {
-      const slotX = vm.localCount++;
+      const slotX = vm.compile.localCount++;
       define(vm, 'x', Tagged(slotX, Tag.LOCAL));
-      expect(vm.localCount).toBe(1);
+      expect(vm.compile.localCount).toBe(1);
 
       const _markPos = mark(vm);
       // Note: dictionary mark() only returns heap position, doesn't reset localCount
       // Symbol table mark() would reset it, but we're testing dictionary directly
-      expect(vm.localCount).toBe(1);
+      expect(vm.compile.localCount).toBe(1);
 
-      const slotY = vm.localCount++;
+      const slotY = vm.compile.localCount++;
       define(vm, 'y', Tagged(slotY, Tag.LOCAL));
-      expect(vm.localCount).toBe(2);
+      expect(vm.compile.localCount).toBe(2);
     });
 
     test('localCount persists across forget (forget only reverts heap)', () => {
-      const slotA = vm.localCount++;
+      const slotA = vm.compile.localCount++;
       define(vm, 'a', Tagged(slotA, Tag.LOCAL));
-      const slotB = vm.localCount++;
+      const slotB = vm.compile.localCount++;
       define(vm, 'b', Tagged(slotB, Tag.LOCAL));
       const _markPos = mark(vm);
       // localCount is 2 (a and b were defined)
-      expect(vm.localCount).toBe(2);
+      expect(vm.compile.localCount).toBe(2);
 
-      const slotC = vm.localCount++;
+      const slotC = vm.compile.localCount++;
       define(vm, 'c', Tagged(slotC, Tag.LOCAL));
-      expect(vm.localCount).toBe(3);
+      expect(vm.compile.localCount).toBe(3);
       forget(vm, _markPos);
       // localCount is not reset by forget - it only reverts heap/dictionary
       // The localCount would be reset by symbol table mark(), not dictionary mark()
-      expect(vm.localCount).toBe(3);
+      expect(vm.compile.localCount).toBe(3);
     });
   });
 
@@ -482,7 +482,7 @@ describe('Dictionary payload types', () => {
     test('multiple entries with same name - lookup finds most recent', () => {
       define(vm, 'dup', Tagged(10, Tag.CODE, 0));
       define(vm, 'dup', Tagged(encodeX1516(0x3000), Tag.CODE, 0));
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'dup', Tagged(slot, Tag.LOCAL));
 
       const tv = lookup(vm, 'dup');

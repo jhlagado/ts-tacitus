@@ -17,7 +17,7 @@ describe('dict define/lookup builtin (happy path)', () => {
     const name = 'my_builtin';
     const opcode = 123;
 
-    const nameAddr = digestIntern(vm.digest, name);
+    const nameAddr = digestIntern(vm.compile.digest, name);
     const nameTagged = Tagged(nameAddr, Tag.STRING);
     const builtinTagged = Tagged(opcode, Tag.CODE, 0);
 

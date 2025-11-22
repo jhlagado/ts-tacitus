@@ -43,7 +43,7 @@ export function execute(vm: VM, start: number): void {
   vm.running = true;
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  while (vm.running && vm.ip < vm.compiler.CP) {
+  while (vm.running && vm.ip < vm.compile.CP) {
     const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.ip);
     const isUserDefined = (firstByte & 0x80) !== 0;
 
@@ -72,13 +72,13 @@ export function execute(vm: VM, start: number): void {
         console.log((error as Error).stack);
       }
       resetCompiler(vm);
-      vm.compiler.preserve = false;
+      vm.compile.preserve = false;
       throw new Error(errorMessage);
     }
   }
 
   resetCompiler(vm);
-  vm.compiler.preserve = false;
+  vm.compile.preserve = false;
 }
 
 /**

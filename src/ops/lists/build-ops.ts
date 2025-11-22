@@ -33,7 +33,7 @@ import {
  * Opens LIST construction.
  */
 export function openListOp(vm: VM): void {
-  vm.listDepth++;
+  vm.compile.listDepth++;
   push(vm, Tagged(0, Tag.LIST));
   const headerCell = vm.sp - 1;
   rpush(vm, headerCell);
@@ -50,7 +50,7 @@ export function closeListOp(vm: VM): void {
 
   memoryWriteCell(vm.memory, headerCell, Tagged(payloadSlots, Tag.LIST));
 
-  const isOutermost = vm.listDepth === 1;
+  const isOutermost = vm.compile.listDepth === 1;
   if (isOutermost) {
     const totalSpan = vm.sp - headerCell;
     if (totalSpan > 1) {
@@ -58,7 +58,7 @@ export function closeListOp(vm: VM): void {
     }
   }
 
-  vm.listDepth--;
+  vm.compile.listDepth--;
 }
 
 /**

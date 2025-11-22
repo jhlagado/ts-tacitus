@@ -66,14 +66,14 @@ describe('Interpreter', () => {
   describe('Code blocks', () => {});
   describe('Error handling', () => {
     test('should handle invalid opcodes', () => {
-      vm.compiler.CP = vm.compiler.BCP + 1;
-      memoryWrite8(vm.memory, SEG_CODE, vm.compiler.BCP, 110);
+      vm.compile.CP = vm.compile.BCP + 1;
+      memoryWrite8(vm.memory, SEG_CODE, vm.compile.BCP, 110);
 
       let errorThrown = false;
       let errorMessage = '';
 
       try {
-        execute(vm, vm.compiler.BCP);
+        execute(vm, vm.compile.BCP);
       } catch (error) {
         errorThrown = true;
         errorMessage = error instanceof Error ? error.message : String(error);
@@ -130,22 +130,22 @@ describe('Interpreter', () => {
 
   describe('Memory management', () => {
     test('should preserve memory when flag is set', () => {
-      vm.compiler.preserve = true;
+      vm.compile.preserve = true;
       executeTacitCode(vm, '5 3 add');
-      expect(vm.compiler.BCP).toBe(vm.compiler.CP);
-      expect(vm.compiler.preserve).toBe(false);
+      expect(vm.compile.BCP).toBe(vm.compile.CP);
+      expect(vm.compile.preserve).toBe(false);
     });
     test('should reset memory when preserve is false', () => {
-      const initialBCP = vm.compiler.BCP;
+      const initialBCP = vm.compile.BCP;
       executeTacitCode(vm, '5 3 add');
-      expect(vm.compiler.CP).toBe(initialBCP);
+      expect(vm.compile.CP).toBe(initialBCP);
     });
     test('should handle multiple preserve states', () => {
       executeTacitCode(vm, '5 3 add');
-      const initialBCP = vm.compiler.BCP;
-      vm.compiler.preserve = true;
+      const initialBCP = vm.compile.BCP;
+      vm.compile.preserve = true;
       executeTacitCode(vm, '2 2 add');
-      expect(vm.compiler.BCP).toBe(initialBCP + 12);
+      expect(vm.compile.BCP).toBe(initialBCP + 12);
     });
   });
 

@@ -58,7 +58,7 @@ export function formatAtomicValue(vm: VM, value: number): string {
       }
 
     case Tag.STRING: {
-      const str = digestGet(vm.digest, tagValue);
+      const str = digestGet(vm.compile.digest, tagValue);
       if (str) {
         return formatString(str);
       }
@@ -169,7 +169,7 @@ export function formatValue(vm: VM, value: number): string {
   const { value: tagValue } = getTaggedInfo(value);
   switch (tag) {
     case Tag.STRING: {
-      const str = digestGet(vm.digest, tagValue);
+      const str = digestGet(vm.compile.digest, tagValue);
       return str ? formatString(str) : `[String:${tagValue}]`;
     }
     case Tag.NUMBER:

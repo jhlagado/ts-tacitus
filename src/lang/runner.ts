@@ -14,5 +14,5 @@ import { createTokenizer } from './tokenizer';
  */
 export function executeProgram(vm: VM, code: string): void {
   parse(vm, createTokenizer(code));
-  execute(vm, vm.compiler.BCP);
+  execute(vm, vm.compile.BCP);
 }

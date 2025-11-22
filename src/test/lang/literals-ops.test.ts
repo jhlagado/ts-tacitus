@@ -10,7 +10,7 @@ describe('literal emission opcodes', () => {
   });
 
   it('LiteralNumber opcode is emitted correctly', () => {
-    const start = vm.compiler.CP;
+    const start = vm.compile.CP;
     emitOpcode(vm, Op.LiteralNumber);
     emitFloat32(vm, 21.5);
     expect(memoryRead8(vm.memory, SEG_CODE, start)).toBe(Op.LiteralNumber);
@@ -18,7 +18,7 @@ describe('literal emission opcodes', () => {
   });
 
   it('LiteralString opcode is emitted correctly', () => {
-    const start = vm.compiler.CP;
+    const start = vm.compile.CP;
     emitOpcode(vm, Op.LiteralString);
     emitUint16(vm, 42);
     expect(memoryRead8(vm.memory, SEG_CODE, start)).toBe(Op.LiteralString);

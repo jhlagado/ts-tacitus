@@ -18,7 +18,6 @@ import {
   compilerPatchOpcode,
   compilerReset,
 } from '../lang/compiler';
-import type { Tokenizer } from '../lang/tokenizer';
 import {
   type Memory,
   createMemory,
@@ -72,26 +71,10 @@ export interface VM {
   err: number;
   /** Flag: currently executing in a finally cleanup block */
   inFinally: boolean;
-  /** Compiler state for bytecode generation */
-  compiler: CompilerState;
-  /** String digest for string interning */
-  digest: Digest;
+  /** Compile-time state bundle */
+  compile: CompilerState;
   /** Debug mode flag (enables invariant checks) */
   debug: boolean;
-  /** Current list nesting depth */
-  listDepth: number;
-  /** Dictionary head cell index (0 = NIL/empty dictionary) */
-  head: number;
-  /** Current local variable count */
-  localCount: number;
-  /** Branch placeholder location for active definition (-1 when idle) */
-  defBranchPos: number;
-  /** Dictionary checkpoint mark for active definition (-1 when idle) */
-  defCheckpoint: number;
-  /** Dictionary head cell for hidden definition (-1 when idle) */
-  defEntryCell: number;
-  /** Active tokenizer during parsing (for immediates) */
-  tokenizer: Tokenizer | null;
 }
 
 /**
@@ -114,32 +97,25 @@ export function createVM(useCache = true): VM {
         // First call: create VM normally, then snapshot state after builtins
         const memory = createMemory();
         const digest = createDigest(memory);
-      const vm: VM = {
-        memory,
-        ip: 0,
-        running: true,
-        err: 0,
-        inFinally: false,
-        sp: STACK_BASE,
-        rsp: RSTACK_BASE,
-        bp: RSTACK_BASE,
-        gp: 0,
-        digest,
-        debug: false,
-        listDepth: 0,
-        localCount: 0,
-        head: 0,
-        defBranchPos: -1,
-        defCheckpoint: -1,
-        defEntryCell: -1,
-        tokenizer: null,
-        compiler: makeCompiler(),
-      };
+        const baseCompiler = makeCompiler(digest);
+        const vm: VM = {
+          memory,
+          ip: 0,
+          running: true,
+          err: 0,
+          inFinally: false,
+          sp: STACK_BASE,
+          rsp: RSTACK_BASE,
+          bp: RSTACK_BASE,
+          gp: 0,
+          debug: false,
+          compile: baseCompiler,
+        };
       registerBuiltins(vm);
       // Snapshot state AFTER builtins are registered
       cachedTestVM = vm;
       builtinSnapshot = {
-        head: vm.head, // Already set correctly by define() during registerBuiltins()
+        head: vm.compile.head, // Already set correctly by define() during registerBuiltins()
         gp: vm.gp,
       };
     } else {
@@ -152,15 +128,11 @@ export function createVM(useCache = true): VM {
       cachedTestVM.rsp = RSTACK_BASE;
       cachedTestVM.bp = RSTACK_BASE;
       cachedTestVM.debug = false;
-      cachedTestVM.listDepth = 0;
-      cachedTestVM.localCount = 0;
-      cachedTestVM.defBranchPos = -1;
-      cachedTestVM.defCheckpoint = -1;
-      cachedTestVM.defEntryCell = -1;
-      cachedTestVM.tokenizer = null;
       cachedTestVM.gp = builtinSnapshot.gp;
-      cachedTestVM.head = builtinSnapshot.head;
-      cachedTestVM.compiler = makeCompiler();
+      cachedTestVM.compile = {
+        ...makeCompiler(cachedTestVM.compile.digest),
+        head: builtinSnapshot.head,
+      };
     }
     return cachedTestVM;
   }
@@ -178,16 +150,8 @@ export function createVM(useCache = true): VM {
     rsp: RSTACK_BASE,
     bp: RSTACK_BASE,
     gp: 0,
-    digest,
     debug: false,
-    listDepth: 0,
-    localCount: 0,
-    head: 0,
-    defBranchPos: -1,
-    defCheckpoint: -1,
-    defEntryCell: -1,
-    tokenizer: null,
-    compiler: makeCompiler(),
+    compile: makeCompiler(digest),
   };
   registerBuiltins(vm);
   return vm;
@@ -620,96 +584,96 @@ export function ensureInvariants(vm: VM): void {
  * Emits an opcode to the current compilation buffer.
  */
 export function emitOpcode(vm: VM, opcode: number): void {
-  compilerCompileOpcode(vm, vm.compiler, opcode);
+  compilerCompileOpcode(vm, vm.compile, opcode);
 }
 
 /**
  * Emits a 16-bit unsigned value to the code buffer.
  */
 export function emitUint16(vm: VM, value: number): void {
-  compilerCompile16(vm, vm.compiler, value);
+  compilerCompile16(vm, vm.compile, value);
 }
 
 /**
  * Emits a 32-bit float to the code buffer.
  */
 export function emitFloat32(vm: VM, value: number): void {
-  compilerCompileFloat32(vm, vm.compiler, value);
+  compilerCompileFloat32(vm, vm.compile, value);
 }
 
 /**
  * Emits a user word call using X1516 encoding regardless of address range.
  */
 export function emitUserWordCall(vm: VM, address: number): void {
-  compilerCompileUserWordCall(vm, vm.compiler, address);
+  compilerCompileUserWordCall(vm, vm.compile, address);
 }
 
 /**
  * Emits a tagged address literal into the code buffer.
  */
 export function emitTaggedAddress(vm: VM, address: number): void {
-  compilerCompileAddress(vm, vm.compiler, address);
+  compilerCompileAddress(vm, vm.compile, address);
 }
 
 /**
  * Ensures a Reserve opcode has been emitted for locals in the current function.
  */
 export function ensureReserveEmitted(vm: VM): void {
-  compilerEmitReserveIfNeeded(vm, vm.compiler);
+  compilerEmitReserveIfNeeded(vm, vm.compile);
 }
 
 /**
  * Marks the beginning of a function body for compilation.
  */
 export function beginFunctionCompile(vm: VM): void {
-  compilerEnterFunction(vm.compiler);
+  compilerEnterFunction(vm.compile);
 }
 
 /**
  * Marks the end of a function body for compilation.
  */
 export function finishFunctionCompile(vm: VM): void {
-  compilerExitFunction(vm, vm.compiler);
+  compilerExitFunction(vm, vm.compile);
 }
 
 /**
  * Resets the compiler's compile pointer based on the preserve flag.
  */
 export function resetCompiler(vm: VM): void {
-  compilerReset(vm.compiler);
+  compilerReset(vm.compile);
 }
 
 /**
  * Sets whether the current compilation should preserve the generated code.
  */
 export function setCompilerPreserve(vm: VM, preserve: boolean): void {
-  vm.compiler.preserve = preserve;
+  vm.compile.preserve = preserve;
 }
 
 /**
  * Returns the current compile pointer.
  */
 export function getCompilePointer(vm: VM): number {
-  return vm.compiler.CP;
+  return vm.compile.CP;
 }
 
 /**
  * Sets the compile pointer to a specific address.
  */
 export function setCompilePointer(vm: VM, address: number): void {
-  vm.compiler.CP = address;
+  vm.compile.CP = address;
 }
 
 /**
  * Patches a 16-bit value at the specified code address.
  */
 export function patchUint16(vm: VM, address: number, value: number): void {
-  compilerPatch16(vm, vm.compiler, address, value);
+  compilerPatch16(vm, vm.compile, address, value);
 }
 
 /**
  * Patches an opcode at the specified code address.
  */
 export function patchOpcode(vm: VM, address: number, opcode: number): void {
-  compilerPatchOpcode(vm, vm.compiler, address, opcode);
+  compilerPatchOpcode(vm, vm.compile, address, opcode);
 }

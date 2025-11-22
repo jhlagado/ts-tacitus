@@ -9,7 +9,7 @@ jest.mock('../../lang/interpreter');
 function executeLine(vm: VM, input: string): void {
   const tokenizer = tokenizerModule.createTokenizer(input);
   parse(vm, tokenizer);
-  execute(vm, vm.compiler.BCP);
+  execute(vm, vm.compile.BCP);
 }
 
 describe('Executor', () => {
@@ -24,11 +24,11 @@ describe('Executor', () => {
   describe('executeLine', () => {
     test('should tokenize, parse, and execute the input', () => {
       const input = '2 3 +';
-      
+
       executeLine(vm, input);
-      
+
       expect(parse).toHaveBeenCalledWith(vm, expect.objectContaining({ input }));
-      expect(execute).toHaveBeenCalledWith(vm, vm.compiler.BCP);
+      expect(execute).toHaveBeenCalledWith(vm, vm.compile.BCP);
     });
     test('should propagate errors from tokenizer', () => {
       const input = 'invalid';
