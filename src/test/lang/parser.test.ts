@@ -20,7 +20,7 @@ describe('Parser with Tokenizer', () => {
   describe('Basic parsing', () => {
     test('should parse numbers correctly', () => {
       parse(vm, createTokenizer('42 -3.14 +5'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.LiteralNumber);
       expect(nextFloat32(vm)).toBeCloseTo(42);
       expect(next8(vm)).toBe(Op.LiteralNumber);
@@ -31,7 +31,7 @@ describe('Parser with Tokenizer', () => {
     });
     test('should parse built-in words correctly', () => {
       parse(vm, createTokenizer('dup drop swap add sub'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.Dup);
       expect(next8(vm)).toBe(Op.Drop);
       expect(next8(vm)).toBe(Op.Swap);
@@ -41,7 +41,7 @@ describe('Parser with Tokenizer', () => {
     });
     test('should parse mixed content correctly', () => {
       parse(vm, createTokenizer('10 dup mul 5 add'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.LiteralNumber);
       expect(nextFloat32(vm)).toBeCloseTo(10);
       expect(next8(vm)).toBe(Op.Dup);
@@ -53,7 +53,7 @@ describe('Parser with Tokenizer', () => {
     });
     test('should handle empty input', () => {
       parse(vm, createTokenizer(''));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.Abort);
     });
   });
@@ -63,7 +63,7 @@ describe('Parser with Tokenizer', () => {
       parse(vm, createTokenizer(': double dup add ;'));
       const doubleWord = resolveSymbol(vm, 'double');
       expect(doubleWord).toBeDefined();
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.Branch);
       nextInt16(vm); // skipOffset
       expect(next8(vm)).toBe(Op.Dup);

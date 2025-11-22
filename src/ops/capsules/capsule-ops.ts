@@ -11,8 +11,8 @@ export function exitConstructorOp(vm: VM): void {
   const oldBpRel = vm.bp - RSTACK_BASE;
   const localCount = rdepth(vm) - oldBpRel;
 
-  // Wrap current IP as CODE entry for dispatch body
-  const entryAddr = vm.IP;
+  // Wrap current ip as CODE entry for dispatch body
+  const entryAddr = vm.ip;
   rpush(vm, Tagged(encodeX1516(entryAddr), Tag.CODE));
 
   // Append LIST header: payload = locals + 1 (CODE)
@@ -30,14 +30,14 @@ export function exitConstructorOp(vm: VM): void {
 
   // Saved BP stored as relative cells on return stack; restore as absolute
   vm.bp = Math.trunc(savedBP) + RSTACK_BASE;
-  vm.IP = Math.trunc(returnAddr);
+  vm.ip = Math.trunc(returnAddr);
 }
 
 export function exitDispatchOp(vm: VM): void {
   // Epilogue: restore caller BP and return address without touching capsule payload
   // Saved BP stored as relative cells
   vm.bp = rpop(vm) + RSTACK_BASE;
-  vm.IP = rpop(vm);
+  vm.ip = rpop(vm);
 }
 
 export function dispatchOp(vm: VM): void {
@@ -49,7 +49,7 @@ export function dispatchOp(vm: VM): void {
   const layout = readCapsuleLayoutFromHandle(vm, receiver);
 
   // Save caller return address and BP; rebind BP to capsule payload base
-  rpush(vm, vm.IP);
+  rpush(vm, vm.ip);
   // Save BP as relative cells for uniform frame convention
   rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = RSTACK_BASE + (layout.baseCell - RSTACK_BASE);
@@ -58,7 +58,7 @@ export function dispatchOp(vm: VM): void {
   const { value: encodedAddr } = getTaggedInfo(layout.codeRef);
   // Decode X1516 encoded address to get actual bytecode address
   const entryAddr = decodeX1516(encodedAddr);
-  vm.IP = entryAddr;
+  vm.ip = entryAddr;
 }
 
 export function endCapsuleOp(vm: VM): void {

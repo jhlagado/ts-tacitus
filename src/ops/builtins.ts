@@ -171,11 +171,11 @@ export function literalCodeOp(vm: VM): void {
 
 export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
   if (isUserDefined) {
-    rpush(vm, vm.IP);
+    rpush(vm, vm.ip);
     // Save BP as relative cells
     rpush(vm, vm.bp - RSTACK_BASE);
     vm.bp = vm.rsp;
-    vm.IP = opcode;
+    vm.ip = opcode;
     return;
   }
 
@@ -371,7 +371,8 @@ export function globalRefOp(vm: VM): void {
     );
   }
 
-  push(vm, createGlobalRef(offset));
+  const ref = createGlobalRef(offset);
+  push(vm, ref);
 }
 
 /**

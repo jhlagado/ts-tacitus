@@ -53,7 +53,7 @@ describe('Core ops extra branch coverage', () => {
     rpush(vm, 0);
     vm.bp = RSTACK_BASE + 2; // frame root points just above saved cells
     exitOp(vm);
-    expect(vm.IP).toBe(77);
+    expect(vm.ip).toBe(77);
   });
 
   test('exitOp restores return address when numeric', () => {
@@ -61,7 +61,7 @@ describe('Core ops extra branch coverage', () => {
     rpush(vm, 0);
     vm.bp = RSTACK_BASE + 2;
     exitOp(vm);
-    expect(vm.IP).toBe(88);
+    expect(vm.ip).toBe(88);
   });
 
   test('endIfOp patches a branch placeholder correctly', () => {

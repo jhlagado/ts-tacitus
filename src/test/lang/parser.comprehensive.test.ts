@@ -32,7 +32,7 @@ describe('Comprehensive Parser Tests', () => {
       parse(vm, createTokenizer(': empty ;'));
       const emptyWord = resolveSymbol(vm, 'empty');
       expect(emptyWord).toBeDefined();
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.Branch);
       nextInt16(vm);
       expect(next8(vm)).toBe(Op.Exit);
@@ -42,7 +42,7 @@ describe('Comprehensive Parser Tests', () => {
       expect(resolveSymbol(vm, 'test-word!')).toBeDefined();
     });
     test('should handle word names that start with numbers', () => {
-      vm.IP = 0;
+      vm.ip = 0;
       executeProgram(vm, ': 2x 2 mul ; 5 2x');
       expect(pop(vm)).toBe(10);
     });
@@ -50,13 +50,13 @@ describe('Comprehensive Parser Tests', () => {
   describe('Lists', () => {
     test('should parse empty lists', () => {
       parse(vm, createTokenizer('( )'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.OpenList);
       expect(next8(vm)).toBe(Op.CloseList);
     });
     test('should parse lists with elements', () => {
       parse(vm, createTokenizer('( 1 2 )'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.OpenList);
       expect(next8(vm)).toBe(Op.LiteralNumber);
       expect(nextFloat32(vm)).toBe(1);
@@ -68,7 +68,7 @@ describe('Comprehensive Parser Tests', () => {
   describe('Control Structures', () => {
     test('should parse IF-ELSE-THEN', () => {
       parse(vm, createTokenizer('1 if 2 else 3 ;'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.LiteralNumber);
       expect(nextFloat32(vm)).toBe(1);
       expect(next8(vm)).toBe(Op.IfFalseBranch);
@@ -85,7 +85,7 @@ describe('Comprehensive Parser Tests', () => {
   describe('String Literals', () => {
     test('should parse empty string literals', () => {
       parse(vm, createTokenizer('""'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.LiteralString);
       const addr = nextInt16(vm);
       expect(addr).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe('Comprehensive Parser Tests', () => {
     });
     test('should parse string literals with spaces', () => {
       parse(vm, createTokenizer('"hello world"'));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.LiteralString);
       const addr = nextInt16(vm);
       const str = digestGet(vm.digest, addr);
@@ -105,7 +105,7 @@ describe('Comprehensive Parser Tests', () => {
     test("should parse 'key as a string literal", () => {
       // parse only the apostrophe shorthand
       parse(vm, createTokenizer("'test-symbol"));
-      vm.IP = 0;
+      vm.ip = 0;
       expect(next8(vm)).toBe(Op.LiteralString);
       const addr = nextInt16(vm);
       const str = digestGet(vm.digest, addr);

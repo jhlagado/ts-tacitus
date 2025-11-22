@@ -101,12 +101,12 @@ describe('VM', () => {
     test('should increment the instruction pointer after reading', () => {
       emitUint16(vm, 42);
       nextInt16(vm);
-      expect(vm.IP).toBe(2);
+      expect(vm.ip).toBe(2);
     });
     test('should handle nextAddress correctly', () => {
       const addr = 0x2345;
       emitTaggedAddress(vm, addr); // encode using X1516
-      vm.IP = 0;
+      vm.ip = 0;
       expect(nextAddress(vm)).toBe(addr); // nextAddress decodes it
     });
   });

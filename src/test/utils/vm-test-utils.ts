@@ -404,7 +404,7 @@ export function verifyVMState(vm: VM): void {
   expect(vm.rsp).toBeGreaterThanOrEqual(rstackBaseCells);
   expect(vm.bp).toBeGreaterThanOrEqual(rstackBaseCells);
   expect(vm.bp).toBeLessThanOrEqual(vm.rsp);
-  expect(vm.IP).toBeGreaterThanOrEqual(0);
+  expect(vm.ip).toBeGreaterThanOrEqual(0);
   expect(vm.running).toBe(true);
 }
 

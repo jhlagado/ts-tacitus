@@ -14,8 +14,8 @@ describe('VM Constructor Initialization', () => {
     expect(vm.memory.dataView).toBeInstanceOf(DataView);
   });
 
-  test('should initialize IP to 0', () => {
-    expect(vm.IP).toBe(0);
+  test('should initialize ip to 0', () => {
+    expect(vm.ip).toBe(0);
   });
 
   test('should initialize running to true', () => {

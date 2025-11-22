@@ -25,11 +25,11 @@ describe('Control Operations - Branch Coverage', () => {
 
       push(vm, Tagged(encodeX1516(100), Tag.CODE));
 
-      const originalIP = vm.IP;
+      const originalIP = vm.ip;
 
       ifFalseBranchOp(vm);
 
-      expect(vm.IP).toBe(originalIP + 10);
+      expect(vm.ip).toBe(originalIP + 10);
 
       (vmModule as any).nextInt16 = originalNextInt16;
     });
@@ -40,11 +40,11 @@ describe('Control Operations - Branch Coverage', () => {
 
       push(vm, 5);
 
-      const originalIP = vm.IP;
+      const originalIP = vm.ip;
 
       ifFalseBranchOp(vm);
 
-      expect(vm.IP).toBe(originalIP);
+      expect(vm.ip).toBe(originalIP);
 
       (vmModule as any).nextInt16 = originalNextInt16;
     });
@@ -55,11 +55,11 @@ describe('Control Operations - Branch Coverage', () => {
 
       push(vm, 0);
 
-      const originalIP = vm.IP;
+      const originalIP = vm.ip;
 
       ifFalseBranchOp(vm);
 
-      expect(vm.IP).toBe(originalIP + 15);
+      expect(vm.ip).toBe(originalIP + 15);
 
       (vmModule as any).nextInt16 = originalNextInt16;
     });

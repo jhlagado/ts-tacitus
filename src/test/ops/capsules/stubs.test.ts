@@ -23,7 +23,7 @@ describe('capsule opcode stubs', () => {
     // Push 2 locals
     rpush(vm, 10);
     rpush(vm, 20);
-    vm.IP = 123;
+    vm.ip = 123;
 
     const prevRSP = vm.rsp;
     exitConstructorOp(vm);
@@ -38,7 +38,7 @@ describe('capsule opcode stubs', () => {
     expect(vm.rsp).toBe(prevRSP + 2);
     // Restored caller registers
     expect(vm.bp).toBe(RSTACK_BASE + 0);
-    expect(vm.IP).toBe(9999);
+    expect(vm.ip).toBe(9999);
   });
 
   test('exitDispatchOp underflow outside prologue', () => {
