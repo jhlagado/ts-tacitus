@@ -35,8 +35,8 @@ describe('VM Constructor Initialization', () => {
   });
 
   test('should initialize digest structure', () => {
-    expect(typeof vm.digest.SBP).toBe('number');
-    expect(vm.digest.SBP).toBeGreaterThanOrEqual(0);
+    expect(typeof vm.compile.digest.SBP).toBe('number');
+    expect(vm.compile.digest.SBP).toBeGreaterThanOrEqual(0);
   });
 
   test('should initialize debug to false', () => {
@@ -44,19 +44,19 @@ describe('VM Constructor Initialization', () => {
   });
 
   test('should initialize listDepth to 0', () => {
-    expect(vm.listDepth).toBe(0);
+    expect(vm.compile.listDepth).toBe(0);
   });
 
   test('should initialize dictionary with builtins (head > 0)', () => {
     // Builtins are registered during VM construction, so head should be > 0
-    expect(vm.head).toBeGreaterThan(0);
-    expect(typeof vm.head).toBe('number');
+    expect(vm.compile.head).toBeGreaterThan(0);
+    expect(typeof vm.compile.head).toBe('number');
   });
 
   test('should initialize compiler state after constructor call', () => {
-    expect(vm.compiler).toBeDefined();
-    expect(vm.compiler).toHaveProperty('CP', 0);
-    expect(vm.compiler).toHaveProperty('BCP', 0);
-    expect(vm.compiler).toHaveProperty('preserve', false);
+    expect(vm.compile).toBeDefined();
+    expect(vm.compile).toHaveProperty('CP', 0);
+    expect(vm.compile).toHaveProperty('BCP', 0);
+    expect(vm.compile).toHaveProperty('preserve', false);
   });
 });

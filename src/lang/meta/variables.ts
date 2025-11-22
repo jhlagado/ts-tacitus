@@ -25,7 +25,7 @@ import { ensureTokenizer, readNameAfter } from '../helpers/tokenizer-utils';
 
 export function varImmediateOp(vm: VM): void {
   const tokenizer = ensureTokenizer(vm, 'var');
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
       getStackData(vm),
@@ -33,7 +33,7 @@ export function varImmediateOp(vm: VM): void {
   }
   const varName = readNameAfter(vm, tokenizer, 'var');
   ensureReserveEmitted(vm);
-  const slotNumber = vm.localCount++;
+  const slotNumber = vm.compile.localCount++;
   define(vm, varName, Tagged(slotNumber, Tag.LOCAL));
   emitOpcode(vm, Op.InitVar);
   emitUint16(vm, slotNumber);
@@ -41,7 +41,7 @@ export function varImmediateOp(vm: VM): void {
 
 export function globalImmediateOp(vm: VM): void {
   const tokenizer = ensureTokenizer(vm, 'global');
-  if (vm.defEntryCell !== -1) {
+  if (vm.compile.defEntryCell !== -1) {
     throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
   }
   const varName = readNameAfter(vm, tokenizer, 'global');
@@ -114,7 +114,7 @@ export function assignImmediateOp(vm: VM): void {
 
 export function incrementImmediateOp(vm: VM): void {
   const tokenizer = ensureTokenizer(vm, '+>');
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
       getStackData(vm),

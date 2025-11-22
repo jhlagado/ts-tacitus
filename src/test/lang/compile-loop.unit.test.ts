@@ -47,7 +47,7 @@ describe('compile loop unit coverage', () => {
   });
 
   test('compiles STRING literal', () => {
-    const addr = digestIntern(vm.digest, 'hello');
+    const addr = digestIntern(vm.compile.digest, 'hello');
     const strAddr = Tagged(addr, Tag.STRING);
     tokenNextMock
       .mockReturnValueOnce({ type: TokenType.STRING, raw: strAddr })
@@ -71,7 +71,7 @@ describe('compile loop unit coverage', () => {
 
   test('SPECIAL dispatches when tokenizer exists', () => {
     const special = Tagged(0, Tag.STRING);
-    vm.tokenizer = {} as never;
+    vm.compile.tokenizer = {} as never;
     tokenNextMock
       .mockReturnValueOnce({ type: TokenType.SPECIAL, raw: special })
       .mockReturnValueOnce({ type: TokenType.EOF, raw: 0 });

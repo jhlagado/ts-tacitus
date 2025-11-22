@@ -168,7 +168,7 @@ describe('case immediates', () => {
     expect(typeof skipPos).toBe('number');
     expect(memoryRead16(vm.memory, SEG_CODE, skipPos)).toBe(0);
 
-    const byteBefore = memoryRead8(vm.memory, SEG_CODE, vm.compiler.CP - 1);
+    const byteBefore = memoryRead8(vm.memory, SEG_CODE, vm.compile.CP - 1);
     expect(byteBefore).toBe(Op.Drop);
   });
 
@@ -210,9 +210,7 @@ describe('case immediates', () => {
   });
 
   test('do without case raises error', () => {
-    expect(() => clauseDoImmediateOp(vm)).toThrow(
-      "'do' without open case",
-    );
+    expect(() => clauseDoImmediateOp(vm)).toThrow("'do' without open case");
   });
 
   test('endOfOp patches predicate skip and records exit branch', () => {
@@ -287,11 +285,11 @@ describe('case immediates', () => {
 
     expect(vm.sp - STACK_BASE).toBe(0);
 
-    const finalDropPos = vm.compiler.CP - 1;
+    const finalDropPos = vm.compile.CP - 1;
     expect(memoryRead8(vm.memory, SEG_CODE, finalDropPos)).toBe(Op.Drop);
 
     const patchedExit = memoryRead16(vm.memory, SEG_CODE, exitPos);
-    const expectedExitOffset = vm.compiler.CP - (exitPos + 2);
+    const expectedExitOffset = vm.compile.CP - (exitPos + 2);
     expect(patchedExit).toBe(expectedExitOffset);
 
     const patchedSkip = memoryRead16(vm.memory, SEG_CODE, skipPos);
@@ -304,7 +302,7 @@ describe('case immediates', () => {
     evalOp(vm);
 
     expect(vm.sp - STACK_BASE).toBe(0);
-    expect(memoryRead8(vm.memory, SEG_CODE, vm.compiler.CP - 1)).toBe(Op.Drop);
+    expect(memoryRead8(vm.memory, SEG_CODE, vm.compile.CP - 1)).toBe(Op.Drop);
   });
 });
 

@@ -13,7 +13,7 @@ describe('Parser with Tokenizer', () => {
   });
 
   const getCompiledCode = (): Uint8Array => {
-    const cp = vm.compiler.CP;
+    const cp = vm.compile.CP;
     return new Uint8Array(vm.memory.buffer.buffer, 0, cp);
   };
 
@@ -125,7 +125,9 @@ describe('Parser with Tokenizer', () => {
       expect(() => parse(vm, createTokenizer(':'))).toThrow('Expected word name after :');
     });
     test('should throw on unterminated string', () => {
-      expect(() => parse(vm, createTokenizer('"unterminated string'))).toThrow('Unterminated string');
+      expect(() => parse(vm, createTokenizer('"unterminated string'))).toThrow(
+        'Unterminated string',
+      );
     });
     test('should throw on unknown words', () => {
       expect(() => parse(vm, createTokenizer('unknown_word'))).toThrow(

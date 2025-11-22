@@ -615,7 +615,7 @@ export function findOp(vm: VM): void {
     }
     const { tag: keyTag, value: keyValue } = getTaggedInfo(currentKey);
     if (keyTag === Tag.STRING) {
-      const keyStr = digestGet(vm.digest, keyValue);
+      const keyStr = digestGet(vm.compile.digest, keyValue);
       if (keyStr === 'default') {
         defaultCell = valCell;
       }

@@ -34,6 +34,6 @@ describe('Tacit compile loop feature flag', () => {
   test('Tacit compile loop emits bytecode for literal', () => {
     const vm = createVM(false);
     parse(vm, createTokenizer('42'));
-    expect(vm.compiler.CP - vm.compiler.BCP).toBeGreaterThan(0);
+    expect(vm.compile.CP - vm.compile.BCP).toBeGreaterThan(0);
   });
 });

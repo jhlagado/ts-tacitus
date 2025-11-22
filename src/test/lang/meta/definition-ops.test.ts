@@ -65,12 +65,12 @@ describe('definition immediates', () => {
   });
 
   test('recurseImmediateOp rejects calls outside active definition', () => {
-    vm.defEntryCell = -1;
+    vm.compile.defEntryCell = -1;
     expect(() => recurseImmediateOp(vm)).toThrow('RECURSE outside definition');
   });
 
   test('recurseImmediateOp enforces hidden active definition', () => {
-    vm.defEntryCell = 42;
+    vm.compile.defEntryCell = 42;
     getDictionaryEntryInfoMock.mockReturnValue({
       hidden: false,
       payload: Tagged(0, Tag.LIST),
@@ -80,7 +80,7 @@ describe('definition immediates', () => {
   });
 
   test('recurseImmediateOp requires CODE payload', () => {
-    vm.defEntryCell = 42;
+    vm.compile.defEntryCell = 42;
     getDictionaryEntryInfoMock.mockReturnValue({
       hidden: true,
       payload: Tagged(0, Tag.NUMBER),
@@ -90,7 +90,7 @@ describe('definition immediates', () => {
   });
 
   test('recurseImmediateOp emits user-word call with decoded address', () => {
-    vm.defEntryCell = 99;
+    vm.compile.defEntryCell = 99;
     const encoded = encodeX1516(512);
     getDictionaryEntryInfoMock.mockReturnValue({
       hidden: true,

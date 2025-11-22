@@ -63,7 +63,7 @@ describe('Parser Variable Support', () => {
       const checkpoint = markWithLocalReset(vm); // Simulate function start
 
       // Simulate parsing "42 var x"
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'x', Tagged(slot, Tag.LOCAL));
 
       const xRef = resolveSymbol(vm, 'x');
@@ -72,7 +72,7 @@ describe('Parser Variable Support', () => {
       const { tag } = getTaggedInfo(xRef!);
       expect(tag).toBe(Tag.LOCAL);
 
-      expect(vm.localCount).toBe(1);
+      expect(vm.compile.localCount).toBe(1);
 
       forget(vm, checkpoint); // Clean up
     });
@@ -83,7 +83,7 @@ describe('Parser Variable Support', () => {
 
       // Start function and define local with same name
       const checkpoint = markWithLocalReset(vm);
-      const slot = vm.localCount++;
+      const slot = vm.compile.localCount++;
       define(vm, 'x', Tagged(slot, Tag.LOCAL));
 
       // Local should shadow global

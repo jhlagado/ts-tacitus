@@ -429,7 +429,7 @@ export function dumpFrameOp(vm: VM): void {
   );
 
   if (vm.bp > RSTACK_BASE) {
-    const { localCount } = vm;
+    const { localCount } = vm.compile;
     // eslint-disable-next-line no-console
     console.log('Local variable count:', localCount);
 

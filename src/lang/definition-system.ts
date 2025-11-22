@@ -26,7 +26,7 @@ export function beginDefinition(
   vm: VM,
   tokenizer: Tokenizer,
 ): void {
-  if (vm.defEntryCell !== -1) {
+  if (vm.compile.defEntryCell !== -1) {
     throw new NestedDefinitionError(getStackData(vm));
   }
 
@@ -51,9 +51,9 @@ export function beginDefinition(
 
   const checkpoint = markWithLocalReset(vm);
 
-  vm.defBranchPos = branchPos;
-  vm.defCheckpoint = checkpoint;
-  vm.defEntryCell = vm.head;
+  vm.compile.defBranchPos = branchPos;
+  vm.compile.defCheckpoint = checkpoint;
+  vm.compile.defEntryCell = vm.compile.head;
 
   setCompilerPreserve(vm, true);
   beginFunctionCompile(vm);
@@ -62,38 +62,38 @@ export function beginDefinition(
 export function endDefinition(
   vm: VM,
 ): void {
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
 
   emitOpcode(vm, Op.Exit);
   finishFunctionCompile(vm);
 
-  patchBranchOffset(vm, vm.defBranchPos);
+  patchBranchOffset(vm, vm.compile.defBranchPos);
 
-  const checkpoint = vm.defCheckpoint;
-  const entryCell = vm.defEntryCell;
+  const checkpoint = vm.compile.defCheckpoint;
+  const entryCell = vm.compile.defEntryCell;
 
   forget(vm, checkpoint);
 
-  if (vm.head !== entryCell) {
+  if (vm.compile.head !== entryCell) {
     throw new Error('Dictionary head changed during definition');
   }
   unhideDictionaryHead(vm);
 
-  vm.defBranchPos = -1;
-  vm.defCheckpoint = -1;
-  vm.defEntryCell = -1;
+  vm.compile.defBranchPos = -1;
+  vm.compile.defCheckpoint = -1;
+  vm.compile.defEntryCell = -1;
 }
 
 export function ensureNoOpenDefinition(vm: VM): void {
-  if (vm.defEntryCell === -1) {
+  if (vm.compile.defEntryCell === -1) {
     return;
   }
 
   let name = '<definition>';
   try {
-    const { name: entryName } = getDictionaryEntryInfo(vm, vm.defEntryCell);
+    const { name: entryName } = getDictionaryEntryInfo(vm, vm.compile.defEntryCell);
     name = entryName;
   } catch {
     // fallback to placeholder if entry cannot be retrieved

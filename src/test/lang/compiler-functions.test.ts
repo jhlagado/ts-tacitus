@@ -23,29 +23,29 @@ describe('Compiler Function Context', () => {
 
   describe('Function context tracking', () => {
     test('should track function compilation state', () => {
-      expect(vm.compiler.isInFunction).toBe(false);
+      expect(vm.compile.isInFunction).toBe(false);
 
-      compilerEnterFunction(vm.compiler);
-      expect(vm.compiler.isInFunction).toBe(true);
-      expect(vm.compiler.reservePatchAddr).toBe(-1); // No Reserve emitted yet
+      compilerEnterFunction(vm.compile);
+      expect(vm.compile.isInFunction).toBe(true);
+      expect(vm.compile.reservePatchAddr).toBe(-1); // No Reserve emitted yet
 
-      compilerExitFunction(vm, vm.compiler);
-      expect(vm.compiler.isInFunction).toBe(false);
-      expect(vm.compiler.reservePatchAddr).toBe(-1);
+      compilerExitFunction(vm, vm.compile);
+      expect(vm.compile.isInFunction).toBe(false);
+      expect(vm.compile.reservePatchAddr).toBe(-1);
     });
 
     test('should emit Reserve opcode only when needed', () => {
-      const initialCP = vm.compiler.CP;
+      const initialCP = vm.compile.CP;
 
-      compilerEnterFunction(vm.compiler);
+      compilerEnterFunction(vm.compile);
 
       // Should not have emitted anything yet
-      expect(vm.compiler.CP).toBe(initialCP);
+      expect(vm.compile.CP).toBe(initialCP);
 
-      compilerEmitReserveIfNeeded(vm, vm.compiler);
+      compilerEmitReserveIfNeeded(vm, vm.compile);
 
       // Now should have emitted Reserve opcode (1 byte) + placeholder slot count (2 bytes)
-      expect(vm.compiler.CP).toBe(initialCP + 3);
+      expect(vm.compile.CP).toBe(initialCP + 3);
 
       // Check that Reserve opcode was written
       const reserveOpcode = memoryRead8(vm.memory, SEG_CODE, initialCP);
@@ -55,20 +55,20 @@ describe('Compiler Function Context', () => {
     test('should patch slot count on exitFunction', () => {
       // Simulate function with 2 local variables
       const checkpoint = markWithLocalReset(vm);
-      const slotX = vm.localCount++;
+      const slotX = vm.compile.localCount++;
       define(vm, 'x', Tagged(slotX, Tag.LOCAL));
-      const slotY = vm.localCount++;
+      const slotY = vm.compile.localCount++;
       define(vm, 'y', Tagged(slotY, Tag.LOCAL));
-      expect(vm.localCount).toBe(2);
+      expect(vm.compile.localCount).toBe(2);
 
-      compilerEnterFunction(vm.compiler);
-      compilerEmitReserveIfNeeded(vm, vm.compiler); // Emit the Reserve opcode
-      const patchAddr = vm.compiler.reservePatchAddr;
+      compilerEnterFunction(vm.compile);
+      compilerEmitReserveIfNeeded(vm, vm.compile); // Emit the Reserve opcode
+      const patchAddr = vm.compile.reservePatchAddr;
 
       // Initial placeholder should be 0
       expect(memoryRead16(vm.memory, SEG_CODE, patchAddr)).toBe(0);
 
-      compilerExitFunction(vm, vm.compiler);
+      compilerExitFunction(vm, vm.compile);
 
       // Should be patched with actual local count (2)
       expect(memoryRead16(vm.memory, SEG_CODE, patchAddr)).toBe(2);
@@ -150,20 +150,20 @@ describe('Compiler Function Context', () => {
     test('should handle exitFunction without enterFunction', () => {
       // Should not crash
       expect(() => {
-        compilerExitFunction(vm, vm.compiler);
+        compilerExitFunction(vm, vm.compile);
       }).not.toThrow();
     });
 
     test('should handle multiple enterFunction calls', () => {
-      compilerEnterFunction(vm.compiler);
-      expect(vm.compiler.reservePatchAddr).toBe(-1); // No Reserve emitted yet
+      compilerEnterFunction(vm.compile);
+      expect(vm.compile.reservePatchAddr).toBe(-1); // No Reserve emitted yet
 
-      compilerEmitReserveIfNeeded(vm, vm.compiler);
+      compilerEmitReserveIfNeeded(vm, vm.compile);
 
       // Second call should reset state
-      compilerEnterFunction(vm.compiler);
-      expect(vm.compiler.reservePatchAddr).toBe(-1); // Reset to no Reserve
-      expect(vm.compiler.isInFunction).toBe(true);
+      compilerEnterFunction(vm.compile);
+      expect(vm.compile.reservePatchAddr).toBe(-1); // Reset to no Reserve
+      expect(vm.compile.isInFunction).toBe(true);
     });
   });
 });

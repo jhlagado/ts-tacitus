@@ -44,18 +44,14 @@ describe('conditional immediates', () => {
     push(vm, Number.NaN);
     push(vm, createCodeRef(Op.EndIf));
 
-    expect(() => beginElseImmediateOp(vm)).toThrow(
-      'ELSE missing branch placeholder',
-    );
+    expect(() => beginElseImmediateOp(vm)).toThrow('ELSE missing branch placeholder');
   });
 
   test('ELSE complains about invalid branch placeholder', () => {
     push(vm, -1);
     push(vm, createCodeRef(Op.EndIf));
 
-    expect(() => beginElseImmediateOp(vm)).toThrow(
-      'ELSE invalid branch placeholder',
-    );
+    expect(() => beginElseImmediateOp(vm)).toThrow('ELSE invalid branch placeholder');
   });
 
   test('ELSE patches placeholder and installs exit branch', () => {
@@ -63,12 +59,12 @@ describe('conditional immediates', () => {
     const falseBranchPos = peekAt(vm, 1);
 
     emitOpcode(vm, Op.Nop);
-    const cpBeforeElse = vm.compiler.CP;
+    const cpBeforeElse = vm.compile.CP;
 
     beginElseImmediateOp(vm);
 
     const patchedOffset = memoryRead16(vm.memory, SEG_CODE, falseBranchPos);
-    expect(patchedOffset).toBe(vm.compiler.CP - (falseBranchPos + 2));
+    expect(patchedOffset).toBe(vm.compile.CP - (falseBranchPos + 2));
 
     const exitPlaceholder = peekAt(vm, 1);
     expect(exitPlaceholder).toBe(cpBeforeElse + 1);

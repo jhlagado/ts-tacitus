@@ -18,18 +18,18 @@ describe('dictionary edge branches', () => {
   });
 
   test('hide/unhide throw on empty dictionary and succeed when populated', () => {
-    vm.head = 0;
+    vm.compile.head = 0;
     vm.gp = 0;
     expect(() => hideDictionaryHead(vm)).toThrow('dictionary is empty');
     expect(() => unhideDictionaryHead(vm)).toThrow('dictionary is empty');
 
     define(vm, 'a', Tagged(1, Tag.NUMBER));
     expect(() => hideDictionaryHead(vm)).not.toThrow();
-    const infoHidden = getDictionaryEntryInfo(vm, vm.head);
+    const infoHidden = getDictionaryEntryInfo(vm, vm.compile.head);
     expect(infoHidden.hidden).toBe(true);
 
     expect(() => unhideDictionaryHead(vm)).not.toThrow();
-    const infoShown = getDictionaryEntryInfo(vm, vm.head);
+    const infoShown = getDictionaryEntryInfo(vm, vm.compile.head);
     expect(infoShown.hidden).toBe(false);
   });
 
@@ -38,10 +38,10 @@ describe('dictionary edge branches', () => {
 
     define(vm, 'bad', Tagged(1, Tag.NUMBER));
     // Corrupt name cell to ensure tag check throws
-    const headerCell = vm.head;
+    const headerCell = vm.compile.head;
     const baseCell = headerCell - 3;
     memoryWriteCell(vm.memory, baseCell + 2, Tagged(99, Tag.NUMBER));
-    expect(() => getDictionaryEntryInfo(vm, vm.head)).toThrow('Dictionary entry name must be STRING');
+    expect(() => getDictionaryEntryInfo(vm, vm.compile.head)).toThrow('Dictionary entry name must be STRING');
   });
 
   test('forget validates mark bounds', () => {

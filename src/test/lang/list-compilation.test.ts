@@ -26,7 +26,7 @@ describe('LIST Literal Compilation', () => {
     parse(vm, createTokenizer('( 1 2 3 )'));
     const code = (() => {
       const result: number[] = [];
-      for (let i = 0; i < vm.compiler.CP; i++) {
+      for (let i = 0; i < vm.compile.CP; i++) {
         result.push(memoryRead8(vm.memory, SEG_CODE, i));
       }
       return result;
@@ -50,7 +50,7 @@ describe('LIST Literal Compilation', () => {
     parse(vm, createTokenizer('( 1 ( 2 3 ) 4 )'));
     const code = (() => {
       const result: number[] = [];
-      for (let i = 0; i < vm.compiler.CP; i++) {
+      for (let i = 0; i < vm.compile.CP; i++) {
         result.push(memoryRead8(vm.memory, SEG_CODE, i));
       }
       return result;

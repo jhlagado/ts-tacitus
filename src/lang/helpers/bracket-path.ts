@@ -18,7 +18,7 @@ export function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
     }
     if (tok.type === TokenType.STRING) {
       emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, digestIntern(vm.digest, tok.value as string));
+      emitUint16(vm, digestIntern(vm.compile.digest, tok.value as string));
       continue;
     }
     throw new SyntaxError(

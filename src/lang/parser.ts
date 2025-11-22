@@ -66,7 +66,7 @@ import { runTacitCompileLoop } from './compile-loop';
 import { compileBracketPathAsList } from './helpers/bracket-path';
 
 export function tokenNext(vm: VM): { type: TokenType; raw: number } {
-  const tokenizer = vm.tokenizer;
+  const tokenizer = vm.compile.tokenizer;
   if (!tokenizer) {
     throw new Error('token-next: no active tokenizer');
   }
@@ -83,7 +83,7 @@ export function tokenNext(vm: VM): { type: TokenType; raw: number } {
     case TokenType.SPECIAL:
     case TokenType.REF_SIGIL: {
       const str = String(token.value ?? '');
-      const addr = digestIntern(vm.digest, str);
+      const addr = digestIntern(vm.compile.digest, str);
       payload = Tagged(addr, Tag.STRING);
       break;
     }
@@ -130,11 +130,11 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
 export function parse(vm: VM, tokenizer: Tokenizer): void {
   resetCompiler(vm);
 
-  vm.defBranchPos = -1;
-  vm.defCheckpoint = -1;
-  vm.defEntryCell = -1;
-  const previousTokenizer = vm.tokenizer;
-  vm.tokenizer = tokenizer;
+  vm.compile.defBranchPos = -1;
+  vm.compile.defCheckpoint = -1;
+  vm.compile.defEntryCell = -1;
+  const previousTokenizer = vm.compile.tokenizer;
+  vm.compile.tokenizer = tokenizer;
   try {
     const handledByTacit = tryRunTacitCompileLoop(vm, tokenizer);
     if (!handledByTacit) {
@@ -145,10 +145,10 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
       emitOpcode(vm, Op.Abort);
     }
   } finally {
-    vm.defBranchPos = -1;
-    vm.defCheckpoint = -1;
-    vm.defEntryCell = -1;
-    vm.tokenizer = previousTokenizer ?? null;
+    vm.compile.defBranchPos = -1;
+    vm.compile.defCheckpoint = -1;
+    vm.compile.defEntryCell = -1;
+    vm.compile.tokenizer = previousTokenizer ?? null;
   }
 }
 
@@ -185,7 +185,7 @@ export function validateFinalState(vm: VM): void {
   ensureNoOpenDefinition(vm);
   ensureNoOpenConditionals(vm);
 
-  if (vm.listDepth !== 0) {
+  if (vm.compile.listDepth !== 0) {
     throw new SyntaxError('Unclosed list or LIST', getStackData(vm));
   }
 }
@@ -212,7 +212,7 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
       break;
     case TokenType.STRING:
       emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, digestIntern(vm.digest, token.value as string));
+      emitUint16(vm, digestIntern(vm.compile.digest, token.value as string));
       break;
     case TokenType.SPECIAL:
       handleSpecial(vm, token.value as string, tokenizer);
@@ -222,7 +222,7 @@ export function processToken(vm: VM, token: Token, tokenizer: Tokenizer): void {
       break;
     case TokenType.SYMBOL:
       emitOpcode(vm, Op.LiteralString);
-      emitUint16(vm, digestIntern(vm.digest, token.value as string));
+      emitUint16(vm, digestIntern(vm.compile.digest, token.value as string));
       emitOpcode(vm, Op.PushSymbolRef);
       break;
     case TokenType.REF_SIGIL:
@@ -321,6 +321,7 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
 
     emitOpcode(vm, Op.GlobalRef);
     emitUint16(vm, offset);
+    emitOpcode(vm, Op.Fetch);
 
     const nextToken = tokenizerNext(tokenizer);
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
@@ -385,7 +386,7 @@ export function emitRefSigil(vm: VM, tokenizer: Tokenizer): void {
   // Existing variable reference logic...
   // Inside function: allow locals and globals
   // &buf compiles to VarRef + Fetch, where Fetch returns a REF (does NOT materialize)
-  if (vm.defEntryCell !== -1) {
+  if (vm.compile.defEntryCell !== -1) {
     if (tag === Tag.LOCAL) {
       emitOpcode(vm, Op.VarRef);
       emitUint16(vm, value);
@@ -471,7 +472,7 @@ function parseApostropheString(vm: VM, tokenizer: Tokenizer): void {
     tokenizer.column++;
   }
   emitOpcode(vm, Op.LiteralString);
-  emitUint16(vm, digestIntern(vm.digest, s));
+  emitUint16(vm, digestIntern(vm.compile.digest, s));
 }
 
 /**
@@ -488,7 +489,7 @@ function parseApostropheString(vm: VM, tokenizer: Tokenizer): void {
  * Mirrors beginList but targets LIST ops.
  */
 export function beginList(vm: VM): void {
-  vm.listDepth++;
+  vm.compile.listDepth++;
   emitOpcode(vm, Op.OpenList);
 }
 
@@ -497,12 +498,12 @@ export function beginList(vm: VM): void {
  * Mirrors endList but targets LIST ops.
  */
 export function endList(vm: VM): void {
-  if (vm.listDepth <= 0) {
+  if (vm.compile.listDepth <= 0) {
     throw new SyntaxError('Unexpected closing parenthesis', getStackData(vm));
   }
 
   emitOpcode(vm, Op.CloseList);
-  vm.listDepth--;
+  vm.compile.listDepth--;
 }
 
 // Style aliases (Phase 1): prefer shorter emit/handle names for public API

@@ -21,11 +21,11 @@ describe('List Operations - Branch Coverage', () => {
   describe('openListOp functionality', () => {
     test('should initialize list construction correctly', () => {
       const initialRSP = vm.rsp; // absolute cells
-      const initialListDepth = vm.listDepth;
+      const initialListDepth = vm.compile.listDepth;
 
       openListOp(vm);
 
-      expect(vm.listDepth).toBe(initialListDepth + 1);
+      expect(vm.compile.listDepth).toBe(initialListDepth + 1);
       expect(vm.rsp).toBe(initialRSP + 1); // one header cell pushed
       expect(getStackData(vm)).toHaveLength(1);
     });
@@ -33,13 +33,13 @@ describe('List Operations - Branch Coverage', () => {
 
   describe('closeListOp functionality and edge cases', () => {
     test('should complete list construction correctly', () => {
-      const initialListDepth = vm.listDepth;
+      const initialListDepth = vm.compile.listDepth;
 
       openListOp(vm);
       push(vm, 42);
       closeListOp(vm);
 
-      expect(vm.listDepth).toBe(initialListDepth);
+      expect(vm.compile.listDepth).toBe(initialListDepth);
       expect(getStackData(vm)).toHaveLength(2);
 
       const header = peek(vm);
@@ -59,7 +59,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should handle lists with listDepth undefined (backward compatibility)', () => {
-      const originalListDepth = vm.listDepth;
+      const originalListDepth = vm.compile.listDepth;
       delete (vm as unknown as Record<string, unknown>).listDepth;
 
       openListOp(vm);
@@ -69,7 +69,7 @@ describe('List Operations - Branch Coverage', () => {
 
       expect(getStackData(vm).length).toBeGreaterThan(0);
 
-      vm.listDepth = originalListDepth;
+      vm.compile.listDepth = originalListDepth;
     });
   });
 

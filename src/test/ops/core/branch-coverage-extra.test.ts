@@ -66,7 +66,7 @@ describe('Core ops extra branch coverage', () => {
 
   test('endIfOp patches a branch placeholder correctly', () => {
     // Place a dummy 16-bit placeholder at current CP and push its position
-    const pos = vm.compiler.CP;
+    const pos = vm.compile.CP;
     emitUint16(vm, 0);
     push(vm, pos);
     endIfOp(vm);

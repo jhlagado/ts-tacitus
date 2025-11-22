@@ -35,7 +35,7 @@ describe('dictionary-only builtins', () => {
     const opcode = 7;
     const scope = mark(vm);
     // @ts-ignore test-only
-    vm.head = 0; // 0 = NIL/empty dictionary
+    vm.compile.head = 0; // 0 = NIL/empty dictionary
     // @ts-ignore test-only
     define(vm, name, Tagged(opcode, Tag.CODE, 1));
     const tv = lookup(vm, name);
@@ -52,7 +52,7 @@ describe('dictionary-only builtins', () => {
     const b = { name: 'opB', opcode: 20 };
     const scope = mark(vm);
     // @ts-ignore test-only
-    vm.head = 0; // 0 = NIL/empty dictionary
+    vm.compile.head = 0; // 0 = NIL/empty dictionary
     // @ts-ignore test-only
     // Define two entries; head is B, then A
     define(vm, a.name, Tagged(a.opcode, Tag.CODE, 0));
@@ -77,7 +77,7 @@ describe('dictionary-only builtins', () => {
   test('hidden head entry is skipped by lookup until unhidden', () => {
     const scope = mark(vm);
     // @ts-ignore test-only
-    vm.head = 0;
+    vm.compile.head = 0;
     define(vm, 'hidden', Tagged(5, Tag.CODE, 0));
 
     let tv = lookup(vm, 'hidden');
