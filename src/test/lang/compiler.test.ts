@@ -21,18 +21,18 @@ describe('Compiler', () => {
   });
   test('should compile a positive integer as a tagged pointer', () => {
     compilerCompile16(vm, vm.compiler, 42);
-    vm.IP = 0;
+    vm.ip = 0;
     expect(nextInt16(vm)).toBe(42);
   });
   test('should compile a negative integer as a tagged pointer', () => {
     compilerCompile16(vm, vm.compiler, -42);
-    vm.IP = 0;
+    vm.ip = 0;
     expect(nextInt16(vm)).toBe(-42);
   });
   test('should compile an address as a tagged pointer', () => {
     const address = 0x2345;
     compilerCompileAddress(vm, vm.compiler, address);
-    vm.IP = 0;
+    vm.ip = 0;
     const tagNum = nextFloat32(vm);
     const { value: pointer } = getTaggedInfo(tagNum);
     // compileAddress encodes the address using X1516 format
@@ -41,13 +41,13 @@ describe('Compiler', () => {
   test('should compile a literal number', () => {
     compilerCompile8(vm, vm.compiler, Op.LiteralNumber);
     compilerCompileFloat32(vm, vm.compiler, 42);
-    vm.IP = 0;
+    vm.ip = 0;
     expect(next8(vm)).toBe(Op.LiteralNumber);
     expect(nextFloat32(vm)).toBeCloseTo(42);
   });
   test('should compile a built-in word', () => {
     compilerCompile8(vm, vm.compiler, Op.Add);
-    vm.IP = 0;
+    vm.ip = 0;
     expect(next8(vm)).toBe(Op.Add);
   });
   test('should preserve compiled code when preserve is true', () => {

@@ -9,8 +9,8 @@ import { nextInt16, pop, ensureStackSize } from '../../core/vm';
 /**
  * Implements the short-circuit branch used by the `if`/`when` family.
  *
- * Reads a 16-bit offset, consumes one stack value, and advances `IP` when the
- * condition is falsy (zero or non-numeric). Truthy numbers leave `IP` untouched
+ * Reads a 16-bit offset, consumes one stack value, and advances `ip` when the
+ * condition is falsy (zero or non-numeric). Truthy numbers leave `ip` untouched
  * so execution falls through into the guarded body.
  */
 export const ifFalseBranchOp: Verb = (vm: VM) => {
@@ -18,6 +18,6 @@ export const ifFalseBranchOp: Verb = (vm: VM) => {
   ensureStackSize(vm, 1, 'IF');
   const cond = pop(vm);
   if (!isNumber(cond) || cond === 0) {
-    vm.IP += offset;
+    vm.ip += offset;
   }
 };

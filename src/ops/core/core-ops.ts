@@ -98,7 +98,7 @@ export const literalStringOp: Verb = (vm: VM) => {
  */
 export const branchOp: Verb = (vm: VM) => {
   const offset = nextInt16(vm);
-  vm.IP += offset;
+  vm.ip += offset;
 };
 
 /**
@@ -120,18 +120,18 @@ export const branchOp: Verb = (vm: VM) => {
  *
  * @remarks
  * The call operation sets up a new stack frame by:
- * 1. Pushing the return address (current IP) onto the return stack
+ * 1. Pushing the return address (current ip) onto the return stack
  * 2. Pushing the current base pointer (BP) onto the return stack
  * 3. Setting the new base pointer to the current return stack pointer
  * 4. Jumping to the function's address
  */
 export const callOp: Verb = (vm: VM) => {
   const callAddress = nextInt16(vm);
-  rpush(vm, vm.IP);
+  rpush(vm, vm.ip);
   // Save BP as relative cells on the return stack for compatibility
   rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
-  vm.IP = callAddress;
+  vm.ip = callAddress;
 };
 
 /**
@@ -198,7 +198,7 @@ export const exitOp: Verb = (vm: VM) => {
     vm.rsp = bpCells;
     // Saved BP is stored as relative cells; convert to absolute before restore
     vm.bp = rpop(vm) + RSTACK_BASE;
-    vm.IP = rpop(vm);
+    vm.ip = rpop(vm);
   } catch (e) {
     vm.running = false;
     throw e;
@@ -246,14 +246,14 @@ export const evalOp: Verb = (vm: VM) => {
       // eslint-disable-next-line no-case-declarations
       const decodedAddr = decodeX1516(addr);
       if (meta === 1) {
-        rpush(vm, vm.IP);
-        vm.IP = decodedAddr;
+        rpush(vm, vm.ip);
+        vm.ip = decodedAddr;
       } else {
-        rpush(vm, vm.IP);
+        rpush(vm, vm.ip);
         // Save BP as relative cells on the return stack for compatibility
         rpush(vm, vm.bp - RSTACK_BASE);
         vm.bp = vm.rsp;
-        vm.IP = decodedAddr;
+        vm.ip = decodedAddr;
       }
       break;
 

@@ -14,7 +14,7 @@ export function semicolonImmediateOp(vm: VM): void {
 }
 
 export function runImmediateCode(vm: VM, address: number): void {
-  const savedIP = vm.IP;
+  const savedIP = vm.ip;
   const savedBP = vm.bp;
   const savedRSPRel = rdepth(vm);
   const savedRunning = vm.running;
@@ -26,22 +26,22 @@ export function runImmediateCode(vm: VM, address: number): void {
   // Save BP (relative cells) and set new frame
   rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
-  vm.IP = address;
+  vm.ip = address;
   vm.running = true;
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (vm.running) {
-    const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
+    const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.ip);
     const isUserDefined = (firstByte & 0x80) !== 0;
     const opcode = nextOpcode(vm);
     executeOp(vm, opcode as Op, isUserDefined);
-    if (vm.IP === savedIP && rdepth(vm) === savedRSPRel) {
+    if (vm.ip === savedIP && rdepth(vm) === savedRSPRel) {
       break;
     }
   }
 
   vm.running = savedRunning;
-  vm.IP = savedIP;
+  vm.ip = savedIP;
   vm.bp = savedBP;
   vm.compiler.CP = savedCP;
   vm.compiler.BCP = savedBCP;

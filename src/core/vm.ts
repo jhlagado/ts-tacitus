@@ -65,9 +65,13 @@ export interface VM {
   /** Global heap bump pointer in cells */
   gp: number;
   /** Instruction pointer (byte offset into code segment) */
-  IP: number;
+  ip: number;
   /** Execution state flag */
   running: boolean;
+  /** Error flag/register (0/1 for now) */
+  err: number;
+  /** Flag: currently executing in a finally cleanup block */
+  inFinally: boolean;
   /** Compiler state for bytecode generation */
   compiler: CompilerState;
   /** String digest for string interning */
@@ -112,8 +116,10 @@ export function createVM(useCache = true): VM {
         const digest = createDigest(memory);
       const vm: VM = {
         memory,
-        IP: 0,
+        ip: 0,
         running: true,
+        err: 0,
+        inFinally: false,
         sp: STACK_BASE,
         rsp: RSTACK_BASE,
         bp: RSTACK_BASE,
@@ -138,8 +144,10 @@ export function createVM(useCache = true): VM {
       };
     } else {
       // Reset registers to initial state, restore dictionary to builtin snapshot
-      cachedTestVM.IP = 0;
+      cachedTestVM.ip = 0;
       cachedTestVM.running = true;
+      cachedTestVM.err = 0;
+      cachedTestVM.inFinally = false;
       cachedTestVM.sp = STACK_BASE;
       cachedTestVM.rsp = RSTACK_BASE;
       cachedTestVM.bp = RSTACK_BASE;
@@ -162,8 +170,10 @@ export function createVM(useCache = true): VM {
   const digest = createDigest(memory);
   const vm: VM = {
     memory,
-    IP: 0,
+    ip: 0,
     running: true,
+    err: 0,
+    inFinally: false,
     sp: STACK_BASE,
     rsp: RSTACK_BASE,
     bp: RSTACK_BASE,
@@ -356,17 +366,17 @@ function _checkInv(vm: VM): void {
 }
 
 function read8(vm: VM): number {
-  const value = memoryRead8(vm.memory, SEG_CODE, vm.IP);
-  vm.IP += 1;
+  const value = memoryRead8(vm.memory, SEG_CODE, vm.ip);
+  vm.ip += 1;
   return value;
 }
 
 function readOp(vm: VM): number {
-  const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
-  vm.IP += 1;
+  const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.ip);
+  vm.ip += 1;
   if ((firstByte & 0x80) !== 0) {
-      const secondByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
-    vm.IP += 1;
+      const secondByte = memoryRead8(vm.memory, SEG_CODE, vm.ip);
+    vm.ip += 1;
     const lowBits = firstByte & 0x7f;
     const highBits = secondByte << 7;
     return highBits | lowBits;
@@ -375,21 +385,21 @@ function readOp(vm: VM): number {
 }
 
 function readI16(vm: VM): number {
-  const unsignedValue = memoryRead16(vm.memory, SEG_CODE, vm.IP);
+  const unsignedValue = memoryRead16(vm.memory, SEG_CODE, vm.ip);
   const signedValue = (unsignedValue << 16) >> 16;
-  vm.IP += 2;
+  vm.ip += 2;
   return signedValue;
 }
 
 function readU16(vm: VM): number {
-  const value = memoryRead16(vm.memory, SEG_CODE, vm.IP);
-  vm.IP += 2;
+  const value = memoryRead16(vm.memory, SEG_CODE, vm.ip);
+  vm.ip += 2;
   return value;
 }
 
 function readF32(vm: VM): number {
-  const value = memoryReadFloat32(vm.memory, SEG_CODE, vm.IP);
-  vm.IP += CELL_SIZE;
+  const value = memoryReadFloat32(vm.memory, SEG_CODE, vm.ip);
+  vm.ip += CELL_SIZE;
   return value;
 }
 
@@ -439,7 +449,7 @@ export function ensureRStackSize(vm: VM, size: number, operation: string): void 
 }
 
 /**
- * Reads the next address from code and advances IP.
+ * Reads the next address from code and advances ip.
  *
  * @param vm - VM instance
  * @returns The decoded code pointer
@@ -507,7 +517,7 @@ export function gpop(vm: VM): number {
 }
 
 /**
- * Reads the next byte from code and advances IP.
+ * Reads the next byte from code and advances ip.
  *
  * @param vm - VM instance
  * @returns The byte value
@@ -517,7 +527,7 @@ export function next8(vm: VM): number {
 }
 
 /**
- * Reads the next opcode from code and advances IP.
+ * Reads the next opcode from code and advances ip.
  *
  * @param vm - VM instance
  * @returns The decoded opcode or user-defined word address
@@ -527,7 +537,7 @@ export function nextOpcode(vm: VM): number {
 }
 
 /**
- * Reads the next 16-bit signed integer from code and advances IP.
+ * Reads the next 16-bit signed integer from code and advances ip.
  *
  * @param vm - VM instance
  * @returns The signed integer value
@@ -537,7 +547,7 @@ export function nextInt16(vm: VM): number {
 }
 
 /**
- * Reads the next float from code and advances IP.
+ * Reads the next float from code and advances ip.
  *
  * @param vm - VM instance
  * @returns The float value
@@ -547,7 +557,7 @@ export function nextFloat32(vm: VM): number {
 }
 
 /**
- * Reads the next 16-bit unsigned integer from code and advances IP.
+ * Reads the next 16-bit unsigned integer from code and advances ip.
  *
  * @param vm - VM instance
  * @returns The unsigned integer value

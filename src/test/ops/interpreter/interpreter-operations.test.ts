@@ -28,7 +28,7 @@ describe('Built-in Words', () => {
       abortOp(vm);
       expect(vm.running).toBe(false);
     });
-    test('exitOp should restore IP from return stack and BP frame', () => {
+    test('exitOp should restore ip from return stack and BP frame', () => {
       const testAddress = 0x2345;
       // In the migrated model BP is cell-based. Simulate a call frame by
       // pushing return address then saved BP (cells) and setting BP to current RSP.
@@ -38,16 +38,16 @@ describe('Built-in Words', () => {
       rpush(vm, originalBP - RSTACK_BASE);
       vm.bp = vm.rsp;
       exitOp(vm);
-      expect(vm.IP).toBe(testAddress);
+      expect(vm.ip).toBe(testAddress);
       expect(vm.bp).toBe(originalBP);
     });
-    test('evalOp should push IP to return stack, set up BP frame, and jump', () => {
+    test('evalOp should push ip to return stack, set up BP frame, and jump', () => {
       const testAddress = 0x2345;
-      const originalIP = vm.IP;
+      const originalIP = vm.ip;
       const originalBP = vm.bp; // absolute cells
       push(vm, Tagged(encodeX1516(testAddress), Tag.CODE));
       evalOp(vm);
-      expect(vm.IP).toBe(testAddress);
+      expect(vm.ip).toBe(testAddress);
       expect(vm.bp).toBe(vm.rsp);
       const savedBP = rpop(vm);
       // Saved BP is relative cells
@@ -56,18 +56,18 @@ describe('Built-in Words', () => {
       expect(returnAddr).toBe(originalIP);
     });
     test('branchOp should jump relative', () => {
-      const initialIP = vm.IP;
+      const initialIP = vm.ip;
       emitUint16(vm, 10);
       branchOp(vm);
-      expect(vm.IP).toBe(initialIP + 12);
+      expect(vm.ip).toBe(initialIP + 12);
     });
     test('callOp should jump to absolute address and set up BP frame', () => {
-      const originalIP = vm.IP;
+      const originalIP = vm.ip;
       const originalBP = vm.bp;
       const testAddress = 0x12345;
       emitUint16(vm, testAddress);
       callOp(vm);
-      expect(vm.IP).toBe(testAddress & 0xffff);
+      expect(vm.ip).toBe(testAddress & 0xffff);
       expect(vm.bp).toBe(vm.rsp);
       const savedBP = rpop(vm);
       expect(savedBP).toBe(originalBP - RSTACK_BASE);
@@ -171,7 +171,7 @@ describe('Built-in Words', () => {
 
       // Push a CODE reference so evalOp enters the frame-setup path (which rpushes twice)
       push(vm, Tagged(encodeX1516(0x1234), Tag.CODE));
-      // evalOp will attempt to push return IP and saved BP (relative), overflowing on second push
+      // evalOp will attempt to push return ip and saved BP (relative), overflowing on second push
       expect(() => evalOp(vm)).toThrow(/Return stack \(RSP\) overflow/);
     });
   });

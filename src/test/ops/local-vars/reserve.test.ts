@@ -17,7 +17,7 @@ describe('Reserve Operation', () => {
     const initialRSP = vm.rsp; // absolute cells
 
     // Write immediate argument to bytecode (follows existing test pattern)
-    emitUint16(vm, 1000); // Writes 1000 at vm.IP location
+    emitUint16(vm, 1000); // Writes 1000 at vm.ip location
 
     // Call opcode function - nextInt16(vm) reads the 1000 we just wrote
     reserveOp(vm);
@@ -66,13 +66,13 @@ describe('Reserve Operation', () => {
     expect(vm.rsp).toBe(initialRSP + 15); // cumulative 15 slots
   });
 
-  test('should advance IP correctly', () => {
-    const initialIP = vm.IP;
+  test('should advance ip correctly', () => {
+    const initialIP = vm.ip;
 
     emitUint16(vm, 100);
     reserveOp(vm);
 
-    // IP should advance by 2 bytes (16-bit read)
-    expect(vm.IP).toBe(initialIP + 2);
+    // ip should advance by 2 bytes (16-bit read)
+    expect(vm.ip).toBe(initialIP + 2);
   });
 });

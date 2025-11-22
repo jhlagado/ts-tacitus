@@ -39,24 +39,24 @@ import { type VM, nextOpcode, getStackData, rpush, resetCompiler } from '../core
  * @throws {Error} If an invalid opcode is encountered or execution fails
  */
 export function execute(vm: VM, start: number): void {
-  vm.IP = start;
+  vm.ip = start;
   vm.running = true;
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  while (vm.running && vm.IP < vm.compiler.CP) {
-    const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
+  while (vm.running && vm.ip < vm.compiler.CP) {
+    const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.ip);
     const isUserDefined = (firstByte & 0x80) !== 0;
 
     const functionIndex = nextOpcode(vm);
 
     if (vm.debug) {
       // eslint-disable-next-line no-console
-      console.log({ functionIndex, isUserDefined }, vm.IP - (isUserDefined ? 2 : 1));
+      console.log({ functionIndex, isUserDefined }, vm.ip - (isUserDefined ? 2 : 1));
     }
 
     try {
       if (functionIndex < 0 || functionIndex >= 32768) {
-        const originalIP = vm.IP - (isUserDefined ? 2 : 1);
+        const originalIP = vm.ip - (isUserDefined ? 2 : 1);
         const rawValue = memoryRead8(vm.memory, SEG_CODE, originalIP);
         throw new Error(`Invalid opcode: ${rawValue}`);
       }
@@ -85,7 +85,7 @@ export function execute(vm: VM, start: number): void {
  * Executes a specific block of Tacit code using the current global VM state.
  *
  * This function allows calling a Tacit function from JavaScript code. It:
- * 1. Saves the current execution context (IP and BP) on the return stack
+ * 1. Saves the current execution context (ip and BP) on the return stack
  * 2. Sets up a new execution context for the called function
  * 3. Executes the function until it returns via an 'exit' operation
  * 4. Restores the original execution context
@@ -99,7 +99,7 @@ export function execute(vm: VM, start: number): void {
  * @param {number} codePtr - The starting address (instruction pointer) of the Tacit code to execute
  */
 export function callTacit(vm: VM, codePtr: number): void {
-  const returnIP = vm.IP;
+  const returnIP = vm.ip;
   // Step 1.2 (adjusted): Use conditional prologue matching callOp/exitOp until
   // Frame migration complete: BP is cell-based and unified.
   // compatibility for code/tests still expecting byte-based BP frames.
@@ -108,15 +108,15 @@ export function callTacit(vm: VM, codePtr: number): void {
   rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
 
-  vm.IP = codePtr;
+  vm.ip = codePtr;
   vm.running = true;
-  execute(vm, vm.IP);
+  execute(vm, vm.ip);
 
-  if (vm.IP !== returnIP) {
+  if (vm.ip !== returnIP) {
     if (vm.debug) {
-      console.warn(`Warning: IP mismatch after function call. Expected ${returnIP}, got ${vm.IP}`);
+      console.warn(`Warning: ip mismatch after function call. Expected ${returnIP}, got ${vm.ip}`);
     }
-    vm.IP = returnIP;
+    vm.ip = returnIP;
   }
 }
 

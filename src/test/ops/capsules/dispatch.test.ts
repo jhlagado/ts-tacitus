@@ -23,7 +23,7 @@ describe('capsule dispatch runtime', () => {
 
   test('prologue consumes receiver only, preserves method and args', () => {
     const savedIP = 1234;
-    vm.IP = savedIP;
+    vm.ip = savedIP;
     vm.bp = RSTACK_BASE + 0;
     // Build capsule with 2 locals (10,20) and entry at 777
     const { handle } = pushCapsuleOnRStack([10, 20], 777);
@@ -39,13 +39,13 @@ describe('capsule dispatch runtime', () => {
     const stack = getStackData(vm);
     expect(stack).toEqual([1, 2, 42]);
 
-    // IP jumped to entry address (decoded from X1516)
-    expect(vm.IP).toBe(777);
+    // ip jumped to entry address (decoded from X1516)
+    expect(vm.ip).toBe(777);
 
     // Return stack now has saved return address and BP on top
-    // Exit epilogue restores IP and BP
+    // Exit epilogue restores ip and BP
     exitDispatchOp(vm);
-    expect(vm.IP).toBe(savedIP);
+    expect(vm.ip).toBe(savedIP);
   });
 
   test('errors on non-capsule receiver', () => {
