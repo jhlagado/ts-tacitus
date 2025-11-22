@@ -25,7 +25,7 @@ import { ensureTokenizer, readNameAfter } from '../helpers/tokenizer-utils';
 
 export function varImmediateOp(vm: VM): void {
   const tokenizer = ensureTokenizer(vm, 'var');
-  if (vm.compile.defEntryCell === -1) {
+  if (vm.compile.entryCell === -1) {
     throw new SyntaxError(
       'Variable declarations only allowed inside function definitions',
       getStackData(vm),
@@ -41,7 +41,7 @@ export function varImmediateOp(vm: VM): void {
 
 export function globalImmediateOp(vm: VM): void {
   const tokenizer = ensureTokenizer(vm, 'global');
-  if (vm.compile.defEntryCell !== -1) {
+  if (vm.compile.entryCell !== -1) {
     throw new SyntaxError('Global declarations only allowed at top level', getStackData(vm));
   }
   const varName = readNameAfter(vm, tokenizer, 'global');
@@ -64,10 +64,7 @@ export function assignImmediateOp(vm: VM): void {
   const varName = readNameAfter(vm, tokenizer, '->');
   const symbol = lookup(vm, varName);
   if (isNIL(symbol)) {
-    throw new SyntaxError(
-      `Undefined local or global variable: ${varName}`,
-      getStackData(vm),
-    );
+    throw new SyntaxError(`Undefined local or global variable: ${varName}`, getStackData(vm));
   }
   const info = getTaggedInfo(symbol);
   const maybeBracket = tokenizerNext(tokenizer);
@@ -114,7 +111,7 @@ export function assignImmediateOp(vm: VM): void {
 
 export function incrementImmediateOp(vm: VM): void {
   const tokenizer = ensureTokenizer(vm, '+>');
-  if (vm.compile.defEntryCell === -1) {
+  if (vm.compile.entryCell === -1) {
     throw new SyntaxError(
       'Increment operator (+>) only allowed inside function definitions',
       getStackData(vm),

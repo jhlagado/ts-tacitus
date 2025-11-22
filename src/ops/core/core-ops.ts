@@ -270,7 +270,7 @@ export const evalOp: Verb = (vm: VM) => {
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
 export const endDefinitionOp: Verb = vm => {
-  if (vm.compile.defEntryCell === -1) {
+  if (vm.compile.entryCell === -1) {
     throw new Error('End-definition handler not installed');
   }
   endDefinition(vm);

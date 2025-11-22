@@ -9,7 +9,9 @@ jest.mock('../../../lang/helpers/tokenizer-utils', () => ({
 }));
 
 jest.mock('../../../core/dictionary', () => {
-  const actual = jest.requireActual('../../../core/dictionary') as typeof import('../../../core/dictionary');
+  const actual = jest.requireActual(
+    '../../../core/dictionary',
+  ) as typeof import('../../../core/dictionary');
   return {
     ...actual,
     getDictionaryEntryInfo: jest.fn(),
@@ -65,12 +67,12 @@ describe('definition immediates', () => {
   });
 
   test('recurseImmediateOp rejects calls outside active definition', () => {
-    vm.compile.defEntryCell = -1;
+    vm.compile.entryCell = -1;
     expect(() => recurseImmediateOp(vm)).toThrow('RECURSE outside definition');
   });
 
   test('recurseImmediateOp enforces hidden active definition', () => {
-    vm.compile.defEntryCell = 42;
+    vm.compile.entryCell = 42;
     getDictionaryEntryInfoMock.mockReturnValue({
       hidden: false,
       payload: Tagged(0, Tag.LIST),
@@ -80,7 +82,7 @@ describe('definition immediates', () => {
   });
 
   test('recurseImmediateOp requires CODE payload', () => {
-    vm.compile.defEntryCell = 42;
+    vm.compile.entryCell = 42;
     getDictionaryEntryInfoMock.mockReturnValue({
       hidden: true,
       payload: Tagged(0, Tag.NUMBER),
@@ -90,7 +92,7 @@ describe('definition immediates', () => {
   });
 
   test('recurseImmediateOp emits user-word call with decoded address', () => {
-    vm.compile.defEntryCell = 99;
+    vm.compile.entryCell = 99;
     const encoded = encodeX1516(512);
     getDictionaryEntryInfoMock.mockReturnValue({
       hidden: true,
