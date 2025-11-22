@@ -71,7 +71,7 @@ describe('compile loop unit coverage', () => {
 
   test('SPECIAL dispatches when tokenizer exists', () => {
     const special = Tagged(0, Tag.STRING);
-    vm.currentTokenizer = {} as never;
+    vm.tokenizer = {} as never;
     tokenNextMock
       .mockReturnValueOnce({ type: TokenType.SPECIAL, raw: special })
       .mockReturnValueOnce({ type: TokenType.EOF, raw: 0 });

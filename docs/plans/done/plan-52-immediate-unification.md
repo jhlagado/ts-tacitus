@@ -7,11 +7,11 @@ Gradually migrate Tacit's immediate words so they live in the dictionary as regu
 ## Stage Breakdown
 
 1. **Tokenizer plumbing**
-   - Add `currentTokenizer` field on `VM`.
+   - Add `tokenizer` field on `VM`.
    - Ensure every parse entry (`parse`, Tacit compile-loop bridge) sets it before consuming tokens and clears it afterward.
 
 2. **`:`, `;` migration**
-   - Convert their handlers into standard op verbs (no tokenizer argument; pull from `vm.currentTokenizer`).
+   - Convert their handlers into standard op verbs (no tokenizer argument; pull from `vm.tokenizer`).
    - Register them via `define` with `meta=1`.
    - Update parser lookup (`emitWord`) to execute immediates when `meta=1`; remove special casing for `:`/`;`.
 

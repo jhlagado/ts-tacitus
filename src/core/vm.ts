@@ -87,7 +87,7 @@ export interface VM {
   /** Dictionary head cell for hidden definition (-1 when idle) */
   defEntryCell: number;
   /** Active tokenizer during parsing (for immediates) */
-  currentTokenizer: Tokenizer | null;
+  tokenizer: Tokenizer | null;
 }
 
 /**
@@ -126,7 +126,7 @@ export function createVM(useCache = true): VM {
         defBranchPos: -1,
         defCheckpoint: -1,
         defEntryCell: -1,
-        currentTokenizer: null,
+        tokenizer: null,
         compiler: makeCompiler(),
       };
       registerBuiltins(vm);
@@ -149,7 +149,7 @@ export function createVM(useCache = true): VM {
       cachedTestVM.defBranchPos = -1;
       cachedTestVM.defCheckpoint = -1;
       cachedTestVM.defEntryCell = -1;
-      cachedTestVM.currentTokenizer = null;
+      cachedTestVM.tokenizer = null;
       cachedTestVM.gp = builtinSnapshot.gp;
       cachedTestVM.head = builtinSnapshot.head;
       cachedTestVM.compiler = makeCompiler();
@@ -176,7 +176,7 @@ export function createVM(useCache = true): VM {
     defBranchPos: -1,
     defCheckpoint: -1,
     defEntryCell: -1,
-    currentTokenizer: null,
+    tokenizer: null,
     compiler: makeCompiler(),
   };
   registerBuiltins(vm);
