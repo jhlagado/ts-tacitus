@@ -66,7 +66,7 @@ import { runTacitCompileLoop } from './compile-loop';
 import { compileBracketPathAsList } from './helpers/bracket-path';
 
 export function tokenNext(vm: VM): { type: TokenType; raw: number } {
-  const tokenizer = vm.currentTokenizer;
+  const tokenizer = vm.tokenizer;
   if (!tokenizer) {
     throw new Error('token-next: no active tokenizer');
   }
@@ -133,8 +133,8 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
   vm.defBranchPos = -1;
   vm.defCheckpoint = -1;
   vm.defEntryCell = -1;
-  const previousTokenizer = vm.currentTokenizer;
-  vm.currentTokenizer = tokenizer;
+  const previousTokenizer = vm.tokenizer;
+  vm.tokenizer = tokenizer;
   try {
     const handledByTacit = tryRunTacitCompileLoop(vm, tokenizer);
     if (!handledByTacit) {
@@ -148,7 +148,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
     vm.defBranchPos = -1;
     vm.defCheckpoint = -1;
     vm.defEntryCell = -1;
-    vm.currentTokenizer = previousTokenizer ?? null;
+    vm.tokenizer = previousTokenizer ?? null;
   }
 }
 
