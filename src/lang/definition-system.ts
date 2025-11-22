@@ -1,4 +1,10 @@
-import { NestedDefinitionError, SyntaxError, UnclosedDefinitionError, Tagged, Tag } from '@src/core';
+import {
+  NestedDefinitionError,
+  SyntaxError,
+  UnclosedDefinitionError,
+  Tagged,
+  Tag,
+} from '@src/core';
 import {
   type VM,
   getStackData,
@@ -22,11 +28,8 @@ import {
 } from '../core/dictionary';
 import { encodeX1516 } from '../core/code-ref';
 
-export function beginDefinition(
-  vm: VM,
-  tokenizer: Tokenizer,
-): void {
-  if (vm.compile.defEntryCell !== -1) {
+export function beginDefinition(vm: VM, tokenizer: Tokenizer): void {
+  if (vm.compile.entryCell !== -1) {
     throw new NestedDefinitionError(getStackData(vm));
   }
 
@@ -51,28 +54,26 @@ export function beginDefinition(
 
   const checkpoint = markWithLocalReset(vm);
 
-  vm.compile.defBranchPos = branchPos;
-  vm.compile.defCheckpoint = checkpoint;
-  vm.compile.defEntryCell = vm.compile.head;
+  vm.compile.branchPos = branchPos;
+  vm.compile.checkpoint = checkpoint;
+  vm.compile.entryCell = vm.compile.head;
 
   setCompilerPreserve(vm, true);
   beginFunctionCompile(vm);
 }
 
-export function endDefinition(
-  vm: VM,
-): void {
-  if (vm.compile.defEntryCell === -1) {
+export function endDefinition(vm: VM): void {
+  if (vm.compile.entryCell === -1) {
     throw new SyntaxError('Unexpected semicolon', getStackData(vm));
   }
 
   emitOpcode(vm, Op.Exit);
   finishFunctionCompile(vm);
 
-  patchBranchOffset(vm, vm.compile.defBranchPos);
+  patchBranchOffset(vm, vm.compile.branchPos);
 
-  const checkpoint = vm.compile.defCheckpoint;
-  const entryCell = vm.compile.defEntryCell;
+  const checkpoint = vm.compile.checkpoint;
+  const entryCell = vm.compile.entryCell;
 
   forget(vm, checkpoint);
 
@@ -81,19 +82,19 @@ export function endDefinition(
   }
   unhideDictionaryHead(vm);
 
-  vm.compile.defBranchPos = -1;
-  vm.compile.defCheckpoint = -1;
-  vm.compile.defEntryCell = -1;
+  vm.compile.branchPos = -1;
+  vm.compile.checkpoint = -1;
+  vm.compile.entryCell = -1;
 }
 
 export function ensureNoOpenDefinition(vm: VM): void {
-  if (vm.compile.defEntryCell === -1) {
+  if (vm.compile.entryCell === -1) {
     return;
   }
 
   let name = '<definition>';
   try {
-    const { name: entryName } = getDictionaryEntryInfo(vm, vm.compile.defEntryCell);
+    const { name: entryName } = getDictionaryEntryInfo(vm, vm.compile.entryCell);
     name = entryName;
   } catch {
     // fallback to placeholder if entry cannot be retrieved

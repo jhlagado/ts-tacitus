@@ -1,4 +1,12 @@
-import { type VM, RSTACK_BASE, Tagged, Tag, createRef, getTaggedInfo, memoryReadCell } from '@src/core';
+import {
+  type VM,
+  RSTACK_BASE,
+  Tagged,
+  Tag,
+  createRef,
+  getTaggedInfo,
+  memoryReadCell,
+} from '@src/core';
 import { emitOpcode } from '../../core/vm';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
 import { Op } from '../opcodes';
@@ -65,7 +73,7 @@ export function endCapsuleOp(vm: VM): void {
   // Emit the capsule-specific epilogue for the dispatch body
   emitOpcode(vm, Op.ExitDispatch);
   // Finalise the surrounding colon definition (replaces EndDefinition closer)
-  if (vm.compile.defEntryCell === -1) {
+  if (vm.compile.entryCell === -1) {
     throw new Error('End-definition handler not installed');
   }
   endDefinition(vm);

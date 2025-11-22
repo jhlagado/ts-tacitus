@@ -130,9 +130,9 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
 export function parse(vm: VM, tokenizer: Tokenizer): void {
   resetCompiler(vm);
 
-  vm.compile.defBranchPos = -1;
-  vm.compile.defCheckpoint = -1;
-  vm.compile.defEntryCell = -1;
+  vm.compile.branchPos = -1;
+  vm.compile.checkpoint = -1;
+  vm.compile.entryCell = -1;
   const previousTokenizer = vm.compile.tokenizer;
   vm.compile.tokenizer = tokenizer;
   try {
@@ -145,9 +145,9 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
       emitOpcode(vm, Op.Abort);
     }
   } finally {
-    vm.compile.defBranchPos = -1;
-    vm.compile.defCheckpoint = -1;
-    vm.compile.defEntryCell = -1;
+    vm.compile.branchPos = -1;
+    vm.compile.checkpoint = -1;
+    vm.compile.entryCell = -1;
     vm.compile.tokenizer = previousTokenizer ?? null;
   }
 }
@@ -305,7 +305,7 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
       emitOpcode(vm, Op.Load);
       emitOpcode(vm, Op.Nip);
     } else {
-    tokenizerPushBack(tokenizer, nextToken);
+      tokenizerPushBack(tokenizer, nextToken);
     }
     return;
   }
@@ -386,7 +386,7 @@ export function emitRefSigil(vm: VM, tokenizer: Tokenizer): void {
   // Existing variable reference logic...
   // Inside function: allow locals and globals
   // &buf compiles to VarRef + Fetch, where Fetch returns a REF (does NOT materialize)
-  if (vm.compile.defEntryCell !== -1) {
+  if (vm.compile.entryCell !== -1) {
     if (tag === Tag.LOCAL) {
       emitOpcode(vm, Op.VarRef);
       emitUint16(vm, value);

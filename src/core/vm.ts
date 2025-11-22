@@ -40,7 +40,7 @@ import {
 } from './constants';
 import { getTaggedInfo, isNIL, Tag } from './tagged';
 import { decodeX1516 } from './code-ref';
-import { type Digest, createDigest } from '../strings/digest';
+import { createDigest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
   StackUnderflowError,
@@ -52,7 +52,7 @@ import {
 /**
  * Virtual Machine interface - a plain JavaScript object for executing Tacit bytecode.
  */
-export interface VM {
+export type VM = {
   /** Memory instance for unified data segment access */
   memory: Memory;
   /** Data stack pointer in cells (one past top of stack) */

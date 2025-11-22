@@ -19,7 +19,7 @@ import type { Tokenizer } from './tokenizer';
 import { encodeX1516 } from '../core/code-ref';
 import { Op } from '../ops/opcodes';
 
-export interface CompilerState {
+export type CompilerState = {
   CP: number;
   BCP: number;
   preserve: boolean;
@@ -29,9 +29,9 @@ export interface CompilerState {
   listDepth: number;
   head: number;
   localCount: number;
-  defBranchPos: number;
-  defCheckpoint: number;
-  defEntryCell: number;
+  branchPos: number;
+  checkpoint: number;
+  entryCell: number;
   tokenizer: Tokenizer | null;
 }
 
@@ -46,9 +46,9 @@ export function makeCompiler(digest: Digest): CompilerState {
     listDepth: 0,
     head: 0,
     localCount: 0,
-    defBranchPos: -1,
-    defCheckpoint: -1,
-    defEntryCell: -1,
+    branchPos: -1,
+    checkpoint: -1,
+    entryCell: -1,
     tokenizer: null,
   };
 }
@@ -75,7 +75,11 @@ export function compilerCompileAddress(vm: VM, compiler: CompilerState, value: n
   compilerCompileFloat32(vm, compiler, tagNum);
 }
 
-export function compilerCompileOpcode(vm: VM, compiler: CompilerState, opcodeAddress: number): void {
+export function compilerCompileOpcode(
+  vm: VM,
+  compiler: CompilerState,
+  opcodeAddress: number,
+): void {
   if (opcodeAddress < 0 || opcodeAddress >= 32768) {
     throw new InvalidOpcodeAddressError(opcodeAddress);
   }
@@ -89,7 +93,11 @@ export function compilerCompileOpcode(vm: VM, compiler: CompilerState, opcodeAdd
   compilerCompile8(vm, compiler, (opcodeAddress >> 7) & 0xff);
 }
 
-export function compilerCompileUserWordCall(vm: VM, compiler: CompilerState, address: number): void {
+export function compilerCompileUserWordCall(
+  vm: VM,
+  compiler: CompilerState,
+  address: number,
+): void {
   if (address < 0 || address >= 32768) {
     throw new InvalidOpcodeAddressError(address);
   }
@@ -106,7 +114,12 @@ export function compilerReset(compiler: CompilerState): void {
   }
 }
 
-export function compilerPatch16(vm: VM, _compiler: CompilerState, address: number, value: number): void {
+export function compilerPatch16(
+  vm: VM,
+  _compiler: CompilerState,
+  address: number,
+  value: number,
+): void {
   memoryWrite16(vm.memory, SEG_CODE, address, value);
 }
 
