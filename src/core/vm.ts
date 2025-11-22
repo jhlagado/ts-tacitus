@@ -53,7 +53,7 @@ import {
 /**
  * Virtual Machine interface - a plain JavaScript object for executing Tacit bytecode.
  */
-export type VM = {
+export interface VM {
   /** Memory instance for unified data segment access */
   memory: Memory;
   /** Data stack pointer in cells (one past top of stack) */
@@ -88,7 +88,7 @@ export type VM = {
   defEntryCell: number;
   /** Active tokenizer during parsing (for immediates) */
   currentTokenizer: Tokenizer | null;
-};
+}
 
 /**
  * Cached VM instance for test use (only used when useCache=true).
@@ -331,7 +331,7 @@ export function pushSymbolRef(vm: VM, name: string): void {
   push(vm, taggedValue);
 }
 
-function _checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): void {
+function _checkInv(vm: VM): void {
   if (vm.sp < 0 || vm.rsp < 0 || vm.bp < 0) {
     throw new Error('Invariant violation: negative stack pointer');
   }
@@ -355,13 +355,13 @@ function _checkInv(vm: { sp: number; rsp: number; bp: number; gp: number }): voi
   }
 }
 
-function read8(vm: { memory: Memory; IP: number }): number {
+function read8(vm: VM): number {
   const value = memoryRead8(vm.memory, SEG_CODE, vm.IP);
   vm.IP += 1;
   return value;
 }
 
-function readOp(vm: { memory: Memory; IP: number }): number {
+function readOp(vm: VM): number {
   const firstByte = memoryRead8(vm.memory, SEG_CODE, vm.IP);
   vm.IP += 1;
   if ((firstByte & 0x80) !== 0) {
@@ -374,26 +374,26 @@ function readOp(vm: { memory: Memory; IP: number }): number {
   return firstByte;
 }
 
-function readI16(vm: { memory: Memory; IP: number }): number {
+function readI16(vm: VM): number {
   const unsignedValue = memoryRead16(vm.memory, SEG_CODE, vm.IP);
   const signedValue = (unsignedValue << 16) >> 16;
   vm.IP += 2;
   return signedValue;
 }
 
-function readU16(vm: { memory: Memory; IP: number }): number {
+function readU16(vm: VM): number {
   const value = memoryRead16(vm.memory, SEG_CODE, vm.IP);
   vm.IP += 2;
   return value;
 }
 
-function readF32(vm: { memory: Memory; IP: number }): number {
+function readF32(vm: VM): number {
   const value = memoryReadFloat32(vm.memory, SEG_CODE, vm.IP);
   vm.IP += CELL_SIZE;
   return value;
 }
 
-function readAddr(vm: { memory: Memory; IP: number }): number {
+function readAddr(vm: VM): number {
   const tagNum = readF32(vm);
   const { value: pointer, tag } = getTaggedInfo(tagNum);
   // If it's a CODE tag, decode the X1516 encoded address
