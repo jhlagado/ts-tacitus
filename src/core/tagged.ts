@@ -9,6 +9,7 @@ export enum Tag {
   CODE = 3,
   REF = 4,
   LIST = 5,
+  RESERVED = 6,
   LOCAL = 7,
 }
 
@@ -26,16 +27,18 @@ export enum Sentinel {
 export const tagNames: Record<Tag, string> = {
   [Tag.NUMBER]: 'NUMBER',
   [Tag.SENTINEL]: 'SENTINEL',
-  [Tag.CODE]: 'CODE',
   [Tag.STRING]: 'STRING',
-  [Tag.LOCAL]: 'LOCAL',
-  [Tag.LIST]: 'LIST',
+  [Tag.CODE]: 'CODE',
   [Tag.REF]: 'REF',
+  [Tag.LIST]: 'LIST',
+  [Tag.RESERVED]: 'RESERVED',
+  [Tag.LOCAL]: 'LOCAL',
 };
 
-const VALUE_BITS = 16;
+const VALUE_BITS = 19;
 const NAN_BIT = 1 << 22;
-const TAG_MANTISSA_MASK = 0x7f << 16;
+const TAG_SHIFT = VALUE_BITS;
+const TAG_MANTISSA_MASK = 0x7 << TAG_SHIFT;
 const VALUE_MASK = (1 << VALUE_BITS) - 1;
 
 const EXPONENT_MASK = 0xff << 23;
@@ -75,20 +78,24 @@ export function Tagged(value: number, tag: Tag, meta = 0): number {
 
   let encodedValue: number;
   if (tag === Tag.SENTINEL) {
-    if (value < -32768 || value > 32767) {
-      throw new Error('Value must be 16-bit signed integer (-32768 to 32767) for SENTINEL tag');
+    if (value < -(1 << (VALUE_BITS - 1)) || value > (1 << (VALUE_BITS - 1)) - 1) {
+      throw new Error(
+        `Value must be ${VALUE_BITS}-bit signed integer (${-(1 << (VALUE_BITS - 1))} to ${
+          (1 << (VALUE_BITS - 1)) - 1
+        }) for SENTINEL tag`,
+      );
     }
     // Explicitly truncate to integer to avoid precision loss from bitwise operations
-    encodedValue = Math.trunc(value) & 0xffff;
+    encodedValue = Math.trunc(value) & VALUE_MASK;
   } else {
-    if (value < 0 || value > 65535) {
-      throw new Error('Value must be 16-bit unsigned integer (0 to 65535)');
+    if (value < 0 || value > VALUE_MASK) {
+      throw new Error(`Value must be ${VALUE_BITS}-bit unsigned integer (0 to ${VALUE_MASK})`);
     }
     // Explicitly truncate to integer to avoid precision loss from bitwise operations
-    encodedValue = Math.trunc(value) & 0xffff;
+    encodedValue = Math.trunc(value) & VALUE_MASK;
   }
 
-  const mantissaTagBits = (tag & 0x3f) << 16;
+  const mantissaTagBits = (tag & 0x7) << TAG_SHIFT;
   const signBit = meta ? 1 << 31 : 0;
   const bits = signBit | EXPONENT_MASK | NAN_BIT | mantissaTagBits | encodedValue;
   const buffer = new ArrayBuffer(4);
@@ -114,9 +121,12 @@ export function getTaggedInfo(tagged: number): TaggedInfo {
   view.setFloat32(0, tagged, true);
   const bits = view.getUint32(0, true);
   const meta = (bits >>> 31) & 1;
-  const tagBits = ((bits & TAG_MANTISSA_MASK) >>> 16) & 0x3f;
+  const tagBits = ((bits & TAG_MANTISSA_MASK) >>> TAG_SHIFT) & 0x7;
   const valueBits = bits & VALUE_MASK;
-  const value = tagBits === Tag.SENTINEL ? (valueBits << 16) >> 16 : valueBits;
+  const value =
+    tagBits === Tag.SENTINEL
+      ? (valueBits << (32 - VALUE_BITS)) >> (32 - VALUE_BITS)
+      : valueBits;
   return { value, tag: tagBits, meta };
 }
 

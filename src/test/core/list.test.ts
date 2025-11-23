@@ -51,24 +51,24 @@ describe('LIST Core Utilities', () => {
   });
 
   test('should handle LIST with maximum slot count', () => {
-    const maxList = Tagged(65535, Tag.LIST);
+    const maxList = Tagged(524287, Tag.LIST);
     expect(isList(maxList)).toBe(true);
 
     const decoded = getTaggedInfo(maxList);
     expect(decoded.tag).toBe(Tag.LIST);
-    expect(decoded.value).toBe(65535);
+    expect(decoded.value).toBe(524287);
   });
 
   test('should validate LIST value ranges', () => {
     expect(() => Tagged(-1, Tag.LIST)).toThrow();
-    expect(() => Tagged(65536, Tag.LIST)).toThrow();
+    expect(() => Tagged(524288, Tag.LIST)).toThrow();
   });
 
   test('should include LIST in encoded/decoded round-trip tests', () => {
     const tests = [
       { tag: Tag.LIST, value: 0 },
       { tag: Tag.LIST, value: 1 },
-      { tag: Tag.LIST, value: 65535 },
+      { tag: Tag.LIST, value: 524287 },
     ];
 
     tests.forEach(({ tag, value }) => {
@@ -154,8 +154,8 @@ describe('LIST Core Utilities', () => {
     });
 
     it('should handle maximum slot count', () => {
-      const header = Tagged(65535, Tag.LIST);
-      expect(getListLength(header)).toBe(65535);
+      const header = Tagged(524287, Tag.LIST);
+      expect(getListLength(header)).toBe(524287);
     });
 
     it('should throw on non-LIST header', () => {
@@ -240,15 +240,8 @@ describe('LIST Core Utilities', () => {
       expect(() => validateListHeader(vm)).toThrow('LIST payload validation');
     });
 
-    it('should throw on slot count exceeding maximum', () => {
-      const vm = createVM();
-      try {
-        const invalidHeader = Tagged(65536, Tag.LIST);
-        push(vm, invalidHeader);
-        expect(() => validateListHeader(vm)).toThrow('exceeds maximum of 65535');
-      } catch (e) {
-        expect((e as Error).message).toContain('16-bit');
-      }
+    it('should reject slot count exceeding maximum', () => {
+      expect(() => Tagged(524288, Tag.LIST)).toThrow();
     });
   });
 
