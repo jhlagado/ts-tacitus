@@ -131,7 +131,7 @@ describe('List Operations - Branch Coverage', () => {
     });
 
     test('should handle mixed data types in operations', () => {
-      push(vm, Tagged(encodeX1516(100), Tag.CODE));
+      push(vm, Tagged(encodeX1516(104), Tag.CODE));
       sizeOp(vm);
       const result = pop(vm);
       expect(isNIL(result)).toBe(true);

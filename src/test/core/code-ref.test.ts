@@ -5,7 +5,15 @@
  * Verifies creation, validation, and extraction of code references for the unified @symbol system.
  */
 
-import { createCodeRef, encodeX1516, decodeX1516 } from '../../core';
+import {
+  createCodeRef,
+  encodeX1516,
+  decodeX1516,
+  CODE_ALIGN_SHIFT,
+  CODE_ALIGN_BYTES,
+  CODE_MAX_BYTE_ADDRESS,
+  MIN_USER_OPCODE,
+} from '../../core';
 import {
   isBuiltinRef,
   isFuncRef,
@@ -18,34 +26,44 @@ import { Op } from '../../ops/opcodes';
 
 describe('Code Reference Utilities', () => {
   describe('X1516 Encoding/Decoding', () => {
+    const expectEncoded = (addr: number) => {
+      const payload = addr >> CODE_ALIGN_SHIFT;
+      const low = 0x80 | (payload & 0x7f);
+      const high = (payload >> 7) & 0xff;
+      return (high << 8) | low;
+    };
+
     describe('encodeX1516', () => {
       test('should encode address 0 to 0x0080', () => {
         expect(encodeX1516(0)).toBe(0x0080);
       });
 
-      test('should encode address 16384 to 0x8080', () => {
-        expect(encodeX1516(16384)).toBe(0x8080);
+      test('should encode address 16384 to scaled payload', () => {
+        expect(encodeX1516(16384)).toBe(expectEncoded(16384));
       });
 
-      test('should encode address 64 to 0x00C0', () => {
-        expect(encodeX1516(64)).toBe(0x00c0);
+      test('should encode address 64 to scaled payload', () => {
+        expect(encodeX1516(64)).toBe(expectEncoded(64));
       });
 
-      test('should encode address 128 to 0x0180', () => {
-        expect(encodeX1516(128)).toBe(0x0180);
+      test('should encode address 128 to scaled payload', () => {
+        expect(encodeX1516(128)).toBe(expectEncoded(128));
       });
 
-      test('should encode address 256 to 0x0280', () => {
-        expect(encodeX1516(256)).toBe(0x0280);
+      test('should encode address 256 to scaled payload', () => {
+        expect(encodeX1516(256)).toBe(expectEncoded(256));
       });
 
-      test('should encode address 32767 to 0xFFFF', () => {
-        expect(encodeX1516(32767)).toBe(0xffff);
+      test('should encode max address to 0xFFFF', () => {
+        expect(encodeX1516(CODE_MAX_BYTE_ADDRESS)).toBe(0xffff);
       });
 
       test('should reject invalid addresses', () => {
         expect(() => encodeX1516(-1)).toThrow(/Invalid address/);
-        expect(() => encodeX1516(32768)).toThrow(/Invalid address/);
+        expect(() => encodeX1516(CODE_MAX_BYTE_ADDRESS + CODE_ALIGN_BYTES)).toThrow(
+          /Invalid address/,
+        );
+        expect(() => encodeX1516(CODE_ALIGN_BYTES - 1)).toThrow(/Invalid alignment/);
       });
     });
 
@@ -54,24 +72,24 @@ describe('Code Reference Utilities', () => {
         expect(decodeX1516(0x0080)).toBe(0);
       });
 
-      test('should decode 0x8080 to address 16384', () => {
-        expect(decodeX1516(0x8080)).toBe(16384);
+      test('should decode 0x8080 to address 16384 scaled', () => {
+        expect(decodeX1516(0x8080)).toBe(16384 << CODE_ALIGN_SHIFT);
       });
 
-      test('should decode 0x00C0 to address 64', () => {
-        expect(decodeX1516(0x00c0)).toBe(64);
+      test('should decode 0x00C0/0x00?? to address 64 scaled', () => {
+        expect(decodeX1516(expectEncoded(64))).toBe(64);
       });
 
-      test('should decode 0x0180 to address 128', () => {
-        expect(decodeX1516(0x0180)).toBe(128);
+      test('should decode 0x0180/0x01?? to address 128 scaled', () => {
+        expect(decodeX1516(expectEncoded(128))).toBe(128);
       });
 
-      test('should decode 0x0280 to address 256', () => {
-        expect(decodeX1516(0x0280)).toBe(256);
+      test('should decode 0x0280/0x02?? to address 256 scaled', () => {
+        expect(decodeX1516(expectEncoded(256))).toBe(256);
       });
 
-      test('should decode 0xFFFF to address 32767', () => {
-        expect(decodeX1516(0xffff)).toBe(32767);
+      test('should decode 0xFFFF to max address scaled', () => {
+        expect(decodeX1516(0xffff)).toBe(CODE_MAX_BYTE_ADDRESS);
       });
 
       test('should reject invalid encoded values', () => {
@@ -82,7 +100,17 @@ describe('Code Reference Utilities', () => {
 
     describe('roundtrip encoding/decoding', () => {
       test('should roundtrip all valid addresses', () => {
-        const testAddresses = [0, 1, 64, 128, 256, 1000, 8192, 16384, 32767];
+        const testAddresses = [
+          0,
+          CODE_ALIGN_BYTES,
+          64,
+          128,
+          256,
+          1000 - (1000 % CODE_ALIGN_BYTES),
+          8192,
+          16384,
+          CODE_MAX_BYTE_ADDRESS,
+        ];
 
         testAddresses.forEach(addr => {
           const encoded = encodeX1516(addr);
@@ -95,37 +123,47 @@ describe('Code Reference Utilities', () => {
 
   describe('createCodeRef', () => {
     test('should create valid code references with X1516 encoding', () => {
-      const codeRef = createCodeRef(1000);
+      const codeRef = createCodeRef(1000 - (1000 % CODE_ALIGN_BYTES));
       const { tag, value } = getTaggedInfo(codeRef);
 
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(encodeX1516(1000)); // Value is X1516 encoded
-      expect(getCodeAddress(codeRef)).toBe(1000); // But getCodeAddress decodes it
+      expect(value).toBe(encodeX1516(1000 - (1000 % CODE_ALIGN_BYTES))); // Value is X1516 encoded
+      expect(getCodeAddress(codeRef)).toBe(1000 - (1000 % CODE_ALIGN_BYTES)); // But getCodeAddress decodes it
     });
 
     test('should handle various valid addresses with X1516 encoding (or direct for < 128)', () => {
-      const testAddresses = [0, 1, 64, 127, 8192, 32767];
+      const testAddresses = [
+        0,
+        1,
+        64,
+        127,
+        8192,
+        CODE_MAX_BYTE_ADDRESS - ((CODE_MAX_BYTE_ADDRESS / CODE_ALIGN_BYTES) % 2 === 1 ? 0 : 0),
+      ];
 
       testAddresses.forEach(addr => {
+        const alignedAddr = addr < 128 ? addr : addr - (addr % CODE_ALIGN_BYTES);
         const ref = createCodeRef(addr);
         const { tag, value } = getTaggedInfo(ref);
 
         expect(tag).toBe(Tag.CODE);
         // For addresses < 128, value is stored directly (not X1516 encoded)
         // For addresses >= 128, value is X1516 encoded
-        if (addr < 128) {
-          expect(value).toBe(addr); // Stored directly
+        if (alignedAddr < 128) {
+          expect(value).toBe(alignedAddr); // Stored directly
         } else {
-          expect(value).toBe(encodeX1516(addr)); // X1516 encoded
+          expect(value).toBe(encodeX1516(alignedAddr)); // X1516 encoded
         }
-        expect(getCodeAddress(ref)).toBe(addr); // getCodeAddress handles both cases
+        expect(getCodeAddress(ref)).toBe(alignedAddr); // getCodeAddress handles both cases
       });
     });
 
     test('should reject invalid addresses', () => {
       expect(() => createCodeRef(-1)).toThrow('Invalid bytecode address: -1');
-      expect(() => createCodeRef(32768)).toThrow('Invalid bytecode address: 32768');
-      expect(() => createCodeRef(100000)).toThrow('Invalid bytecode address: 100000');
+      expect(() => createCodeRef(CODE_MAX_BYTE_ADDRESS + CODE_ALIGN_BYTES)).toThrow(
+        'Invalid bytecode address',
+      );
+      expect(() => createCodeRef(MIN_USER_OPCODE + 1)).toThrow('Invalid alignment');
     });
   });
 
@@ -222,7 +260,7 @@ describe('Code Reference Utilities', () => {
 
   describe('getCodeAddress', () => {
     test('should extract address from valid code references', () => {
-      const testAddresses = [0, 1000, 8192, 32767];
+      const testAddresses = [0, 1000, 8192, 32768];
 
       testAddresses.forEach(addr => {
         const ref = createCodeRef(addr);
@@ -259,7 +297,7 @@ describe('Code Reference Utilities', () => {
 
     test('should roundtrip through creation and extraction', () => {
       const originalOpcode = Op.Multiply;
-      const originalAddr = 12345;
+      const originalAddr = 12344;
 
       const builtinRef = createCodeRef(originalOpcode);
       const codeRef = createCodeRef(originalAddr);

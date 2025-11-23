@@ -50,7 +50,7 @@ describe('Tagged NaN Encoding', () => {
   });
 
   test('should return the correct tag using getTaggedInfo', () => {
-    const encoded = Tagged(encodeX1516(123), Tag.CODE);
+    const encoded = Tagged(encodeX1516(120), Tag.CODE);
     const { tag } = getTaggedInfo(encoded);
     expect(tag).toBe(Tag.CODE);
   });
@@ -64,7 +64,7 @@ describe('Tagged NaN Encoding', () => {
     expect(isNIL(Tagged(1, Tag.SENTINEL))).toBe(false);
   });
   test('should correctly identify code types', () => {
-    const code = Tagged(encodeX1516(123), Tag.CODE);
+    const code = Tagged(encodeX1516(120), Tag.CODE);
     const str = Tagged(789, Tag.STRING);
     expect(isCode(code)).toBe(true);
     expect(isCode(str)).toBe(false);

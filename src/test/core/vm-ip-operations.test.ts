@@ -55,7 +55,7 @@ describe('VM Instruction Pointer Operations', () => {
   });
 
   test('nextAddress should read a tagged address and advance ip by CELL_SIZE', () => {
-    const testAddress = 0x1234;
+    const testAddress = 0x1238;
     memoryWriteFloat32(vm.memory, SEG_CODE, 0, Tagged(encodeX1516(testAddress), Tag.CODE));
     const address = nextAddress(vm);
     expect(address).toBe(testAddress); // nextAddress decodes the X1516 value

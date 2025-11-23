@@ -58,7 +58,7 @@ describe('VM', () => {
       expect(getStackData(vm)).toEqual([1, 2, 3]);
     });
     test('should handle address tagging', () => {
-      const address = 0x2345;
+      const address = 0x2348;
       push(vm, Tagged(encodeX1516(address), Tag.CODE));
       const { value, tag } = getTaggedInfo(pop(vm));
       expect(value).toBe(encodeX1516(address)); // Value is X1516 encoded
@@ -84,7 +84,7 @@ describe('VM', () => {
       expect(() => rpop(vm)).toThrow('Return stack (RSP) underflow');
     });
     test('should handle address tagging on return stack', () => {
-      const address = 0x4321;
+      const address = 0x4320;
       rpush(vm, Tagged(encodeX1516(address), Tag.CODE));
       const { value, tag } = getTaggedInfo(rpop(vm));
       expect(tag).toBe(Tag.CODE);
@@ -111,7 +111,7 @@ describe('VM', () => {
       expect(vm.ip).toBe(2);
     });
     test('should handle nextAddress correctly', () => {
-      const addr = 0x2345;
+      const addr = 0x2348;
       emitTaggedAddress(vm, addr); // encode using X1516
       vm.ip = 0;
       expect(nextAddress(vm)).toBe(addr); // nextAddress decodes it

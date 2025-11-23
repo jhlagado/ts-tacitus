@@ -11,6 +11,9 @@ import { STACK_BASE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
 import { Tag, getTaggedInfo, Tagged, createCodeRef } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
+import { CODE_ALIGN_BYTES } from '../../core';
+
+const alignAddr = (n: number) => n + ((CODE_ALIGN_BYTES - (n % CODE_ALIGN_BYTES)) % CODE_ALIGN_BYTES);
 import { resolveSymbol, push, pop } from '../../core/vm';
 import { define, markWithLocalReset, forget, findBytecodeAddress } from '../../core/dictionary';
 import {
@@ -117,7 +120,7 @@ describe('VM Symbol Resolution', () => {
 
     test('should maintain consistency with code-ref utilities', () => {
       define(vm, 'multiply', Tagged(Op.Multiply, Tag.CODE, 0));
-      define(vm, 'test', Tagged(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'test', Tagged(encodeX1516(alignAddr(1500)), Tag.CODE, 0));
 
       const multiplyResolved = resolveSymbol(vm, 'multiply');
       const multiplyDirect = createCodeRef(Op.Multiply);
@@ -125,7 +128,7 @@ describe('VM Symbol Resolution', () => {
       expect(multiplyResolved).toBe(multiplyDirect);
 
       const testResolved = resolveSymbol(vm, 'test');
-      const testDirect = createCodeRef(1500);
+      const testDirect = createCodeRef(alignAddr(1500));
 
       expect(testResolved).toBe(testDirect);
     });

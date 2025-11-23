@@ -23,7 +23,7 @@ describe('Control Operations - Branch Coverage', () => {
       const originalNextInt16 = vmModule.nextInt16;
       (vmModule as any).nextInt16 = () => 10;
 
-      push(vm, Tagged(encodeX1516(100), Tag.CODE));
+      push(vm, Tagged(encodeX1516(104), Tag.CODE));
 
       const originalIP = vm.ip;
 

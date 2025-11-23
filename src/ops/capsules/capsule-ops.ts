@@ -9,6 +9,7 @@ import {
 } from '@src/core';
 import { emitOpcode } from '../../core/vm';
 import { encodeX1516, decodeX1516 } from '../../core/code-ref';
+import { CODE_ALIGN_BYTES } from '../../core/constants';
 import { Op } from '../opcodes';
 import { endDefinition } from '../../lang/definition-system';
 import { readCapsuleLayoutFromHandle } from './layout';
@@ -21,7 +22,9 @@ export function exitConstructorOp(vm: VM): void {
 
   // Wrap current ip as CODE entry for dispatch body
   const entryAddr = vm.ip;
-  rpush(vm, Tagged(encodeX1516(entryAddr), Tag.CODE));
+  const alignedEntryAddr =
+    entryAddr + ((CODE_ALIGN_BYTES - (entryAddr % CODE_ALIGN_BYTES)) % CODE_ALIGN_BYTES);
+  rpush(vm, Tagged(encodeX1516(alignedEntryAddr), Tag.CODE));
 
   // Append LIST header: payload = locals + 1 (CODE)
   rpush(vm, Tagged(localCount + 1, Tag.LIST));

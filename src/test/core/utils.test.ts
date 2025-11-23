@@ -63,9 +63,9 @@ describe('Utility Functions', () => {
       expect(formatValue(testVM, NIL)).toBe('[SENTINEL:0]');
     });
     test('formats CODE tagged value', () => {
-      const taggedCode = Tagged(encodeX1516(1234), Tag.CODE);
+      const taggedCode = Tagged(encodeX1516(1232), Tag.CODE);
       // formatValue decodes X1516 to show the actual bytecode address
-      expect(formatValue(testVM, taggedCode)).toBe('[CODE:1234]');
+      expect(formatValue(testVM, taggedCode)).toBe('[CODE:1232]');
     });
     test('formats STRING tagged value successfully', () => {
       const strAddr = digestAdd(testVM.compile.digest, 'TestString');

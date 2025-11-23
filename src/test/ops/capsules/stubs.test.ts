@@ -23,7 +23,7 @@ describe('capsule opcode stubs', () => {
     // Push 2 locals
     rpush(vm, 10);
     rpush(vm, 20);
-    vm.ip = 123;
+    vm.ip = 120;
 
     const prevRSP = vm.rsp;
     exitConstructorOp(vm);
