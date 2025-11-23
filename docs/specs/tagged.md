@@ -20,7 +20,7 @@ Implementations (VM, parser, symbol table, printers) MUST conform.
 
 ## Overview
 
-Tacit uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each value combines a 6-bit tag with up to 16 bits of payload data, enabling efficient type dispatch and memory usage.
+Tacit uses NaN-boxing to store typed values in uniform 32-bit stack cells. Each value combines a 3-bit tag with up to 19 bits of payload data, enabling efficient type dispatch and memory usage.
 
 ## Tag System
 
@@ -30,11 +30,12 @@ Current enum (source of truth is `src/core/tagged.ts`). Numeric values are shown
 export enum Tag {
   NUMBER = 0, // IEEE‑754 float32 (non‑NaN) — raw value, no boxing
   SENTINEL = 1, // Named sentinels (e.g., NIL=0, DEFAULT=1)
-  CODE = 2, // Bytecode address (direct dispatch)
-  STRING = 4, // String segment reference
-  LOCAL = 6, // Compile‑time local symbol (parser only)
-  LIST = 8, // Reverse list header (payload slot count)
-  REF = 12, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
+  STRING = 2, // String segment reference (sign bit encodes HIDDEN)
+  CODE = 3, // Builtin opcode (<128) or bytecode address (>=128, X1516 encoded); sign bit encodes IMMEDIATE
+  REF = 4, // Reference into data segment (absolute cell index; can refer to global, stack, or return stack)
+  LIST = 5, // Reverse list header (payload slot count)
+  RESERVED = 6, // Reserved for future expansion
+  LOCAL = 7, // Compile‑time local symbol (parser/symbol table only)
 }
 ```
 
@@ -49,26 +50,24 @@ Active tags are listed below; this definition takes precedence. `Tag.LOCAL` is a
 | CODE     | Builtin opcode (0..127) or bytecode address (128..32767) | No                                     | `@name` or bytecode addr       | Value < 128: builtin opcode (stored directly); Value >= 128: bytecode address (X1516 encoded); Sign bit encodes `IMMEDIATE` |
 | STRING   | String segment offset                                    | No                                     | string literal ('key or "key") | Sign bit encodes `HIDDEN`; payload indexes string table                                                                     |
 | LOCAL    | Local slot number (compile‑time only)                    | n/a                                    | —                              | Parser/symbol table only; never a runtime ref                                                                               |
-| LIST     | Payload slot count (0..65535)                            | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                                                                      |
+| LIST     | Payload slot count (0..524287)                           | Header no; simple payload slots yes    | `( … )`                        | Reverse layout; payload beneath header                                                                                      |
 | REF      | Reference into data segment (absolute cell index)        | n/a                                    | `REF:<abs-idx>`                | Helper routines map the index to global/stack/return stack windows                                                          |
+| RESERVED | —                                                        | n/a                                    | —                              | Reserved for future expansion                                                                                               |
 
 ## Memory Layout
 
 ```
 IEEE 754 Float32 NaN-Boxing Layout:
-┌─┬───────────┬─┬──────┬────────────────┐
-│S│EXP (all 1)│Q│ TAG  │     VALUE      │
-├─┼───────────┼─┼──────┼────────────────┤
-│31│  30..23   │22│21..16│     15..0      │
-├─┼───────────┼─┼──────┼────────────────┤
-│ │    8      │1│  6   │       16       │
-└─┴───────────┴─┴──────┴────────────────┘
+|       | S  | EXP (all 1) | Q  | TAG    | VALUE   |
+|-------|----|-------------|----|--------|---------|
+| Bits  | 31 | 30..23      | 22 | 21..19 | 18..0   |
+| Width | 1  | 8           | 1  | 3      | 19      |
 
 S = Sign bit (available for extended tagging)
 EXP = Exponent (0xFF for NaN)
 Q = Quiet NaN bit (always 1)
-TAG = 6-bit type tag (0-63 possible values)
-VALUE = 16-bit payload (unsigned for most tags; SENTINEL uses signed 16-bit)
+TAG = 3-bit type tag (0-7 possible values)
+VALUE = 19-bit payload (unsigned for most tags; SENTINEL uses signed 19-bit)
 
 Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation directly.
 ```
@@ -76,9 +75,9 @@ Numbers (non-NaN float32) bypass the boxing and carry their IEEE representation 
 ## Encoding Rules
 
 - **Numbers**: Full IEEE 754 float (no tag needed)
-- **Addresses**: Tag.CODE + 16-bit bytecode address
+- **Addresses**: Tag.CODE + 19-bit bytecode address
 - **Built-ins**: Tag.CODE + opcode (0-127, stored directly, not X1516 encoded)
-- **Lists**: `Tag.LIST` + payload slot count (0–65535). Reverse layout, header at top-of-stack; see `lists.md`.
+- **Lists**: `Tag.LIST` + payload slot count (0–524287). Reverse layout, header at top-of-stack; see `lists.md`.
 
 ### String Shorthand
 
@@ -116,9 +115,9 @@ The NaN‑boxed encoding reserves the sign bit alongside `Tag.CODE`. Tacit uses 
 
 ## Constraints
 
-- Payload (non‑number) is 16 bits. Unless otherwise noted, values are unsigned (0–65535).
-- SENTINEL payload is signed 16‑bit for convenience; named values currently used are: NIL=0 and DEFAULT=1.
-- CODE payload (builtin opcodes 0-127 stored directly, bytecode addresses 128-32767 X1516 encoded), LIST payload, and reference payloads follow their respective ranges.
+- Payload (non‑number) is 19 bits. Unless otherwise noted, values are unsigned (0–524287).
+- SENTINEL payload is signed 19‑bit for convenience; named values currently used are: NIL=0 and DEFAULT=1.
+- CODE payload (builtin opcodes 0-127 stored directly, bytecode addresses X1516 encoded when ≥ 128), LIST payload, and reference payloads follow their respective ranges.
 
 ## Validation
 
@@ -158,7 +157,7 @@ All tagged values must:
 
 ## Runtime Invariants (Normative)
 
-1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, LIST, REF}. `LOCAL` is compile‑time only.
+1. Any NaN‑boxed non‑number value MUST decode to a tag in the active set {SENTINEL, CODE, STRING, LIST, REF}. `LOCAL` is compile‑time only; `RESERVED` is unused.
 2. `Tag.CODE` payload < 128 MUST be treated as builtin opcode; payload >= 128 MUST be X1516 decoded to get bytecode address.
 3. `Tag.CODE` payload MUST be < current CODE segment size (presently 8192) and point to the beginning of a valid instruction.
 4. `Tag.LIST` payload = number of payload slots directly beneath the header; element traversal MUST use span rule from `lists.md`.

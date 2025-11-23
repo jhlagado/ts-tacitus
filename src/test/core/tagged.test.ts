@@ -12,8 +12,8 @@ import {
 describe('Tagged NaN Encoding', () => {
   test('should correctly decode encoded values', () => {
     const tests = [
-      { tag: Tag.SENTINEL, value: -32768 },
-      { tag: Tag.SENTINEL, value: 32767 },
+      { tag: Tag.SENTINEL, value: -262144 },
+      { tag: Tag.SENTINEL, value: 262143 },
       { tag: Tag.CODE, value: 12345 },
       { tag: Tag.STRING, value: 42 },
     ];
@@ -31,22 +31,22 @@ describe('Tagged NaN Encoding', () => {
     expect(() => Tagged(0, invalidTag as any)).toThrow(`Invalid tag: ${invalidTag}`);
   });
   test('should validate value ranges for INTEGER', () => {
-    expect(() => Tagged(32768, Tag.SENTINEL)).toThrow();
-    expect(() => Tagged(-32769, Tag.SENTINEL)).toThrow();
+    expect(() => Tagged(262144, Tag.SENTINEL)).toThrow();
+    expect(() => Tagged(-262145, Tag.SENTINEL)).toThrow();
   });
   test('should validate unsigned value ranges for non-INTEGER types', () => {
     expect(() => Tagged(-1, Tag.CODE)).toThrow();
-    expect(() => Tagged(encodeX1516(65536), Tag.CODE)).toThrow();
+    expect(() => Tagged(524288, Tag.CODE)).toThrow();
     expect(() => Tagged(-1, Tag.STRING)).toThrow();
-    expect(() => Tagged(65536, Tag.STRING)).toThrow();
+    expect(() => Tagged(524288, Tag.STRING)).toThrow();
   });
   test('should correctly extract value for integer types', () => {
-    const encodedNeg = Tagged(-32768, Tag.SENTINEL);
-    const encodedPos = Tagged(32767, Tag.SENTINEL);
+    const encodedNeg = Tagged(-262144, Tag.SENTINEL);
+    const encodedPos = Tagged(262143, Tag.SENTINEL);
     const decodedNeg = getTaggedInfo(encodedNeg);
     const decodedPos = getTaggedInfo(encodedPos);
-    expect(decodedNeg.value).toBe(-32768);
-    expect(decodedPos.value).toBe(32767);
+    expect(decodedNeg.value).toBe(-262144);
+    expect(decodedPos.value).toBe(262143);
   });
 
   test('should return the correct tag using getTaggedInfo', () => {
@@ -78,8 +78,8 @@ describe('Tagged NaN Encoding', () => {
       expect(getTaggedInfo(localRef).tag).toBe(Tag.LOCAL);
     });
 
-    test('should handle 16-bit slot numbers', () => {
-      const maxSlot = 65535;
+    test('should handle 19-bit slot numbers', () => {
+      const maxSlot = 524287;
       const localRef = Tagged(maxSlot, Tag.LOCAL);
       expect(isLocal(localRef)).toBe(true);
       expect(getTaggedInfo(localRef).value).toBe(maxSlot);
@@ -99,8 +99,8 @@ describe('Tagged NaN Encoding', () => {
     });
 
     test('should validate slot number bounds', () => {
-      expect(() => Tagged(-1, Tag.LOCAL)).toThrow('Value must be 16-bit unsigned integer');
-      expect(() => Tagged(65536, Tag.LOCAL)).toThrow('Value must be 16-bit unsigned integer');
+      expect(() => Tagged(-1, Tag.LOCAL)).toThrow('Value must be 19-bit unsigned integer');
+      expect(() => Tagged(524288, Tag.LOCAL)).toThrow('Value must be 19-bit unsigned integer');
     });
 
     test('should work with meta bits', () => {
@@ -234,7 +234,7 @@ describe('Tagged NaN Encoding', () => {
   describe('Round-trip conversion', () => {
     test('convert to tagged value and decode edge cases', () => {
       // Test key edge cases instead of 0-1000 range
-      const testCases = [0, 1, 255, 256, 32767, -32768, -1];
+      const testCases = [0, 1, 255, 256, 262143, -262144, -1];
 
       for (const value of testCases) {
         const tagged = Tagged(value, Tag.SENTINEL);

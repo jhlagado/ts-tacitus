@@ -414,8 +414,8 @@ This is the list case of the unified `bfind` (see this section for list semantic
 ## 18. Constraints and implementation-defined limits
 
 - **Word size:** 32‑bit cells.
-- **Length field width:** **implementation-defined** (`LIST_LEN_BITS`). Current implementation uses **16 bits**, giving `s ≤ 65,535` (≈256 KiB payload at 4 bytes/slot).
-- **Future variants:** increasing `LIST_LEN_BITS` (e.g., 18) scales maximum payload (e.g., ≈1 MiB total including header).
+- **Length field width:** **implementation-defined** (`LIST_LEN_BITS`). Current implementation uses **19 bits**, giving `s ≤ 524,287` (≈2 MiB payload at 4 bytes/slot).
+- **Future variants:** increasing `LIST_LEN_BITS` (e.g., 20) scales maximum payload (e.g., ≈4 MiB total including header).
 - **Effective maximum:** `min( (1<<LIST_LEN_BITS)-1, available_stack_space )`.
 
 ---

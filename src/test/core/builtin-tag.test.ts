@@ -29,10 +29,10 @@ describe('Tag.CODE < 128 functionality (replaces Tag.BUILTIN)', () => {
 
     // Values >= 128 are X1516 encoded (but still valid)
     expect(() => Tagged(1000, Tag.CODE)).not.toThrow();
-    expect(() => Tagged(65535, Tag.CODE)).not.toThrow();
+    expect(() => Tagged(524287, Tag.CODE)).not.toThrow();
 
     expect(() => Tagged(-1, Tag.CODE)).toThrow();
 
-    expect(() => Tagged(65536, Tag.CODE)).toThrow();
+    expect(() => Tagged(524288, Tag.CODE)).toThrow();
   });
 });
