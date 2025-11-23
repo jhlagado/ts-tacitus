@@ -64,6 +64,10 @@ The Tacit VM maintains two registers to coordinate errors and cleanup execution.
 | `err`        | Number (boolean for now) | Holds 0 (no error) or 1 (error active). Future: tagged error payload.       |
 | `inFinally`  | Boolean      | Indicates whether the interpreter is currently executing within a `finally` block. |
 
+**New opcodes (reserved names):**
+- `SetErr` (`setErrOp`): pops one value, writes it into `vm.err`.
+- `SetInFinally` (`setInFinallyOp`): sets `vm.inFinally = true` (no stack effect).
+
 No additional frame fields or pointers are introduced; all behavior is expressed in terms of existing call and return flow.
 
 #### 3.1 Normal Execution
@@ -79,6 +83,30 @@ When an operation sets `err` to a non-zero value the interpreter performs a stru
 2. Control returns to the most recent caller.
 3. If that caller is a `finally` wrapper, the dispatcher sets `inFinally := true`, jumps to the cleanup block, and continues executing instructions even though `err` remains set.
 4. If there is no wrapper, the interpreter continues unwinding until it either finds one or reaches the top-level loop.
+
+#### 3.2.1 Unwind Execution Rules (`err != 0`)
+
+While `err != 0` and `inFinally == false`:
+- Skip all opcodes except:
+  - `SetInFinally` (allowed so cleanup can start)
+  - Exit-family ops that restore a caller frame (these clear `inFinally` when used inside cleanup, and restore IP/BP from the return stack)
+- Each skipped opcode advances control by unwinding one frame: restore IP/BP from return stack; if the stack is exhausted, halt with `err` preserved.
+- No other opcode executes until `inFinally` becomes true.
+
+While `err != 0` and `inFinally == true` (during cleanup):
+- Execute opcodes normally; cleanup code runs even with active error.
+- Exit-family opcodes clear `inFinally` before returning.
+
+Return epilogue (exit-family, as implemented by `exitOp`):
+- Require at least two cells on the return stack; if not, stop (`vm.running = false`).
+- Guard against corruption: if `bp` is outside the current return-stack depth, throw underflow.
+- Set `rsp = bp` (bp is absolute cells).
+- Pop saved BP (stored as relative cells) → add `RSTACK_BASE` → restore `bp`.
+- Pop return address → restore `ip`.
+- Clear `inFinally` as part of exit-family behavior.
+No additional fields are touched.
+
+`err` payload: only the non-error value is defined (0). A future revision may store `NIL` or tagged error data when safety is validated; current implementations must treat any non-zero as “error active” without assuming a specific payload format.
 
 #### 3.3 Inside Cleanup
 
@@ -119,6 +147,7 @@ The `finally` construct is handled entirely by the compiler as a **post-definiti
    * The compiler closes the current function with an explicit `exit`.
    * Patch the body’s `Reserve` placeholder with the current `localCount`, `forget` the body locals, and reset `localCount` (and compiler local bookkeeping) to 0 so the wrapper can have its own locals.
    * A new internal function definition begins automatically, with the name `<name>finally>`.
+   * **Alignment:** Before encoding any CODE reference with X1516, the compiler must align the target entry to `CODE_ALIGN_BYTES` (currently 8). The normal body entry is already aligned by colon-definition padding; the cleanup wrapper entry must also be aligned just before it is emitted so its address can be encoded legally.
    * The compiler emits an extended-opcode call (X1516) to the original body entry at the start of this new function (bit 7 set on the first opcode byte, encoding a 15-bit target). This preserves the normal call/return frame semantics without introducing a new opcode shape.
    * The compiler emits `setInFinally` **after** the call so only the cleanup portion runs with `inFinally` set. Body execution itself does not need the flag.
 
@@ -174,6 +203,7 @@ After emitting the wrapper, the compiler rebinds the dictionary entry for `foo` 
 
 > Extended opcodes: The wrapper’s call to the original body uses the X1516 extended opcode format (bit7 set on the first opcode byte) to encode the 15-bit target address without introducing a new opcode shape.
 > Colon definitions still begin with a short branch to hide the in-progress definition; it is omitted from this layout for clarity because it does not affect `finally` mechanics.
+> **Alignment note:** Both `foo_body` and the wrapper entry must be aligned to `CODE_ALIGN_BYTES` (currently 8) so their X1516 references are valid. The compiler pads with NOPs before each entry to satisfy this; the branch offsets used to hide the definition must account for the padding when patched. A simple rule: patch the skip offset to `currentCP - (branchPos + 2)` **after** any NOP padding is emitted so the skip jumps over padding plus body.
 
 ---
 

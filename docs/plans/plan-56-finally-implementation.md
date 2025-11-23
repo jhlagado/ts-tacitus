@@ -74,11 +74,12 @@ This plan is intentionally detailed (≈200 lines) to remove ambiguity and make 
 7C.1 Preserve colon prologue/hide-branch behavior (the initial branch used to hide definition remains; the wrapper uses the same mechanism).
 7C.2 Dictionary: continue using the same entry; do not create a new entry; will rebind payload later.
 7C.3 Wrapper codegen order:
-   1) On first cleanup local, emit `Op.Reserve` (fresh reservePatchAddr for wrapper locals).
-   2) Emit X1516 call to body entry (compiler helper exists: `emitUserWordCall` / `compilerCompileUserWordCall`).
-   3) Emit `Op.SetInFinally`.
-   4) Compile remaining tokens as cleanup.
-   5) End with `Op.Exit`.
+   1) Align the wrapper entry to `CODE_ALIGN_BYTES` (currently 8) before encoding any CODE ref to it; pad with NOPs if needed so X1516 encoding remains valid.
+   2) On first cleanup local, emit `Op.Reserve` (fresh reservePatchAddr for wrapper locals).
+   3) Emit X1516 call to body entry (compiler helper exists: `emitUserWordCall` / `compilerCompileUserWordCall`); body entry is already aligned by colon padding.
+   4) Emit `Op.SetInFinally`.
+   5) Compile remaining tokens as cleanup.
+   6) End with `Op.Exit`.
 7C.4 Wrapper locals: maintain separate `localCount` and reservePatchAddr; patch at `;`.
 
 ### 7D. At `;` (end of wrapper)
@@ -86,6 +87,7 @@ This plan is intentionally detailed (≈200 lines) to remove ambiguity and make 
 7D.2 Forget wrapper locals (new checkpoint inside wrapper).
 7D.3 Rebind dictionary entry payload to wrapper address using helper from Section 4.
 7D.4 Ensure recursion/self-reference (`recurse`) emits wrapper address, not body address.
+7D.5 Branch placeholder patching: when backpatching the hide-branch skip, compute offset after any alignment NOPs so the skip jumps past padding and body start. NOPs should never execute under normal entry.
 
 ### 7E. Locals Separation
 7E.1 Body locals are inaccessible in cleanup: two independent reserve/patch/forget cycles.
@@ -135,4 +137,4 @@ This plan is intentionally detailed (≈200 lines) to remove ambiguity and make 
 - Err currently numeric; future work may store tagged error values once safe.
 - Ensure frame layout assumptions (BP relative to RSTACK_BASE) are consistent when unwinding on err.
 - Keep colon prologue/hide-branch intact; omission in examples is for clarity only.
-
+- Tests should be added for: cached pre-wrapper addresses (bypass cleanup), locals separation (body vs cleanup), and alignment/padding (branch skips over NOPs). Use TDD to catch regressions.
