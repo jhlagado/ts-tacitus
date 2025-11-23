@@ -15,6 +15,7 @@ import {
   setCompilerPreserve,
   getCompilePointer,
   patchUint16,
+  alignCompilePointer,
 } from '../core/vm';
 import { TokenType, type Tokenizer, tokenizerNext } from './tokenizer';
 import { Op } from '../ops/opcodes';
@@ -48,7 +49,10 @@ export function beginDefinition(vm: VM, tokenizer: Tokenizer): void {
   const branchPos = getCompilePointer(vm);
   emitUint16(vm, 0);
 
-  const definitionStart = branchPos + 2;
+  // Align the entrypoint so CODE references respect configured alignment
+  alignCompilePointer(vm);
+
+  const definitionStart = getCompilePointer(vm);
   define(vm, wordName, Tagged(encodeX1516(definitionStart), Tag.CODE, 0));
   hideDictionaryHead(vm);
 
