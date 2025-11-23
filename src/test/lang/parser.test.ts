@@ -60,15 +60,22 @@ describe('Parser with Tokenizer', () => {
 
   describe('Colon definitions', () => {
     test('should parse simple word definitions', () => {
+      const nextNonNop = () => {
+        let op = next8(vm);
+        while (op === Op.Nop) {
+          op = next8(vm);
+        }
+        return op;
+      };
       parse(vm, createTokenizer(': double dup add ;'));
       const doubleWord = resolveSymbol(vm, 'double');
       expect(doubleWord).toBeDefined();
       vm.ip = 0;
       expect(next8(vm)).toBe(Op.Branch);
       nextInt16(vm); // skipOffset
-      expect(next8(vm)).toBe(Op.Dup);
-      expect(next8(vm)).toBe(Op.Add);
-      expect(next8(vm)).toBe(Op.Exit);
+      expect(nextNonNop()).toBe(Op.Dup);
+      expect(nextNonNop()).toBe(Op.Add);
+      expect(nextNonNop()).toBe(Op.Exit);
       expect(next8(vm)).toBe(Op.Abort);
     });
     test('should parse word definitions with numbers in name', () => {

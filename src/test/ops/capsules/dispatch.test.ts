@@ -25,8 +25,8 @@ describe('capsule dispatch runtime', () => {
     const savedIP = 1234;
     vm.ip = savedIP;
     vm.bp = RSTACK_BASE + 0;
-    // Build capsule with 2 locals (10,20) and entry at 777
-    const { handle } = pushCapsuleOnRStack([10, 20], 777);
+    // Build capsule with 2 locals (10,20) and entry at aligned 776
+    const { handle } = pushCapsuleOnRStack([10, 20], 776);
     // Build data stack: 1 2 'meth handle
     push(vm, 1);
     push(vm, 2);
@@ -40,7 +40,7 @@ describe('capsule dispatch runtime', () => {
     expect(stack).toEqual([1, 2, 42]);
 
     // ip jumped to entry address (decoded from X1516)
-    expect(vm.ip).toBe(777);
+    expect(vm.ip).toBe(776);
 
     // Return stack now has saved return address and BP on top
     // Exit epilogue restores ip and BP

@@ -17,7 +17,7 @@
 import { createVM, type VM } from '../../core/vm';
 import { STACK_BASE } from '../../core/constants';
 import { Op } from '../../ops/opcodes';
-import { Tag, getTaggedInfo, createCodeRef, Tagged } from '../../core';
+import { Tag, getTaggedInfo, createCodeRef, Tagged, CODE_ALIGN_BYTES } from '../../core';
 import { encodeX1516 } from '../../core/code-ref';
 import { define } from '../../core/dictionary';
 import {
@@ -28,6 +28,8 @@ import {
 } from '../utils/core-test-utils';
 import { evalOp } from '../../ops/core';
 import { resolveSymbol, push, getStackData, pop } from '../../core/vm';
+
+const alignAddr = (n: number) => n + ((CODE_ALIGN_BYTES - (n % CODE_ALIGN_BYTES)) % CODE_ALIGN_BYTES);
 
 describe('Symbol Table Integration Tests', () => {
   let vm: VM;
@@ -108,44 +110,44 @@ describe('Symbol Table Integration Tests', () => {
 
   describe('Code Symbol Integration: register → resolve → verify', () => {
     test('should register and resolve code symbols with correct tagged values', () => {
-      define(vm, 'test', Tagged(encodeX1516(1000), Tag.CODE, 0));
+      define(vm, 'test', Tagged(encodeX1516(alignAddr(1000)), Tag.CODE, 0));
 
       const testRef = resolveSymbol(vm, 'test');
       expect(testRef).toBeDefined();
       expect(isFuncRef(testRef!)).toBe(true);
-      expect(getCodeAddress(testRef!)).toBe(1000);
+      expect(getCodeAddress(testRef!)).toBe(alignAddr(1000));
 
       const { tag, value } = getTaggedInfo(testRef!);
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(encodeX1516(1000)); // Value is X1516 encoded
+      expect(value).toBe(encodeX1516(alignAddr(1000))); // Value is X1516 encoded
     });
 
     test('should handle multiple code symbols with different addresses', () => {
-      define(vm, 'square', Tagged(encodeX1516(1024), Tag.CODE, 0));
-      define(vm, 'cube', Tagged(encodeX1516(2048), Tag.CODE, 0));
-      define(vm, 'factorial', Tagged(encodeX1516(4096), Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(alignAddr(1024)), Tag.CODE, 0));
+      define(vm, 'cube', Tagged(encodeX1516(alignAddr(2048)), Tag.CODE, 0));
+      define(vm, 'factorial', Tagged(encodeX1516(alignAddr(4096)), Tag.CODE, 0));
 
       const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
-      expect(getCodeAddress(squareRef!)).toBe(1024);
+      expect(getCodeAddress(squareRef!)).toBe(alignAddr(1024));
 
       const cubeRef = resolveSymbol(vm, 'cube');
       expect(isFuncRef(cubeRef!)).toBe(true);
-      expect(getCodeAddress(cubeRef!)).toBe(2048);
+      expect(getCodeAddress(cubeRef!)).toBe(alignAddr(2048));
 
       const factorialRef = resolveSymbol(vm, 'factorial');
       expect(isFuncRef(factorialRef!)).toBe(true);
-      expect(getCodeAddress(factorialRef!)).toBe(4096);
+      expect(getCodeAddress(factorialRef!)).toBe(alignAddr(4096));
     });
 
     test('should maintain symbol table backward compatibility', () => {
-      define(vm, 'test', Tagged(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'test', Tagged(encodeX1516(alignAddr(1500)), Tag.CODE, 0));
 
       const codeRef = resolveSymbol(vm, 'test');
       expect(codeRef).toBeDefined();
       const { tag, value: addr } = getTaggedInfo(codeRef!);
       expect(tag).toBe(Tag.CODE);
-      expect(addr).toBe(encodeX1516(1500)); // Value is X1516 encoded
+      expect(addr).toBe(encodeX1516(alignAddr(1500))); // Value is X1516 encoded
     });
   });
 
@@ -153,8 +155,8 @@ describe('Symbol Table Integration Tests', () => {
     test('should handle both built-ins and code symbols in same symbol table', () => {
       define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
       define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
-      define(vm, 'square', Tagged(encodeX1516(2000), Tag.CODE, 0));
-      define(vm, 'double', Tagged(encodeX1516(3000), Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(alignAddr(2000)), Tag.CODE, 0));
+      define(vm, 'double', Tagged(encodeX1516(alignAddr(3000)), Tag.CODE, 0));
 
       const addRef = resolveSymbol(vm, 'add');
       expect(isBuiltinRef(addRef!)).toBe(true);
@@ -166,16 +168,16 @@ describe('Symbol Table Integration Tests', () => {
 
       const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
-      expect(getCodeAddress(squareRef!)).toBe(2000);
+      expect(getCodeAddress(squareRef!)).toBe(alignAddr(2000));
 
       const doubleRef = resolveSymbol(vm, 'double');
       expect(isFuncRef(doubleRef!)).toBe(true);
-      expect(getCodeAddress(doubleRef!)).toBe(3000);
+      expect(getCodeAddress(doubleRef!)).toBe(alignAddr(3000));
     });
 
     test('should execute built-ins while preserving code symbol references', () => {
       define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
-      define(vm, 'square', Tagged(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(alignAddr(1500)), Tag.CODE, 0));
 
       push(vm, 10);
       push(vm, 5);
@@ -187,7 +189,7 @@ describe('Symbol Table Integration Tests', () => {
 
       const squareRef = resolveSymbol(vm, 'square');
       expect(isFuncRef(squareRef!)).toBe(true);
-      expect(getCodeAddress(squareRef!)).toBe(1500);
+      expect(getCodeAddress(squareRef!)).toBe(alignAddr(1500));
     });
   });
 
@@ -262,7 +264,7 @@ describe('Symbol Table Integration Tests', () => {
         if (i % 2 === 0) {
           define(vm, `builtin_${i}`, Tagged(i % 128, Tag.CODE, 0));
         } else {
-          define(vm, `code_${i}`, Tagged(encodeX1516(1000 + i), Tag.CODE, 0));
+          define(vm, `code_${i}`, Tagged(encodeX1516(alignAddr(1000 + i)), Tag.CODE, 0));
         }
       }
 
@@ -272,7 +274,7 @@ describe('Symbol Table Integration Tests', () => {
 
       const code43 = resolveSymbol(vm, 'code_43');
       expect(isFuncRef(code43!)).toBe(true);
-      expect(getCodeAddress(code43!)).toBe(1043);
+      expect(getCodeAddress(code43!)).toBe(alignAddr(1043));
 
       expect(resolveSymbol(vm, 'nonexistent')).toBeUndefined();
     });
@@ -281,7 +283,7 @@ describe('Symbol Table Integration Tests', () => {
       const initialStackSize = getStackData(vm).length;
 
       define(vm, 'test1', Tagged(Op.Add, Tag.CODE, 0));
-      define(vm, 'test2', Tagged(encodeX1516(500), Tag.CODE, 0));
+      define(vm, 'test2', Tagged(encodeX1516(alignAddr(500)), Tag.CODE, 0));
 
       const ref1 = resolveSymbol(vm, 'test1');
       const ref2 = resolveSymbol(vm, 'test2');

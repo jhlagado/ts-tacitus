@@ -29,13 +29,20 @@ describe('Comprehensive Parser Tests', () => {
   });
   describe('Word Definitions', () => {
     test('should handle empty word definitions', () => {
+      const nextNonNop = () => {
+        let op = next8(vm);
+        while (op === Op.Nop) {
+          op = next8(vm);
+        }
+        return op;
+      };
       parse(vm, createTokenizer(': empty ;'));
       const emptyWord = resolveSymbol(vm, 'empty');
       expect(emptyWord).toBeDefined();
       vm.ip = 0;
       expect(next8(vm)).toBe(Op.Branch);
       nextInt16(vm);
-      expect(next8(vm)).toBe(Op.Exit);
+      expect(nextNonNop()).toBe(Op.Exit);
     });
     test('should handle words with special characters in name', () => {
       parse(vm, createTokenizer(': test-word! add sub ;'));

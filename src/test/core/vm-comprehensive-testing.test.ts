@@ -22,6 +22,9 @@ import { Op } from '../../ops/opcodes';
 import { define } from '../../core/dictionary';
 import { pushSymbolRef, peek, resolveSymbol, push, pop, getStackData } from '../../core/vm';
 import { encodeX1516 } from '../../core/code-ref';
+import { CODE_ALIGN_BYTES } from '../../core';
+
+const alignAddr = (n: number) => n + ((CODE_ALIGN_BYTES - (n % CODE_ALIGN_BYTES)) % CODE_ALIGN_BYTES);
 
 // Mitigate flakiness in perf-sensitive assertions under variable CI load
 jest.retryTimes(2);
@@ -60,11 +63,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
         const symbolName = `sym${i}`;
         symbols.push(symbolName);
 
-        if (i % 2 === 0) {
-          define(vm, symbolName, Tagged(Op.Add, Tag.CODE, 0));
-        } else {
-          define(vm, symbolName, Tagged(encodeX1516(2000 + i), Tag.CODE, 0));
-        }
+        const addr = alignAddr(2000 + i);
+        define(vm, symbolName, Tagged(i % 2 === 0 ? Op.Add : encodeX1516(addr), Tag.CODE, 0));
       }
 
       for (const symbol of symbols) {
@@ -86,7 +86,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       });
 
       codeSymbols.forEach((name, index) => {
-        define(vm, name, Tagged(encodeX1516(3000 + index * 100), Tag.CODE, 0));
+        define(vm, name, Tagged(encodeX1516(alignAddr(3000 + index * 100)), Tag.CODE, 0));
       });
 
       for (let i = 0; i < 100; i++) {
@@ -175,8 +175,8 @@ describe('VM Comprehensive Testing - Step 12', () => {
     it('should handle complete @symbol eval workflow with mixed types', () => {
       define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
       define(vm, 'mul', Tagged(Op.Multiply, Tag.CODE, 0));
-      define(vm, 'square', Tagged(encodeX1516(5000), Tag.CODE, 0));
-      define(vm, 'double', Tagged(encodeX1516(5100), Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(alignAddr(5000)), Tag.CODE, 0));
+      define(vm, 'double', Tagged(encodeX1516(alignAddr(5100)), Tag.CODE, 0));
 
       push(vm, 3);
       push(vm, 4);
@@ -192,7 +192,7 @@ describe('VM Comprehensive Testing - Step 12', () => {
       pushSymbolRef(vm, 'square');
       const { tag, value } = getTaggedInfo(pop(vm));
       expect(tag).toBe(Tag.CODE);
-      expect(value).toBe(encodeX1516(5000));
+      expect(value).toBe(encodeX1516(alignAddr(5000)));
     });
 
     it('should handle rapid symbol type switching', () => {
@@ -203,9 +203,9 @@ describe('VM Comprehensive Testing - Step 12', () => {
       ];
 
       const codeDefs = [
-        { name: 'def1', addr: 6000 },
-        { name: 'def2', addr: 6100 },
-        { name: 'def3', addr: 6200 },
+        { name: 'def1', addr: alignAddr(6000) },
+        { name: 'def2', addr: alignAddr(6100) },
+        { name: 'def3', addr: alignAddr(6200) },
       ];
 
       builtins.forEach(op => define(vm, op.name, Tagged(op.code, Tag.CODE, 0)));

@@ -28,7 +28,7 @@ describe('Printer', () => {
     });
 
     test('should print CODE tagged values', () => {
-      const codeValue = Tagged(encodeX1516(50), Tag.CODE);
+      const codeValue = Tagged(encodeX1516(48), Tag.CODE);
       prn('Test Code', codeValue);
 
       expect(consoleOutput).toHaveLength(1);

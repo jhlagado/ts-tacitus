@@ -76,9 +76,9 @@ export function beginCapsuleImmediateOp(vm: VM): void {
   pop(vm);
   push(vm, createCodeRef(Op.EndCapsule));
 
-  // Emit constructor-exit opcode
-  alignCompilePointer(vm);
+  // Emit constructor-exit opcode; align the dispatch entry that follows
   emitOpcode(vm, Op.ExitConstructor);
+  alignCompilePointer(vm);
 }
 
 // --- Case ---

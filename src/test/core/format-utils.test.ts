@@ -63,8 +63,8 @@ describe('Format Utils', () => {
 
     describe('other tag types', () => {
       test('should format CODE tags with tag name and value', () => {
-        const codeValue = Tagged(encodeX1516(100), Tag.CODE);
-        expect(formatAtomicValue(vm, codeValue)).toBe('[CODE:100]');
+        const codeValue = Tagged(encodeX1516(104), Tag.CODE);
+        expect(formatAtomicValue(vm, codeValue)).toBe('[CODE:104]');
       });
 
       test('should format LIST tags with tag name and value', () => {
@@ -107,13 +107,13 @@ describe('Format Utils', () => {
 
     describe('other value types', () => {
       test('should format CODE values', () => {
-        const codeValue = Tagged(encodeX1516(100), Tag.CODE);
-        expect(formatValue(vm, codeValue)).toBe('[CODE:100]');
+        const codeValue = Tagged(encodeX1516(104), Tag.CODE);
+        expect(formatValue(vm, codeValue)).toBe('[CODE:104]');
       });
 
       test('should format unknown tag types', () => {
-        const unknownValue = Tagged(encodeX1516(123), Tag.CODE);
-        expect(formatValue(vm, unknownValue)).toBe('[CODE:123]');
+        const unknownValue = Tagged(encodeX1516(120), Tag.CODE);
+        expect(formatValue(vm, unknownValue)).toBe('[CODE:120]');
       });
     });
 

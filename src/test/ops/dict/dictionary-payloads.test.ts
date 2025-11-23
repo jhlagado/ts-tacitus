@@ -61,7 +61,7 @@ describe('Dictionary payload types', () => {
   describe('CODE entries (Tag.CODE)', () => {
     test('defineCode creates CODE entry with bytecode address', () => {
       const name = 'my-func';
-      const address = 0x1234;
+      const address = 0x1238;
       define(vm, name, Tagged(encodeX1516(address), Tag.CODE, 0));
       const tv = lookup(vm, name);
       expect(tv).toBeDefined();
@@ -158,7 +158,7 @@ describe('Dictionary payload types', () => {
   describe('CODE_REF entries (Tag.CODE via createCodeRef)', () => {
     test('define with CODE_REF creates entry with CODE payload', () => {
       const name = 'my-code-ref';
-      const bytecodeAddr = 0x1234;
+      const bytecodeAddr = 0x1238;
       const codeRef = createCodeRef(bytecodeAddr);
 
       define(vm, name, codeRef);

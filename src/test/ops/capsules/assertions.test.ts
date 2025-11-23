@@ -13,7 +13,7 @@ describe('capsule assertions', () => {
   });
 
   test('accepts well-formed capsule', () => {
-    const codeRef = Tagged(encodeX1516(42), Tag.CODE);
+    const codeRef = Tagged(encodeX1516(40), Tag.CODE);
     pushTestList(vm, [1, 2, codeRef]);
     const header = peek(vm);
     expect(() => assertCapsuleShape(vm, header)).not.toThrow();

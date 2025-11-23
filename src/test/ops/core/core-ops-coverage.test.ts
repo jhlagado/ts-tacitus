@@ -71,7 +71,7 @@ describe('Core Operations Branch Coverage', () => {
 
     test('should execute CODE with meta=1 (block) path', () => {
       // meta=1 branch in evalOp should rpush return address and jump to addr
-      const addr = 12345;
+      const addr = 12344;
       vm.ip = 77;
       push(vm, Tagged(encodeX1516(addr), Tag.CODE, 1));
       evalOp(vm);

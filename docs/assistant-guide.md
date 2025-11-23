@@ -51,6 +51,7 @@ This document consolidates the repo guidelines, AI guardrails, and onboarding no
 - Always `resetVM()` between tests to avoid state bleed.
 - Test happy paths plus error paths (underflow, invalid refs, etc.).
 - Run `yarn test` after **every** step; `yarn lint` before declaring work complete.
+- Keep test output short to preserve AI context: prefer targeted files for quick checks and use quiet flags (`jest --runInBand --silent --reporters default`). Summarize results instead of pasting full logs.
 
 ### Naming & Style Essentials
 

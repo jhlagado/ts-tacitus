@@ -96,7 +96,7 @@ describe('VM pushSymbolRef method', () => {
       // Use Tag.CODE for builtins (unified dispatch)
       define(vm, 'add', Tagged(Op.Add, Tag.CODE, 0));
       define(vm, 'dup', Tagged(Op.Dup, Tag.CODE, 0));
-      define(vm, 'square', Tagged(encodeX1516(1500), Tag.CODE, 0));
+      define(vm, 'square', Tagged(encodeX1516(1504), Tag.CODE, 0));
       define(vm, 'double', Tagged(encodeX1516(1600), Tag.CODE, 0));
 
       pushSymbolRef(vm, 'add');
@@ -114,7 +114,7 @@ describe('VM pushSymbolRef method', () => {
       // Builtins are now stored as Tag.CODE with value < 128 (stored directly, not X1516 encoded)
       expect(decoded[0]).toMatchObject({ tag: Tag.CODE, value: Op.Add });
       // Tag.CODE values >= 128 are stored with X1516 encoded addresses
-      expect(decoded[1]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1500) });
+      expect(decoded[1]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1504) });
       expect(decoded[2]).toMatchObject({ tag: Tag.CODE, value: Op.Dup });
       expect(decoded[3]).toMatchObject({ tag: Tag.CODE, value: encodeX1516(1600) });
     });

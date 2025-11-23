@@ -30,7 +30,7 @@ describe('Compiler', () => {
     expect(nextInt16(vm)).toBe(-42);
   });
   test('should compile an address as a tagged pointer', () => {
-    const address = 0x2345;
+    const address = 0x2348;
     compilerCompileAddress(vm, vm.compile, address);
     vm.ip = 0;
     const tagNum = nextFloat32(vm);

@@ -37,7 +37,7 @@ describe('capsule layout (handle-based)', () => {
   };
 
   test('reads valid capsule layout from REF handle', () => {
-    const codeAddr = 1234;
+    const codeAddr = 1232;
     const { handle, slotCount, codeRef } = pushCapsuleLike([10, 20], codeAddr);
 
     const layout = readCapsuleLayoutFromHandle(vm, handle);
@@ -65,7 +65,7 @@ describe('capsule layout (handle-based)', () => {
 
   test('reads capsule layout when list lives on STACK segment', () => {
     // Build a capsule-like list on the data stack: ( CODE 1 )
-    const codeRef = Tagged(encodeX1516(99), Tag.CODE);
+    const codeRef = Tagged(encodeX1516(96), Tag.CODE);
     push(vm, 1);
     push(vm, codeRef);
     push(vm, Tagged(2, Tag.LIST));

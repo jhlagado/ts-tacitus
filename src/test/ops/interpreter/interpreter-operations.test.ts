@@ -29,7 +29,7 @@ describe('Built-in Words', () => {
       expect(vm.running).toBe(false);
     });
     test('exitOp should restore ip from return stack and BP frame', () => {
-      const testAddress = 0x2345;
+      const testAddress = 0x2348;
       // In the migrated model BP is cell-based. Simulate a call frame by
       // pushing return address then saved BP (cells) and setting BP to current RSP.
       const originalBP = vm.bp; // capture current (absolute cells)
@@ -42,7 +42,7 @@ describe('Built-in Words', () => {
       expect(vm.bp).toBe(originalBP);
     });
     test('evalOp should push ip to return stack, set up BP frame, and jump', () => {
-      const testAddress = 0x2345;
+      const testAddress = 0x2348;
       const originalIP = vm.ip;
       const originalBP = vm.bp; // absolute cells
       push(vm, Tagged(encodeX1516(testAddress), Tag.CODE));
@@ -64,7 +64,7 @@ describe('Built-in Words', () => {
     test('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.ip;
       const originalBP = vm.bp;
-      const offset = 0x1234;
+      const offset = 0x1238;
       emitUint16(vm, offset);
       callOp(vm);
       expect(vm.ip).toBe((originalIP + 2 + offset) & 0xffff);
@@ -120,7 +120,7 @@ describe('Built-in Words', () => {
       expect(pop(vm)).toBe(42);
     });
     test('should handle tagged pointers', () => {
-      const addr = Tagged(encodeX1516(0x2345), Tag.CODE);
+      const addr = Tagged(encodeX1516(0x2348), Tag.CODE);
       emitFloat32(vm, addr);
       literalNumberOp(vm);
       expect(pop(vm)).toBe(addr);
@@ -170,7 +170,7 @@ describe('Built-in Words', () => {
       }
 
       // Push a CODE reference so evalOp enters the frame-setup path (which rpushes twice)
-      push(vm, Tagged(encodeX1516(0x1234), Tag.CODE));
+      push(vm, Tagged(encodeX1516(0x1238), Tag.CODE));
       // evalOp will attempt to push return ip and saved BP (relative), overflowing on second push
       expect(() => evalOp(vm)).toThrow(/Return stack \(RSP\) overflow/);
     });
