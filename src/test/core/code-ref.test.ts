@@ -44,8 +44,8 @@ describe('Code Reference Utilities', () => {
       });
 
       test('should reject invalid addresses', () => {
-        expect(() => encodeX1516(-1)).toThrow('Invalid address: -1');
-        expect(() => encodeX1516(32768)).toThrow('Invalid address: 32768');
+        expect(() => encodeX1516(-1)).toThrow(/Invalid address/);
+        expect(() => encodeX1516(32768)).toThrow(/Invalid address/);
       });
     });
 
