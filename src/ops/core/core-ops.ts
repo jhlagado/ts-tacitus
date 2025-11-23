@@ -126,12 +126,12 @@ export const branchOp: Verb = (vm: VM) => {
  * 4. Jumping to the function's address
  */
 export const callOp: Verb = (vm: VM) => {
-  const callAddress = nextInt16(vm);
+  const offset = nextInt16(vm);
   rpush(vm, vm.ip);
   // Save BP as relative cells on the return stack for compatibility
   rpush(vm, vm.bp - RSTACK_BASE);
   vm.bp = vm.rsp;
-  vm.ip = callAddress;
+  vm.ip += offset;
 };
 
 /**

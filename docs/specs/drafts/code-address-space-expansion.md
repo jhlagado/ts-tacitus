@@ -1,231 +1,96 @@
-# Code Address Space Expansion to 18-19 Bits
+# Code Address Space Expansion (Configurable Alignment)
 
 **Status:** Draft  
 **Date:** 2025-01-XX  
 **Related:** `OPCODE_MIGRATION_PLAN.md`, `vm-architecture.md`
 
-## Current State
+## Current State (after tag/value expansion)
 
-- **Function addresses in `Tag.CODE`**: 15-bit (0-32767)
-- **IP (Instruction Pointer)**: 16-bit byte address (0-65535)
-- **Tag encoding**: 6 bits in mantissa (but only 4 bits used, max tag = 12)
-- **Value payload**: 16 bits (0-65535)
-- **Encoding in opcodes**: 2 bytes (16 bits)
-- **Branching**: Absolute addresses in `Call` opcode
+- `Tag` encoding: 3 bits (0–7). Tag 0 = NUMBER/raw float / canonical NaN; SENTINEL/STRING/CODE/REF/LIST/RESERVED/LOCAL occupy the remaining codes.
+- Value payload: 19 bits (unsigned except SENTINEL).
+- CODE payload carrier: X1516 (15-bit). Currently treated as byte-aligned → ~32K byte code space.
+- Branch opcodes: already relative. Call is still absolute (X1516 payload → byte address).
+- IP: 16-bit byte address (0–65535) today.
 
 ## Goal
 
-Expand code address space to 18-19 bits while:
+Expand the reachable code space while keeping opcodes 2-byte wide and making code alignment a configurable knob. Target: 18-bit code space (256 KB) via 8-byte alignment on CODE payloads; allow experimentation with other alignments.
 
-1. Keeping opcode encoding at 2 bytes (16 bits)
-2. Maintaining NaN-boxing compatibility
-3. Supporting larger code segments
-
-## Bit Allocation Strategy
-
-### Current NaN-Boxing Layout (32-bit float)
+## Bit Allocation (implemented)
 
 ```
-Sign (1 bit) | Exponent (8 bits) | NaN bit (1 bit) | Tag (6 bits) | Value (16 bits)
+Sign (1) | Exponent (8) | NaN bit (1) | Tag (3) | Value (19)
 ```
 
-- **Tag**: Currently uses 6 bits (`0x3f` mask), but only 4 bits needed (max tag = 12)
-- **Value**: 16 bits (0-65535)
+- Tag: compact 3-bit set (see above).
+- Value: 19 bits; CODE/STRING/REF/LIST use unsigned; SENTINEL is signed.
 
-### Proposed Layout
+## CODE Payload Scaling
 
-**Reduce tags to 3 bits (8 tag types)** to free up 3 bits for value:
+Treat the 15-bit X1516 payload as a *scaled index*:
 
-```
-Sign (1 bit) | Exponent (8 bits) | NaN bit (1 bit) | Tag (3 bits) | Value (19 bits)
-```
+- Byte address = payload << ALIGN_SHIFT
+- ALIGN_SHIFT is derived from alignment (1/2/8/16 bytes → shifts 0/1/3/4).
 
-**Bit sources for 19-bit value:**
+Alignment options (configurable constant — see `CODE_ALIGN_BYTES`/`CODE_ALIGN_SHIFT`):
 
-1. Current value bits: 16 bits
-2. Two unused bits above 16 bits (bits 16-17)
-3. One bit borrowed from tags (reduce from 6 to 3 bits)
+| Alignment | Payload reach | Byte reach | Notes                  |
+|-----------|---------------|------------|------------------------|
+| 1 byte    | 15 bits       | 32 KB      | Current default        |
+| 2 bytes   | 16 bits       | 64 KB      | Minimal change         |
+| 8 bytes   | 18 bits       | 256 KB     | **Preferred (ESP32)**  |
+| 16 bytes  | 19 bits       | 512 KB     | Max reach, more waste  |
 
-**Total**: 16 + 2 + 1 = 19 bits for value payload
+## IP / Segment
 
-### Tag Reduction
+- Grow IP to 18 bits (0–262143) in the preferred configuration; 19-bit is possible if alignment shifts allow and segment size warrants.
+- Update code segment bounds and loaders to honor the configured size.
 
-**Current tags** (sparse numbering, 7 NaN tags):
+## Call / Branch Encoding
 
-- `SENTINEL = 1`
-- `CODE = 2`
-- `STRING = 4`
-- `LOCAL = 6`
-- `BUILTIN = 7` (removed - unified with `CODE`)
-- `LIST = 8`
-- `REF = 12`
+- Branch remains relative (16-bit signed offset).
+- Call is repurposed to a 16-bit signed relative offset (±32768 bytes ≈ ±32 KB). Use when the target is in range.
+- Keep absolute calls via scaled X1516 payloads for far targets (using the configured alignment).
+- Compiler chooses relative vs absolute based on distance and alignment.
 
-**Note**: `NUMBER` doesn't need a tag - non-NaN values are raw IEEE 754 floats, not NaN-boxed.
+## Data vs Code
 
-**After unification and with 3-bit tags** (compact numbering 0-7):
+- Data arena already benefits from 19-bit payload × 4-byte cells ≈ 512K cells (~2 MB). No change needed there.
+- Code expansion is the primary focus; asymmetry is acceptable.
 
-After `Tag.CODE` and `Tag.BUILTIN` unification (completed), we have 7 tag values (0-6, 8, 12):
+## Implementation Plan (stepped)
 
-- `0` = `NaN` (canonical NaN needs to be valid as a tagged value)
-- `1` = `SENTINEL` (remapped from 1)
-- `2` = `STRING` (remapped from 4)
-- `3` = `CODE` (unified, includes builtins, remapped from 2)
-- `4` = `REF` (remapped from 12)
-- `5` = `LIST` (remapped from 8)
-- `6` = `reserved1` (reserved for future expansion)
-- `7` = `LOCAL` (remapped from 6)
+1) **Config knob**
+   - Introduce constants for CODE alignment/scale (default 1 byte; allow 2/8/16). Centralize in `constants.ts` or similar.
+   - Make X1516 decode/encode use the alignment shift when forming byte addresses.
 
-## Address Space Expansion
+2) **CODE helpers**
+   - Update CODE handling in `Tagged`/`getTaggedInfo`/eval to apply alignment shift when computing byte addresses; keep sign-bit (IMMEDIATE) semantics unchanged.
+   - Ensure printers/disassemblers show both payload and resolved byte address given the current alignment.
 
-### Function Addresses in `Tag.CODE`
+3) **Relative Call**
+   - Implement Call-relative (16-bit signed offset). Emit from compiler when reachable; fall back to absolute scaled form otherwise.
+   - Keep Branch untouched (already relative).
 
-- **Current**: 15-bit (0-32767) - stored as byte address
-- **Proposed**: 19-bit (0-524287) - stored as aligned index or byte address
+4) **Compiler/assembler**
+   - Distance-based choice between relative and absolute; warn/error on out-of-range relative calls.
+   - Update any bytecode loaders/emitters to tag absolute calls as scaled X1516 payloads.
 
-### IP Register Expansion
+5) **IP/segment sizing**
+   - Bump code-segment constants to the 18-bit target (256 KB) when alignment is 8 bytes; allow overriding for experiments.
+   - Enforce bounds checks in VM fetch/dispatch paths using the configured size.
 
-- **Current**: 16-bit byte address (0-65535) → 64KB code segment
-- **Proposed**: 18-19 bit byte address
-  - 18-bit: 0-262143 → 256KB code segment
-  - 19-bit: 0-524287 → 512KB code segment
+6) **Tests**
+   - Round-trip 19-bit payloads at high values for CODE/STRING/REF.
+   - Execution tests: near call (relative), far call (absolute scaled), boundary violations, misaligned payload errors.
+   - X1516 decode/encode under different alignment settings.
 
-### Alignment Strategy
+7) **Docs & migration**
+   - Document alignment config, scaling math, and dual Call forms.
+   - Note breaking change if default alignment shifts from 1 byte; consider bytecode versioning or a flag.
 
-Function addresses don't have to be byte addresses - they can be aligned indices:
+## Open Questions / Risks
 
-- **With 4-byte alignment**:
-  - Function address 0 → byte address 0
-  - Function address 1 → byte address 4
-  - Function address 131071 → byte address 524284
-  - Allows 131072 function slots with 19-bit addresses
-
-- **With 8-byte alignment**:
-  - Function address 0 → byte address 0
-  - Function address 1 → byte address 8
-  - Function address 65535 → byte address 524280
-  - Allows 65536 function slots with 19-bit addresses
-
-## Opcode Encoding Strategy
-
-### Problem
-
-If we expand to 18-19 bit addresses, encoding them in opcodes would require 3 bytes instead of 2.
-
-### Solution: Relative Branching
-
-**Current**: Absolute addresses in `Call` opcode
-
-- `Call` reads 16-bit absolute address
-- Sets `vm.IP = address` directly
-
-**Proposed**: Relative offsets in `Call` opcode
-
-- `Call` reads 16-bit signed offset (-32768 to +32767)
-- Sets `vm.IP = vm.IP + offset`
-- Offsets can stay 16-bit even with 18-19 bit address space
-
-**Benefits**:
-
-1. Encoding stays at 2 bytes (16-bit signed offset)
-2. ±128KB range covers most function calls
-3. Enables larger code segments without opcode size increase
-
-**Trade-offs**:
-
-- Requires calculating offset at compile time
-- Slightly more complex compilation
-- Classic Forth uses relative branches (proven approach)
-
-## Implementation Plan
-
-### Phase 1: Tag Reduction
-
-1. Reduce tag encoding from 6 bits to 3 bits
-2. Remap existing tags to 0-7 range
-3. Update `Tagged` and `getTaggedInfo` to use 3-bit tags
-4. Verify all 8 tag types fit in 3 bits
-
-### Phase 2: Value Payload Expansion
-
-1. Expand value payload from 16 to 19 bits
-2. Update value masks and validation
-3. Test with 19-bit addresses in `Tag.CODE`
-
-### Phase 3: IP Register Expansion
-
-1. Expand `vm.IP` from 16-bit to 18-19 bit
-2. Update all IP operations to handle larger addresses
-3. Expand code segment size accordingly
-
-### Phase 4: Relative Branching
-
-1. Change `Call` opcode from absolute to relative
-2. Update compiler to calculate relative offsets
-3. Update `callOp` to use `vm.IP + offset`
-4. Update `Branch` opcode if needed (already relative)
-
-### Phase 5: Alignment (Optional)
-
-1. Implement function address alignment
-2. Convert aligned indices to byte addresses when setting `vm.IP`
-3. Update function definition to use aligned addresses
-
-## Example: 19-bit Addresses with 4-byte Alignment
-
-**Configuration**:
-
-- Function addresses: 19-bit (0-524287) - aligned indices
-- IP: 19-bit (0-524287) - byte addresses
-- Alignment: 4 bytes
-- Branch offsets: 16-bit signed (-32768 to +32767)
-
-**Capacities**:
-
-- Function slots: 524288 (19-bit)
-- Code segment: 524288 × 4 = 2MB (but IP limited to 524287 bytes)
-- Branch range: ±128KB from current IP
-- Opcode encoding: Still 2 bytes
-
-## Considerations
-
-### Tag Type Limit
-
-With 3-bit tags, we're limited to 8 tag types (0-7). After unifying `Tag.CODE` and `Tag.BUILTIN` (completed, `BUILTIN` removed), we have 7 tag values:
-
-- `0` = `NaN` (canonical NaN needs to be valid as a tagged value)
-- `1` = `SENTINEL` (remapped from 1)
-- `2` = `STRING` (remapped from 4)
-- `3` = `CODE` (unified, includes builtins, remapped from 2)
-- `4` = `REF` (remapped from 12)
-- `5` = `LIST` (remapped from 8)
-- `6` = `reserved1` (reserved for future expansion)
-- `7` = `LOCAL` (remapped from 6)
-
-**Note**: `NUMBER` doesn't need a tag - non-NaN values are raw IEEE 754 floats, not NaN-boxed.
-
-### Backward Compatibility
-
-This is a breaking change:
-
-- Tag encoding changes (6 bits → 3 bits)
-- Value payload changes (16 bits → 19 bits)
-- IP register size changes
-- `Call` opcode semantics change (absolute → relative)
-
-Would require migration strategy or version bump.
-
-### Testing
-
-Need to verify:
-
-- NaN-boxing still works correctly with 3-bit tags
-- 19-bit values don't cause precision issues in float32
-- Relative branching works correctly across large address ranges
-- Alignment conversion is correct
-
-## References
-
-- Current tag system: `src/core/tagged.ts`
-- Current IP usage: `src/core/vm.ts`
-- Current branching: `src/ops/core/core-ops.ts`
-- Related proposal: `OPCODE_MIGRATION_PLAN.md` (uses `Tag.OPCODE` instead of unifying into `Tag.CODE`)
+- Precision: ensure float32 round-trips preserve the high payload bits under all alignments.
+- Tooling: disassembler/pretty printers must be alignment-aware.
+- Compatibility: all existing tests must continue to pass when the alignment knob is exercised.

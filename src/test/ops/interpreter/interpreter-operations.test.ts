@@ -64,10 +64,10 @@ describe('Built-in Words', () => {
     test('callOp should jump to absolute address and set up BP frame', () => {
       const originalIP = vm.ip;
       const originalBP = vm.bp;
-      const testAddress = 0x12345;
-      emitUint16(vm, testAddress);
+      const offset = 0x1234;
+      emitUint16(vm, offset);
       callOp(vm);
-      expect(vm.ip).toBe(testAddress & 0xffff);
+      expect(vm.ip).toBe((originalIP + 2 + offset) & 0xffff);
       expect(vm.bp).toBe(vm.rsp);
       const savedBP = rpop(vm);
       expect(savedBP).toBe(originalBP - RSTACK_BASE);

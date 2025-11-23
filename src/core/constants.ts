@@ -36,6 +36,13 @@ export const STRING_SIZE_BYTES = 0x0800;
 
 export const CODE_SIZE_BYTES = 0x2000;
 
+// Code address alignment/scale (payload is scaled index; byte address = payload << CODE_ALIGN_SHIFT)
+// Default: 1-byte alignment (shift = 0). Supported experimental values: 2, 8, 16.
+export const CODE_ALIGN_BYTES = 1;
+export const CODE_ALIGN_SHIFT = Math.trunc(Math.log2(CODE_ALIGN_BYTES));
+export const CODE_MAX_PAYLOAD = 0x7fff; // 15-bit X1516 payload
+export const CODE_MAX_BYTE_ADDRESS = CODE_MAX_PAYLOAD << CODE_ALIGN_SHIFT;
+
 // Unified arena boundaries (byte offsets)
 export const GLOBAL_BASE_BYTES = 0x0000;
 export const GLOBAL_TOP_BYTES = GLOBAL_BASE_BYTES + GLOBAL_SIZE_BYTES;
