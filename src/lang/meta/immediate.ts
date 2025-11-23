@@ -15,6 +15,7 @@ import {
   emitFloat32,
   getCompilePointer,
   patchUint16,
+  alignCompilePointer,
 } from '../../core/vm';
 
 const ENDMATCH_CODE_REF = createCodeRef(Op.EndMatch);
@@ -76,6 +77,7 @@ export function beginCapsuleImmediateOp(vm: VM): void {
   push(vm, createCodeRef(Op.EndCapsule));
 
   // Emit constructor-exit opcode
+  alignCompilePointer(vm);
   emitOpcode(vm, Op.ExitConstructor);
 }
 

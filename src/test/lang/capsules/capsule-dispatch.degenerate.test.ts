@@ -10,16 +10,14 @@ describe('Capsule dispatch (degenerate body)', () => {
   });
 
   test('dispatch ignores message and returns constant', () => {
-    const code =
-      `
+    const code = `
       : mk
         capsule
         123
       ;
       mk
-      ` +
-      // args… method receiver dispatch ; no args, swap to put receiver last
-      " 'any swap dispatch ";
+      'any swap dispatch
+    `;
 
     const stack = executeTacitCode(vm, code);
     // Expect the constant on stack

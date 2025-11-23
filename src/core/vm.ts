@@ -37,7 +37,9 @@ import {
   RSTACK_TOP,
   GLOBAL_BASE,
   GLOBAL_SIZE,
+  CODE_ALIGN_BYTES,
 } from './constants';
+import { Op } from '../ops/opcodes';
 import { getTaggedInfo, isNIL, Tag } from './tagged';
 import { decodeX1516 } from './code-ref';
 import { createDigest } from '../strings/digest';
@@ -662,6 +664,16 @@ export function getCompilePointer(vm: VM): number {
  */
 export function setCompilePointer(vm: VM, address: number): void {
   vm.compile.CP = address;
+}
+
+/**
+ * Aligns the compile pointer to the configured CODE alignment by emitting NOP padding.
+ * Safe to call as a no-op when CODE_ALIGN_BYTES = 1.
+ */
+export function alignCompilePointer(vm: VM): void {
+  while (vm.compile.CP % CODE_ALIGN_BYTES !== 0) {
+    emitOpcode(vm, Op.Nop);
+  }
 }
 
 /**
