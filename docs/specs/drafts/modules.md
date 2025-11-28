@@ -1,138 +1,156 @@
 Tacit Module System — Specification Draft
 
-## 1. Overview and Design Goals
+## 1. Overview and Goals
 
-The Tacit module system enables source files to be composed into coherent programs with minimal syntax overhead and precise control over symbol exposure, file inclusion, and data encapsulation. It is designed to support:
+The Tacit module system is deliberately small and conservative. Its purpose is to let source files be composed into larger programs without introducing a second, heavyweight layer of configuration or metadata. Instead of a separate “module language”, Tacit relies on the constructs that already exist: words, dictionary entries, global variables, and capsules.
 
-* **Simplicity of syntax**: Modules do not require special keywords or imports per file. Instead, they rely on the existing language model: symbols, dictionary entries, global variables, and capsules.
+From that perspective, a “module” is just a file that, when evaluated, leaves behind a single value that callers can rely on. The module system standardizes how such files are located, executed, cached, and re-used; it does not change the core execution model of the VM.
 
-* **Lazy and idempotent inclusion**: Files are only parsed and evaluated when explicitly imported. Importing the same file multiple times will not re-evaluate or recompile it, avoiding duplication or redefinition errors.
+Key design goals:
 
-* **Explicit exports**: Symbols intended for reuse must be explicitly exposed through capsule methods. This encourages encapsulation and avoids polluting the global namespace.
+- **Simple surface** – there is one primitive, the immediate word `import`, which is enough to build arbitrarily large dependency graphs.
+- **Deterministic, idempotent behavior** – each canonical file path is evaluated at most once; subsequent imports do not re-run code.
+- **Capsule-first exports** – modules are expected to return one value, typically a capsule, which becomes their public surface.
+- **Encapsulation via dispatch** – all words still enter the global dictionary, but consumption of a module is expected to happen through its capsule.
+- **Cycle detection** – in-progress imports are tracked explicitly, so circular dependencies fail fast with clear errors.
+- **Host/VM split** – the TypeScript host is responsible for files and paths; the VM is responsible for execution and global bindings.
 
-* **Minimal runtime footprint**: Once a module is compiled, its capsule is stored in a global variable using the canonical path as the key. The module’s static content is not re-evaluated or retained unnecessarily.
+The rest of this document spells out how `import` behaves, what contracts a module must honor, and how recursive imports and error cases are handled.
 
-* **Deterministic linking**: Each file is resolved to a unique canonical path at compile time. This ensures that inclusion is predictable and consistent across nested imports and prevents subtle bugs from path aliasing.
+## 2. Import Semantics
 
-* **Error transparency**: Circular imports are detected and reported by marking in-progress module globals as smudged entries. This avoids infinite loops and provides clear failure modes.
+The `import` word is an immediate macro. When the parser encounters it in source, it does not emit runtime bytecode; instead, it orchestrates a file-level inclusion at compile time.
 
-* **Capsule-based modularity**: Modules return instantiated capsules as their primary export. These capsules provide a clean dispatch surface for methods and encapsulated state, forming the basis for namespacing and reuse.
+Conceptually, `import "<relative-path>"` proceeds as follows:
 
-* **Isolation of implementation**: While capsules may access dictionary entries, they maintain visibility into their own scope even when external symbols conflict. This encourages modular thinking and avoids global symbol collisions.
+1. The host resolves the given relative path into a **canonical path**. Canonicalization is host-defined but must be stable: the same file, referenced through different relative paths, must reduce to the same canonical string. Typically this means resolving against the directory of the file currently being compiled (or the process working directory for top-level use), then normalizing `.`/`..`, symbolic links, and case rules as appropriate for the platform.
 
-* **Host/runtime split**: Path resolution and import tracking are handled by the TypeScript host environment, while inclusion, compilation, and dictionary operations are performed within the Tacit VM.
+2. The VM’s dictionary is consulted for a global whose **name** is exactly this canonical path. This global, if present, is the authoritative record for the module. It may be in one of three states:
+   - Absent (module has never been imported).
+   - Present but **smudged** (module is currently being imported).
+   - Present and complete (module has already been imported successfully).
 
-## 2. Module Inclusion via Manifest
+3. If a complete global is found, the import is trivially satisfied. No file is re-parsed or re-evaluated; the previously computed module value is reused. This is what makes imports idempotent.
 
-Tacit does not require explicit per-file import declarations within each source file. Instead, module inclusion is driven externally by a manifest or a primary source file that defines the dependency chain. The `import` word is an immediate macro that initiates the inclusion of a module by specifying its relative path.
+4. If no global exists, a new global is created immediately with the canonical path as its name. This global is marked as **smudged** in the same way colon definitions are temporarily smudged while they are under construction. The smudge indicates that an import for this path is in progress and that its final value is not yet known.
 
-### Import semantics
+5. With the smudged global in place, the host now reads the file identified by the canonical path, feeds it into the Tacit tokenizer and parser, and compiles its contents into bytecode, using the same VM instance. This process is recursive: the imported file is free to invoke `import` again, and so on.
 
-When the `import` word is encountered, it takes the following steps:
+6. Once the end of the file is reached, the module’s export contract is enforced: the last colon definition in the file is expected to be named `main`. The host (or a small helper in the VM) invokes `main` exactly once, and verifies that, between its entry and exit, the data stack has grown by exactly one item. That single item is taken to be the module’s value.
 
-1. Resolves the given relative path into a **canonical path**, based on the file currently being compiled or, in the case of the command line, the working directory.
-2. Checks the dictionary for a global variable bound to that canonical path. If found, the module has already been included and will not be recompiled.
-3. If not found, it creates a placeholder global variable for that path and marks it with a smudge bit to indicate that it is in progress.
-4. Recursively compiles and evaluates the contents of the file associated with that path.
-5. Assumes that the last definition in the file is named `main`, which must be a capsule constructor. It invokes `main`, captures the resulting capsule, and assigns it to the global variable.
-6. Clears the smudge flag, marking the global as resolved.
+7. The value returned from `main` is stored into the previously smudged global. At this point, the smudge bit is cleared: the module is now fully resolved, and future imports will see the cached value.
 
-This approach enables lazy, recursive module inclusion with safety against cyclic dependencies.
+If, during step 5, another `import` is performed with the same canonical path, the dictionary lookup in step 2 will find the smudged global. Rather than recursing infinitely, the import mechanism detects this case and raises a circular import error. The partially constructed global is left smudged for diagnostics; it is not silently converted into a completed value.
 
-### Manifest-driven inclusion
+## 3. Idempotence, Smudging, and Circularity
 
-A typical Tacit program includes a top-level source file that acts as a manifest or root module. It issues `import` commands for any modules it depends on. These imports trigger recursive inclusion of further dependencies.
+Idempotence is achieved by choosing the canonical path as the unique key by which modules are identified. Regardless of how many relative paths might point at a given file, they all normalize to the same canonical string. The first import that reaches that file creates the global and drives compilation; subsequent imports see the completed global and skip all work.
 
-This means modules do not carry their own metadata for inclusion; inclusion order and linkage are driven externally and explicitly. This avoids the need for automatic dependency scanning or deep graph traversal.
+Smudging is the mechanism that makes recursive imports safe. The placeholder global is inserted into the dictionary before the file is parsed; this means that if the module imports another module which, directly or indirectly, tries to import the original again, the second import will see that “work is in progress” and can bail out. This mirrors the way colon definitions are hidden and smudged until their closing `;`.
 
-By relying on host-level canonicalization and explicit imports, Tacit maintains clear boundaries between files and modules, and enforces strict idempotence during inclusion.
+The rules are:
 
-### 3. Avoiding Multiple Inclusion
+- A new canonical path with no existing global: create smudged global, then parse and evaluate.
+- A canonical path with a smudged global: treat as circular import and throw.
+- A canonical path with a completed global: reuse the value, do not re-run code.
 
-Tacit modules are imported using the `import` word, which takes a relative file path and resolves it to a **canonical absolute path**. This canonical path becomes the unique key for that module within the system, ensuring that each module is imported exactly once.
+If an error occurs while compiling or executing a module body, the smudged global is not automatically cleaned up; it remains smudged. The surrounding test harness or host process is expected to treat that as a failure and tear down or reset the VM, rather than trying to recover an incompletely initialized module.
 
-The inclusion process begins by checking whether a global variable associated with the canonical path already exists. If it does, the import is complete and no further action is taken—the previously computed value (typically a capsule) is reused. This avoids repeated parsing or execution.
+## 4. Module Export Contract
 
-To handle recursive imports, **the global variable is created and marked as 'smudged' before the file is actually parsed**. Smudging marks the variable as in the process of being defined, preventing infinite loops from circular imports. If the importer encounters a smudged global variable for the same path during inclusion, it **raises a circular import error**. This mechanism mirrors the colon-definition smudging model already used in Tacit.
+Modules are expected to behave like functions that return exactly one value. In practice, the convention is that the last colon definition in a module file is named `main`. The import mechanism, after compiling the file, runs `main` and checks the stack discipline around that call.
 
-Importing is thus idempotent: it either reuses a cached value or executes the file exactly once. Modules that are not yet completed during inclusion are safely blocked from reentry, and their status is tracked via the dictionary’s meta flag on the name.
+The rules are:
 
-This strategy ensures **deterministic linking**: every file is parsed at most once, always leaves behind the same output value, and cannot be redundantly or recursively included.
+- Before invoking `main`, the import machinery records the current stack depth.
+- It then invokes `main` in the usual way (a normal colon definition call).
+- When `main` returns, the stack depth must have increased by exactly one.
 
-### 4. Module Execution and Export Contract
+If the stack has not grown at all, the module has failed to produce a value and an arity error is raised. If the stack has grown by more than one, the module has produced too many values; this is also an error. Only the case where exactly one additional value is present is accepted.
 
-Each module, once included, must **evaluate to a single value**—typically an instantiated capsule—that becomes the module’s exported result. This value is stored in a global variable named after the canonical file path and acts as the module’s **singleton instance**.
+The value produced is typically a capsule that exposes the module’s public API via dispatch. However, the module system itself does not require that the value be a capsule; that is a strongly recommended convention rather than a hard rule. It is entirely possible for a module to export a plain LIST, a number, or any other value, but consumers should then treat that value as they would any other Tacit value.
 
-The convention is simple: the last colon definition in a module file should be named `main`. The `import` mechanism will **invoke `main` automatically** once parsing is complete. Its return value is captured and stored as the global variable associated with the module. This return is not just conventionally enforced—it can be validated by checking that the data stack has grown by exactly one item between the start and end of `main`.
+Once the export value is determined, it is written into the global variable whose name is the canonical path. That global is the authoritative binding representing “this module’s result.”
 
-Only a **single value is accepted** as the result. If `main` returns nothing or multiple items, the import process will raise an arity error. This restriction guarantees that the result can always be assigned to the global capsule variable cleanly and predictably.
+## 5. Globals and Dispatch
 
-Though `main` is invoked automatically during import, it's not treated specially beyond naming: it behaves like any colon definition. Modules can contain any number of helpers or internal definitions, but only `main` is executed.
+When a module file is compiled, all of its colon definitions behave exactly like any other colon definitions: they allocate dictionary entries, each with a name and a payload. Nothing about the module system prevents those words from being called directly by name in subsequent code.
 
-This **export contract** ensures that every module behaves predictably and integrates into the larger system via a global binding that holds its result.
+However, relying on global names as the primary integration mechanism between modules quickly leads to collisions and brittle coupling. If two modules both define a word called `map`, or if a module is refactored and helper names change, callers that depend on those names will break.
 
-### 5. Global Binding of Imported Capsules
+For that reason, the module system is designed with a “capsule-first” philosophy. A typical module will:
 
-When a module is imported, its result—typically a capsule—is bound to a **global variable named by the module’s canonical file path**. This global variable acts as the **cache and identity key** for the module, ensuring two key guarantees:
+1. Define a collection of internal words that implement its behavior.
+2. Define a capsule constructor that allocates any needed state and binds methods.
+3. Expose that capsule constructor as `main`, so the module’s export is a fully-initialized capsule instance.
 
-First, it ensures **singleton behavior**. Any later import of the same file will find the global already defined and reuse its value, preventing re-execution and duplicate state. This preserves referential consistency across modules.
+Consumers of the module then interact with it via dispatch on that capsule value. For example:
 
-Second, it enables **dispatch-based access** to module internals. Once the capsule is globally bound, users can call methods or access fields via dispatch. For example, after importing `"math/core.tac"`, its canonical global might be `/lib/math/core.tac`, and a client module could immediately assign it locally:
-`import "math/core.tac" → local-math`.
+- A host imports `"math/core.tac"` and binds its canonical global `/lib/math/core.tac` into a local variable called `math`.
+- Client code calls methods via `math` by placing the method symbol on the stack and using a dispatch word; the actual names of helper functions inside the module are irrelevant.
 
-Though the global variable uses the full canonical path as its name, this doesn’t expose it in typical user workflows. Most code binds it to a more readable name upon import. Still, this global binding is the **authoritative reference** used to detect prior inclusion and resolve circularity.
+This pattern achieves two things:
 
-Importantly, the global is **inserted into the dictionary early**, even before the module is fully parsed. This early insertion allows the system to detect **circular dependencies**. If a second import tries to access a still-smudged global (one not yet fully defined), the system will throw an error. This guarantees that module graphs are acyclic and all imports resolve deterministically.
+- It allows internal implementation details to change without breaking callers, as long as the capsule’s dispatch surface is preserved.
+- It keeps the global dictionary as a low-level mechanism for word lookup, without forcing it to be the primary namespacing mechanism for modules.
 
-### 6. Dispatch and Lexical Scoping Guarantees
+In other words, all globals exist and are callable, but the module system encourages code to treat the exported capsule as the true API surface.
 
-In Tacit, imported modules are expected to return a **capsule** as their top-level value. This capsule captures the full lexical scope of the module at the time it was compiled. Once returned, the capsule is globally bound to the module’s canonical path and becomes the sole official interface for accessing the module’s functionality.
+## 6. Recursive Imports and Evaluation Order
 
-Capsules retain internal visibility into their compiled symbols—even if those symbols are later shadowed, hidden, or deleted from the dictionary. This is a key feature of Tacit’s dispatch model: because capsule methods are compiled relative to a frozen frame and dispatch map, they retain access to the variables, fields, and helper functions defined at module compile time.
+Because `import` can appear inside any file, modules naturally form a directed graph: one module’s body can import another, which can import a third, and so on. The evaluation strategy is depth-first:
 
-This means clients of the module do not need access to internal helper words. Even if those words are marked private (or simply undefined), the capsule can still invoke them correctly. The interface is reduced to a single dispatchable value, but that value retains full authority over its own implementation space.
+- When file A executes `import "B"`, the host resolves B’s canonical path, sees no prior import, smudges its global, and begins compiling B.
+- If B’s body imports C, the same process repeats: canonicalize, smudge, compile C, run C’s `main`, and complete C’s global.
+- Once C is complete, control returns to B, which continues compiling and eventually runs its own `main`.
+- Only when B is fully imported does A resume after its original `import "B"` call.
 
-This model avoids namespace pollution and reinforces modular boundaries: external code does not need to rely on internal symbol availability. Instead, all interaction is expected to happen through the exported capsule using dispatch.
+Side effects in a file are executed in this depth-first order as well. If A contains code before the `import "B"` line, that code executes once when A is first imported. If some other file later imports A again, the completed A module is reused and the side effects are not repeated.
 
-### 7. Circular Dependency Detection and Smudging
+The smudging rules ensure that cycles are caught: if A imports B and B (directly or indirectly) imports A again, the second attempt to import A will find a smudged global and raise an error instead of recursing.
 
-To prevent infinite loops and ensure deterministic behavior, the `import` mechanism in Tacit must detect and reject circular dependencies between modules. This is achieved using a **smudging mechanism**, modeled after the existing approach used for colon definitions.
+## 7. Host and VM Responsibilities
 
-When `import` is called with a relative path, the system first resolves it to a **canonical path**. It then checks whether a global variable has already been defined for that canonical path. If it exists and is marked as complete, the cached value is used. If it does not exist, a new global variable is defined immediately, using the canonical path as the symbol name—but it is **smudged** (i.e., marked as incomplete or "in definition") at the time of entry into the dictionary.
+The module system deliberately draws a clear line between what the host is responsible for and what belongs to the VM:
 
-This early declaration ensures two things:
+- The **host** decides how to map a relative string like `"../lib/math/core.tac"` to a canonical path. It performs all filesystem I/O, including reading file contents. It is also responsible for constructing the correct tokenizer with knowledge of the “current file” so that relative imports work as expected.
 
-1. **Cycle detection**:
-   If a subsequent import (triggered while processing the original file) encounters this same canonical path and finds the smudged definition still unresolved, the system can throw a clear **circular import error**. This avoids silent hangs or partial compilation.
+- The **VM** knows nothing about paths or files. From its perspective, `import` is an immediate that:
+  - requests the host to resolve a path,
+  - looks up or creates a global with that canonical name,
+  - and, when asked, runs code and manages globals and smudges.
 
-2. **Safe recursion model**:
-   Even though file inclusion is recursive (a file may `import` another before finishing itself), the smudged stub allows name reservation without prematurely resolving the value. This makes import resolution robust even in deeply nested module graphs.
+The VM enforces the export contract (stack delta around `main`) and stores the export value into the global. The host, in turn, uses canonical paths as keys when reporting errors or when deciding which modules to import next.
 
-Once the module finishes compiling and the final `main` is executed, the return value is used to **populate the previously smudged global**. At this point, the smudge bit is cleared, and the global is considered fully resolved.
+## 8. Error Transparency
 
-This strategy guarantees that each module is only compiled once and is uniquely identified by its canonical path. It also makes circular references explicit and preventable—ideal for low-level deterministic systems like Tacit.
+Two categories of error are central to the module system:
 
-### 8. Notes on globals vs dispatch
+- **Circular imports** – When a smudged global is encountered for the same canonical path that is currently being imported, the system reports a circular import error. The error text should include the canonical path so that the cycle is clear in logs or diagnostics.
 
-All words defined in an imported module still enter the global dictionary; they are callable directly unless shadowed later. Dispatch isn’t exclusive—it is the **stable, encapsulated** way to interact with a module without relying on global naming stability or avoiding collisions.
+- **Export arity errors** – When `main` fails to produce exactly one value, the system reports an arity error for the module. Again, the canonical path should be included so it is obvious which file violated the contract.
 
-Dispatch remains the preferred interface because:
-1. It tolerates shadowing: capsule methods retain their original bindings.
-2. It minimizes namespace pollution: consumers don’t need internal helpers visible globally.
-3. It provides a single, idiomatic surface for module APIs.
+Other errors (syntax errors, runtime exceptions inside `main`, etc.) are handled by the normal interpreter and are not special to the module system. Their interaction with smudged globals is simple: an error aborts import, and the smudged global remains incomplete.
 
-### 9. Recursive imports (depth-first, idempotent)
+## 9. Consumption Pattern
 
-- Flow: resolve relative path → canonicalize → if global exists and is complete, reuse; if absent, create smudged global → parse/execute file → run `main` → store result → clear smudge.
-- Depth-first: when A imports B and B imports C, C is resolved first; on return, B completes once and A continues. Side effects before an `import` in a file run once.
-- Cycle detection: if an in-progress (smudged) global for the same canonical path is encountered, raise a circular-import error; the smudged placeholder remains until the error is handled.
-- Host/VM split: the host resolves paths and feeds source; the VM maintains globals and smudge state and executes `main`. Canonical paths are the unique keys across the entire import graph.
-- Reentrance: a second `import` of a fully resolved module is a no-op; a second `import` during resolution is rejected.
+Putting all of this together, a typical usage looks like this:
 
-### Conclusion
+1. At startup, the host chooses a “root” file and performs `import "<root>"`.
+2. That root file may itself import other modules; the import mechanism recursively resolves and executes each, caching results keyed by canonical path.
+3. The root module’s export value is usually a capsule; the host may present that capsule to the user as the “program” or may invoke particular methods on it.
 
-Tacit’s module system offers a minimal but powerful mechanism for composition, isolation, and reuse. By centering modules around canonical file paths, capsule instantiation, and global variable bindings, it avoids complex linking or namespacing mechanisms while preserving determinism and compositionality.
+From within Tacit code, a user might write:
 
-Each import is a contract: it must return exactly one value, typically a capsule, which becomes the canonical interface for that module. While all words defined in an imported file enter the global dictionary, direct access to them risks shadowing or name collision. Capsules provide a stable, scoped access point via dispatch, reinforcing modular boundaries.
+```
+import "math/core.tac"   \ compile-time: ensure /lib/math/core.tac is loaded
+/lib/math/core.tac -> m  \ bind the module capsule to a shorter name
+...                       \ later
+m 'add dispatch          \ invoke a method on the module
+```
 
-This system is deliberately simple and portable. The VM remains stateless with respect to file paths or source inclusion, leaving those tasks to the host. And yet, the resulting behavior supports recursive inclusion, circularity detection, and isolated module state—making it well-suited for both scripting and long-lived program structure.
+The exact syntax for binding `/lib/math/core.tac` to a shorter name is outside the scope of this document, but the pattern illustrates the intent: import establishes a canonical global capsule, and ordinary language constructs are used to bind that value locally.
+
+## 10. Summary
+
+Tacit’s module system is intentionally modest: one primitive (`import`), one key (canonical paths), and one export contract (exactly one value, usually a capsule). That is enough to support deep, recursive dependency graphs, singleton module instances, encapsulated APIs via dispatch, and clear error reporting around cycles and malformed exports. The VM stays focused on execution and globals; the host shoulders all concerns about the filesystem and path resolution. Together, they provide a predictable, composable way to build larger programs out of small Tacit files.
