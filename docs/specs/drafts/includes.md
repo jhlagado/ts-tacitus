@@ -1,808 +1,289 @@
-Great! Here’s a proposed outline for the new document on the inclusion mechanism in Tacit:
+# Tacit Includes — Source-Level Inclusion Specification (Draft)
+
+## Table of Contents
+
+1. Introduction  
+2. Smudging and Unsmudging  
+3. Handling Circular Inclusions  
+4. Recursive Descent and Input Stream Management  
+5. Include Globals and Entry Points  
+6. Implementation Details (Parsing, Tokenization, and File State)  
+7. Example Inclusion Scenarios  
+8. Circularity and Error Semantics  
+9. Implementation Appendix — Immediate Word Semantics  
+10. Full Worked Example  
+11. Final Summary and Implementation Mandates  
 
 ---
 
-### **Table of Contents**
+## 1. Introduction
 
-1. **Introduction**
+Tacit’s inclusion mechanism provides a way to stitch together multiple source files into a single, coherent program by expanding `include` directives at compile time. It is intentionally simple and designed to match Tacit’s Forth‑like execution model: includes are purely a **compile‑time flattening** tool, not a separate module or package language.
 
-   * Overview of the inclusion mechanism
-   * Purpose and benefits
+When an include directive is processed, the parser temporarily descends into the target file, compiles it as though its contents were present in-line, and then returns to the original file. The net effect is a single, flattened sequence of dictionary definitions, as if the contents of all included files had been concatenated in place.
 
-2. **Smudging and Unsmudging Process**
+This model is constrained by a few key requirements:
 
-   * Initial smudging: marking files as in-progress
-   * Finalization: assigning entry points and unsmudging
+- The inclusion graph must be safe with respect to circular references. It must never spin into infinite recursion when files include each other.
+- Each file should be included at most once; redundant work must be avoided.
+- The dictionary must grow monotonically during batch compilation, while interactive REPL sessions must be able to undo failed inclusion attempts cleanly.
+- The behaviour must remain compatible with Tacit’s existing dictionary and smudging model for colon definitions.
 
-3. **Handling Circular Inclusions**
-
-   * Detection of circular references
-   * Preventing redundant inclusions
-
-4. **Recursive Descent and Input Stream Management**
-
-   * Swapping input streams for sub-inclusions
-   * Returning control after inclusion
-
-5. **Global Variables and Entry Points**
-
-   * Creating global references for included files
-   * Using entry points for later access
-
-6. **Implementation Details**
-
-   * Parsing logic and tokenization
-   * Managing file states and transitions
-
-7. **Examples and Use Cases**
-
-   * Simple inclusion scenarios
-   * Handling nested and complex dependencies
-
-8. **Conclusion**
-
-   * Summary of the inclusion model
-   * Benefits and future considerations
+To satisfy these constraints, the include system uses **smudged globals** keyed by canonical file paths, a depth‑first recursive‑descent parser, and a simple policy for handling circular includes: re‑seeing a smudged file is treated as a no‑op, not an error. Later sections define these ideas in detail.
 
 ---
 
-Once we confirm this outline, we can dive into the details and flesh each section out. Let me know if this looks good to you, and we can move forward from there!
-Perfect! Let’s dive into Section 1: **Introduction**.
+## 2. Smudging and Unsmudging
 
----
+Tacit uses smudging to track which files are “in progress” during inclusion. A **smudged** entry is one whose metadata bit (the same bit used while a colon definition is open) is set to indicate that the corresponding file is currently being included.
 
-### **1. Introduction**
+When an `include` directive is encountered for a file whose canonical path has no existing global, the VM immediately creates a new dictionary entry:
 
-**Overview of the Inclusion Mechanism**
+- the entry’s **name** is the canonical path string (for example, `/lib/math/core.tac`),  
+- the entry’s **value** is undefined at this point, and  
+- the entry’s **meta flag** is set to mark it as smudged.
 
-In Tacit, the inclusion mechanism is designed to streamline how source files and modules are brought together into a unified program. Unlike more rigid compilation models, Tacit’s inclusion process is flexible and designed to maintain simplicity and clarity. This approach allows developers to seamlessly integrate external modules, libraries, and utility files into their main project.
+This smudged global serves two roles. First, it is a placeholder that will eventually hold the file’s entry‑point value once inclusion completes. Second, it is a guard against circularity: if inclusion code encounters the same canonical path while it is still smudged, it knows that the file is already being processed and that further inclusion should be skipped.
 
-**Purpose and Benefits**
+Unsmudging is the counterpart to this process. Once the parser reaches the end of the included file, and compilation has succeeded without errors, the implementation:
 
-The primary purpose of the inclusion mechanism in Tacit is to ensure that all code dependencies are managed in a predictable, efficient manner. By adopting a simple smudging and unsmudging process, Tacit avoids complex linking and minimizes redundant inclusions. This not only simplifies the developer experience but also helps maintain code clarity and reduces the potential for errors.
+1. identifies the last dictionary entry defined while compiling that file (the “entry point”),  
+2. writes an appropriate reference to that entry into the global’s value slot, and  
+3. clears the smudge bit on the global to mark it as complete.
 
-This section sets the stage for understanding the fundamental principles behind Tacit’s inclusion system and prepares us for the more detailed exploration of the mechanics in the following sections.
+The smudged‑then‑unsmudged lifecycle thus defines a strict bracket around inclusion:
 
----
-
-Once you're happy with this introduction, we can move on to the next section and build it out step-by-step. Let me know how this looks!
-Great! Let’s move on to Section 2: **Smudging and Unsmudging Process**.
-
----
-
-### **2. Smudging and Unsudging Process**
-
-**Initial Smudging: Marking Files as In-Progress**
-
-When Tacit begins to include a file, it first marks that file as “in-progress” by creating a global variable associated with the canonical file name. At this point, the global is “smudged,” meaning it’s marked as being included but not yet fully processed. This smudging acts as a guard against circular inclusions. If during the parsing process we encounter the same file again, the smudged global signals that the file is already being included, preventing infinite loops.
-
-**Finalization: Assigning Entry Points and Unsmudging**
-
-Once the file has been fully parsed and all its definitions are processed, we then finalize the inclusion. At this stage, we “unsmudge” the global variable, meaning we clear the in-progress state. Additionally, we assign the final payload of the global variable to the last defined symbol within that file. This ensures that the file’s inclusion is complete and that we have a stable reference to it.
-
-This two-step process—smudging at the start and unsmudging at the end—provides a clear, reliable way to handle inclusions, preventing circular dependencies and ensuring that the final program structure is consistent.
-
----
-
-Once you’re happy with this section, we can move on to the next one and continue building the document step-by-step. Let me know your thoughts!
-Awesome! Let’s dive into Section 3: **Handling Circular Inclusions**.
-
----
-
-### **3. Handling Circular Inclusions**
-
-**Detection of Circular References**
-
-One of the critical challenges in an inclusion mechanism is preventing circular dependencies, which can lead to infinite loops and unstable program states. Tacit’s approach to handling circular inclusions is built around the smudging mechanism. When a file is marked as smudged at the start of its inclusion, it effectively acts as a placeholder in the global dictionary. If the parser encounters the same file again while it’s still smudged, the system recognizes that the file is already in the process of being included and halts further inclusion, effectively preventing a circular dependency.
-
-**Preventing Redundant Inclusions**
-
-By marking files as smudged early in the inclusion process, Tacit ensures that any subsequent attempt to include the same file is immediately recognized. This means that the system never re-includes a file that’s already in progress, keeping the inclusion tree clean and preventing redundant work. This not only optimizes the process but also ensures that the final program remains consistent and free of infinite loops.
-
-This mechanism is crucial for maintaining the integrity of the inclusion system and ensures that developers can confidently build complex projects without worrying about circular dependencies.
-
----
-
-With this section complete, we can proceed to the next one, diving into **Recursive Descent and Input Stream Management**. Let me know if you’re ready to move on or if you have any feedback!
-Perfect! Let’s move on to Section 4: **Recursive Descent and Input Stream Management**.
-
----
-
-### **4. Recursive Descent and Input Stream Management**
-
-**Swapping Input Streams for Sub-Inclusions**
-
-In Tacit, the inclusion of a file is handled through a recursive descent approach. When the parser encounters an `include` directive, it temporarily switches its input stream from the current file to the included file. This allows the parser to process the included file as if it were part of the original source. Once the included file is fully parsed, the parser then restores the original input stream and continues processing from where it left off. This seamless swapping of input streams ensures that nested inclusions are handled effectively and that the parsing process remains consistent.
-
-**Returning Control After Inclusion**
-
-After the included file is fully parsed and the inclusion is complete, the parser returns to the original file’s input stream. This ensures that the main file’s parsing resumes exactly where it left off, maintaining the logical flow of the program. This approach makes it straightforward to handle multiple levels of nesting and ensures that each file is parsed in the correct order.
-
-**Maintaining Consistency and Integrity**
-
-This recursive descent model, combined with the dynamic input stream management, keeps the inclusion process both flexible and reliable. It allows Tacit to handle complex dependency trees without losing track of the parsing state, ensuring that the final program remains coherent and consistent.
-
----
-
-With this section in place, we can continue to the next section, which will cover **Global Variables and Entry Points**. Let me know if you’re ready to move forward or if there’s anything you’d like to adjust!
-Absolutely! Let’s dive into Section 5: **Global Variables and Entry Points**.
-
----
-
-### **5. Global Variables and Entry Points**
-
-**Creating Global References for Included Files**
-
-When Tacit includes a file, one of the key steps is to create a global variable that corresponds to that file’s canonical path. Initially, this global acts as a placeholder, marked as smudged, to indicate that the file is in the process of being included. This global variable serves as a reference point, allowing other parts of the program to access the included file’s content once it’s fully processed.
-
-**Using Entry Points for Later Access**
-
-Once the file inclusion is complete, the global variable is updated to hold a reference to the file’s entry point. This entry point could be a symbol, such as a function or a capsule, that’s defined at the end of the file. This means that whenever the program needs to reference the included file, it can do so via this entry point. This setup allows for efficient and organized access to the included content, ensuring that the program can dynamically link and access modules as needed.
-
-**Ensuring Coherence and Consistency**
-
-By managing globals and entry points in this manner, Tacit ensures that each included file is both self-contained and easily accessible. This approach keeps the program modular and maintains a clear separation between different components, making it easier to manage and extend the codebase.
-
----
-
-With this section complete, we can now move forward to **Implementation Details**, where we’ll dive into the parsing logic, tokenization, and how we manage file states and transitions. Let me know if you’re ready to continue, and we’ll keep building from here!
-That’s a great point! We’ll make sure to clarify that smudging essentially means setting a specific meta-flag on the global variable, indicating that the inclusion is in progress. We can definitely add more detailed explanations either in an appendix or as we delve deeper into the implementation details.
-
-Now, let’s move on to the next section: **Implementation Details**.
-
----
-
-### **6. Implementation Details**
-
-**Parsing Logic and Tokenization**
-
-At the core of Tacit’s inclusion mechanism is a robust parsing logic that seamlessly handles the transition between different input streams. When an `include` directive is encountered, the parser temporarily shifts its focus, switching the input stream to the included file and then tokenizing it as if it were part of the main source. This ensures that all tokens are processed consistently, maintaining a coherent parsing flow.
-
-**Managing File States and Transitions**
-
-To keep track of the inclusion process, Tacit employs a state management system. Each file’s state is monitored from the moment it’s included until it’s fully parsed and finalized. This means that we maintain an accurate record of which files are in progress and which are complete. By doing so, we ensure that the parser can correctly resume the main file’s parsing once the included file is done, preserving the logical flow and preventing any loss of context.
-
-**Ensuring Robustness and Flexibility**
-
-This detailed implementation ensures that Tacit’s inclusion mechanism is both robust and flexible. It allows for complex dependency trees, nested inclusions, and dynamic linking, all while maintaining clarity and coherence in the codebase.
-
----
-
-With this section complete, we’re now well-equipped to provide practical examples and use cases, especially focusing on how circular inclusions are handled. We’ll dive into those scenarios and
-Great — picking up exactly where we left off.
-Next in the outline is **Section 7: Example Scenarios**, and we’ll go straight into it, including the circular-include walkthrough you requested.
-
-Here we go.
-
----
-
-## **7. Example Inclusion Scenarios**
-
-This section illustrates how the inclusion mechanism behaves in concrete situations. Each scenario shows:
-
-* how the parser enters and exits files,
-* how smudging behaves,
-* what the dictionary looks like at each stage,
-* and whether the process succeeds or fails.
-
-### **7.1 Simple Linear Inclusion**
-
-**Files:**
-
-* `main.tac` includes `utils.tac`.
-* `utils.tac` contains a few colon definitions.
-
-**Flow:**
-
-1. Parser begins `main.tac`.
-2. Encounters `include "utils.tac"`.
-3. Canonical path for `utils.tac` is looked up; no global exists → create **smudged** global `"utils.tac"`.
-4. Parser recursively descends into `utils.tac`.
-5. Runs to end → dictionary gains the helper definitions.
-6. The last dictionary entry (e.g. `utils-end`) becomes the entry-point value.
-7. Global `"utils.tac"` becomes **unsmudged** and stores this value.
-8. Control returns to `main.tac`.
-9. Parsing continues normally.
-
-**Outcome:**
-A flattened program where all of `utils.tac`’s definitions now live in the global dictionary as if they were written in place.
-
----
-
-### **7.2 Multiple Includes of the Same File**
-
-**Files:**
-
-* `main.tac` includes `math.tac`.
-* `math.tac` also gets included by `vector.tac`.
-* `vector.tac` is included by `main.tac`.
-
-**Flow:**
-
-1. `main.tac` includes `math.tac` → smudge + compile + unsmudge.
-2. `main.tac` includes `vector.tac` → smudge + compile.
-3. Inside `vector.tac`, parser hits `include "math.tac"`.
-4. Global `"math.tac"` already exists and is **unsmudged**.
-5. Parser **does not** recurse — inclusion is skipped.
-6. Parsing resumes inside `vector.tac`.
-
-**Outcome:**
-The graph has been flattened safely.
-`math.tac` is included once; all other attempts simply no-op after detecting the complete global.
-
----
-
-### **7.3 Circular Inclusion (A → B → A)**
-
-This is the scenario you explicitly asked to explore deeply.
-
-**Files:**
-
-* `A.tac` includes `B.tac`
-* `B.tac` includes `A.tac`
-
-**Flow:**
-
-1. Parser begins `A.tac`.
-
-2. Encounters `include "B.tac"`:
-
-   * canonical `"B.tac"` absent → create **smudged** global.
-   * recursively parse `B.tac`.
-
-3. Inside `B.tac`, parser encounters `include "A.tac"`:
-
-   * canonical `"A.tac"` already exists?
-
-     * Yes — because parsing of the top-level file created its smudged global.
-     * And importantly: **it is still smudged** (because we have not finished parsing `A.tac`).
-
-4. Because `"A.tac"` is **smudged**, not complete, the parser recognizes this as an **inclusion cycle**.
-
-5. At this moment, Tacit must choose one of two policies:
-
----
-
-### **Circular-Include Policy**
-
-**We adopt this:**
-
-### **→ A smudged global encountered again means “abort inclusion and return immediately.”**
-
-Not an error.
-
-Not a recursion.
-
-Not undefined.
-
-Just:
-
-* detect that `"A.tac"` inclusion is already in progress,
-* treat the include as a **no-op**,
-* immediately return to the parent parser (`B.tac`).
-
-This makes inclusion a *safe recursive-descent graph walk* rather than a tree.
-
-**Why this works:**
-
-* C’s header inclusion system behaves the same way under `#pragma once`.
-* The resulting flattened file is well-defined:
-
-  * `A` gets included,
-  * `B` gets included,
-  * the second attempt to include `A` simply does nothing.
-
-**Finish the flow:**
-
-6. After skipping the recursive `include "A.tac"`, `B.tac` parsing continues normally.
-7. When `B.tac` finishes, its global unsmudges and gets an entry-point value.
-8. Control returns to `A.tac`.
-9. `A.tac` finishes parsing and unsmudges its own global.
-
-**Outcome:**
-A consistent flattened program.
-No errors.
-No stack explosion.
-No infinite recursion.
-
----
-
-### **7.4 Shadowing Across Includes**
-
-This case illustrates that definitions in included files are placed into the dictionary **in include order**.
-
-If `A.tac` includes `math.tac` and defines a word `sqrt`, and then includes `moremath.tac` which also defines `sqrt`, then:
-
-* the `math.tac` version is shadowed,
-* the `moremath.tac` version becomes visible globally,
-* but any colon definitions *inside `A.tac`* written before `moremath`'s inclusion still see the older one.
-
-This behaves exactly like Forth's dictionary.
-
----
-
-If you're ready, I can continue with **Section 8: Circularity and Error Semantics**, or jump ahead to the Implementation Appendix where we define smudging more explicitly.
-
-Your call.
-Great — moving on to the next major section in the outline:
-
----
-
-# **8. Circularity and Error Semantics**
-
-This section formalises the exact rules for circular inclusion, smudging, and error propagation in the *include-as-flattening* model. The goal is to make the behaviour predictable, implementation-friendly, and fully compatible with recursive-descent parsing.
-
----
-
-## **8.1 Definitions**
-
-Before specifying behaviours, we tighten the terminology:
-
-* **Canonical Path:**
-  A unique, normalized identifier string for each source file.
-
-* **Include Global:**
-  A global variable whose name is the canonical path and whose value is either *undefined*, an *entry-point ref*, or a *smudge-marked name entry*.
-
-* **Smudged:**
-  A global whose metadata flag (`meta` bit) is set to indicate:
-  “This file is being included right now.”
-
-* **Complete:**
-  A smudge-cleared global whose value is now a proper entry-point ref.
-
----
-
-## **8.2 Circular Inclusion Rule (Core Specification)**
-
-When encountering:
-
-```
-include "A.tac"
+```text
+smudge(global for "/path/to/file.tac")
+    recursively parse and include file and its dependencies
+unsmudge(global) and assign entry-point
 ```
 
-the interpreter behaves according to the state of the canonical-path global:
-
-1. **Global does not exist** → Create global + smudge it → Recursively include the file.
-2. **Global exists and is complete** → Skip include (pragma-once behaviour).
-3. **Global exists but is smudged** → **Circular-inclusion case**.
-
-### **Circular-Inclusion Handling**
-
-**Circular inclusion is *not* an error.**
-It is treated as a **no-op** and inclusion stops immediately.
-
-**Rationale:**
-
-* Inclusion is a macro expansion.
-* Circular includes should flatten gracefully just like C headers with `#pragma once`.
-* The initial include is the only one that matters; all others simply return.
+If inclusion ends early due to a genuine error (syntax error, compile‑time failure, out‑of‑memory, etc.), the smudged global is **not** automatically repaired by the VM; it remains smudged and serves as a diagnostic marker. In a REPL, the host is responsible for rolling back such partial state, as described later.
 
 ---
 
-## **8.3 Error Conditions (Non-Circular)**
+## 3. Handling Circular Inclusions
 
-Even though circular inclusion is non-fatal, several other errors *are* fatal:
+Circular inclusion is a natural hazard in any include‑based system: file `A` may include file `B`, which includes `A` again (directly or through a longer chain). Tacit’s include model is designed to handle such cycles gracefully by treating them as benign rather than exceptional.
 
-### **1. Tokenization Errors**
+The key rule is:
 
-Malformed syntax, invalid characters, or unterminated string literals during inclusion.
+> If an include encounters a smudged global whose name matches the canonical path of the target file, it treats that include as a **no‑op** and returns immediately.
 
-### **2. Parser Errors**
+This rule relies on the smudging mechanism described above. The first time a file is included, its global is smudged before any of its tokens are parsed. If, during parsing, another `include` directive targets the same canonical path, the lookup will find the smudged global. Rather than recursing or signalling an error, the implementation simply does nothing and resumes parsing the current file.
 
-Undefined words, incorrect token sequences, stack underflows in compile mode, etc.
+This approach has several benefits:
 
-### **3. Dictionary Overflow or Out-of-Memory**
+- It turns inclusion into a safe recursive‑descent graph walk, rather than a tree that must be kept cycle‑free by separate analysis.
+- It matches the practical behaviour of C‑style include guards or `#pragma once`: the first inclusion does the work; subsequent inclusions are effectively ignored.
+- It avoids forcing authors to reason carefully about global inclusion order: they can rely on the system to avoid multiple inclusion of the same file.
 
-If including a file runs the VM out of dictionary space or stack space.
-
-### **4. Improper Use of `include`**
-
-For example, non-string operands (this is a compile-time immediate macroword, so the parser must receive a literal string).
-
-When any of these occur:
-
-* The include global remains **smudged** (recording that work had failed mid-flight).
-* The error propagates upwards through the recursive-descent stack.
-* In batch mode, the program halts.
-* In REPL mode, the *host* unwinds the dictionary back to the last checkpoint.
-
-Circularity never triggers this path, because it is *not* an error.
+Circular inclusion is therefore not considered an error in the include specification. It is intentionally treated as a no‑op at the point where the cycle would otherwise be re‑entered.
 
 ---
 
-## **8.4 Smudge Lifetime and Guarantee**
+## 4. Recursive Descent and Input Stream Management
 
-Smudging occurs **immediately**, before any part of the file is parsed.
+Tacit’s parser operates as a **recursive‑descent driver** over token streams. When inclusion is involved, those token streams are nested: the current file may include a second file, which in turn includes a third, and so on.
 
-Unsmudging occurs **only** after:
+When the parser sees an `include "path"` directive and concludes that the canonical path should be processed (absent global or smudged but not in the circular case), the host constructs a new tokenizer for the target file and recursively invokes the parser with this new token stream. The original parser context is suspended until the child parser finishes.
 
-1. The file has been fully parsed,
-2. Dictionary entries have been successfully emitted,
-3. The last dictionary entry has been recorded as the module entry-point,
-4. The include global value has been updated.
+In pseudocode:
 
-This creates a strict bookend around inclusion:
-
-```
-(smudge global)
-    recursive-descent include of file and its dependencies
-(unsmudge + assign entry-point)
+```text
+parse(parentTokens):
+    ...
+    see 'include "child.tac"'
+    parse(childTokens for "child.tac")
+    ...
 ```
 
-If inclusion ends early due to circularity:
+This recursive descent behaviour means that by the time control returns from `parse(childTokens)`, the entire contents of the included file have been processed and their dictionary entries emitted. The original parser then resumes exactly where it left off in the parent token stream.
 
-* The *inner* include does nothing.
-* The *outer* include continues.
-* The *outer* include will eventually unsmudge the global.
+Nested includes are handled uniformly: any included file can itself contain `include` directives, which cause further recursive calls. Depth‑first traversal is the natural result. Combined with smudging, this ensures that every file is included at most once, and that circular includes do not cause additional descent.
 
-If inclusion ends early due to a real error:
+The important invariants are:
 
-* The global remains smudged.
-* This acts as a diagnostic marker for inspection but does not matter once REPL rollback occurs.
-
----
-
-## **8.5 REPL Error Semantics**
-
-In interactive mode:
-
-* Before each top-level REPL command, the host snapshots the dictionary size.
-* Any include error (other than circular) triggers a rollback:
-
-  * All definitions added during the failed include vanish.
-  * All smudged globals created during the command vanish.
-* This allows immediate retry without restarting the VM.
-
-Circular includes do not reach this stage because they do not cause errors.
+- the tokenizer and parser always operate on a single, active stream at a time,  
+- switching between streams is structured (enter child, parse to EOF, return), and  
+- the final effect is a flat sequence of dictionary entries in the order they would appear if all files were concatenated along the include edges.
 
 ---
 
-## **8.6 Summary of Inclusion Resolution States**
+## 5. Include Globals and Entry Points
 
-| Global State | Meaning                    | Action on Include       |
-| ------------ | -------------------------- | ----------------------- |
-| **Absent**   | File never included        | Smudge + recurse        |
-| **Smudged**  | File inclusion in progress | Skip (circular include) |
-| **Complete** | File already parsed        | Skip (pragma-once)      |
+For each file that participates in inclusion, Tacit creates a **global dictionary entry** keyed by that file’s canonical path. This global is smudged during inclusion and unsmudged when the file has been fully processed, as described in Section 2.
 
----
+The value stored in this global after unsmudging is the file’s **entry point**. Conceptually, the entry point is the last dictionary entry defined while parsing that file. It may be:
 
-Let me know when you’re ready and I’ll continue directly into **Section 9: Implementation Appendix — Parsing, Smudging, and Entry Point Assignment** (or whatever next section you want to generate).
-Here is the next section, written at the same level of precision and tone as the previous ones:
+- a colon definition (a word implemented in bytecode),  
+- a constant or other value‑producing word,  
+- a capsule constructor or other higher‑order value.
 
----
+Assigning the entry point as “the last thing defined in the file” keeps the rule simple and mirrors the semantics of certain Forth systems where the last definition is a natural “handle” to the file’s contents. When another part of the system wants to refer to the included file, it can look up the canonical‑path global and obtain this entry point.
 
-# **9. Implementation Appendix — Parsing, Smudging, and Entry-Point Assignment**
-
-This appendix specifies the concrete mechanics an implementation must follow when executing `include "<path>"` as an immediate macroword. It ties together the parser, the tokenizer, dictionary emission, smudging, and the assignment of entry-point references.
+Note that the include mechanism itself does not define any particular calling convention for entry points. It simply records a reference to the last defined symbol; what that symbol does—and whether it is intended to be called or used as data—is up to the author of the file and to higher‑level mechanisms such as the module system.
 
 ---
 
-## **9.1 Immediate-Word Semantics of `include`**
+## 6. Implementation Details (Parsing, Tokenization, and File State)
 
-When the parser encounters the token:
+From an implementation standpoint, the include mechanism requires coordination between three pieces: parsing logic, tokenization, and file‑state tracking.
 
-```
-include
-```
+### 6.1 Parsing Logic and Tokenization
 
-it immediately performs:
+The parser is responsible for recognising the `include` immediate and then delegating inclusion work to the host and VM. It must:
 
-1. **Read next token**, which must be a literal string.
-   This string is the *include target*.
+- ensure that the token following `include` is a literal string;  
+- pass that string to the host for canonicalization;  
+- decide whether to recurse based on the state of the canonical‑path global; and  
+- if recursion is required, construct a new tokenizer over the target file and call itself on that token stream.
 
-2. **Canonicalize** the string via the host → canonical path.
+Tokenization of included files does not differ from tokenization of the root file. Once the tokenizer is constructed, the parser sees the same kinds of tokens it would see if the contents had been present inline. This is what gives inclusion its “flattening” semantics.
 
-3. **Check the dictionary** for a global named exactly by that canonical path.
+### 6.2 Managing File States and Transitions
 
-4. **Dispatch** based on the global’s state (absent, smudged, complete).
+The VM must track, for each canonical path, whether inclusion is:
 
-Unlike runtime words, the `include` immediate never emits its own runtime opcode: it is purely compile-time and affects only parser state, include state, and dictionary contents.
+- not yet started (no global),  
+- in progress (smudged global), or  
+- complete (unsmudged global with entry‑point value).
 
----
+Transitions between these states happen at well‑defined points:
 
-## **9.2 Smudging Rule (Exact Details)**
+- **Not yet started → Smudged** when a first include of that file occurs.  
+- **Smudged → Complete** when the parser reaches EOF and inclusion has succeeded.  
+- **Smudged → (rolled back)** only in interactive hosts that choose to undo a failed include by rewinding the dictionary.
 
-If no global exists for the canonical path:
+The VM itself does not attempt to roll back on failure; it simply leaves the smudged global in place. Batch runs can safely terminate after an error. In a REPL, the host should snapshot the dictionary head (or an equivalent checkpoint) before each top‑level command, and restore it if an error occurs, thereby discarding any smudged entries and definitions created during the failed command.
 
-1. Create a new global variable with:
-
-   * **Name:** canonical path
-   * **Value:** undefined
-   * **Meta flag:** set to `smudged`
-
-2. This global now signals that inclusion of this file has begun.
-
-The act of smudging uses the same mechanism as smudging colon definitions:
-**the dictionary entry’s metadata bit is set**. No special payload value is required.
-
-The smudge remains until successful completion of inclusion.
+This separation keeps the core VM logic straightforward while still allowing interactive environments to provide a clean editing experience.
 
 ---
 
-## **9.3 Recursive-Descent Inclusion (Token Stream Switching)**
+## 7. Example Inclusion Scenarios
 
-When beginning inclusion of a file:
+This section illustrates how the inclusion mechanism behaves in a few representative situations. The focus is on parser behaviour, smudging, and the resulting dictionary contents.
 
-* The host constructs a *new tokenizer* over that file.
-* The parser is called recursively with this tokenizer.
-* The parent parser context is suspended until the child parser reaches end-of-file.
+### 7.1 Simple Linear Inclusion
 
-This means:
+Consider two files: `main.tac`, which includes `utils.tac`, and `utils.tac`, which contains a few colon definitions.
 
-```
-parse(parent_tokens):
-    ... encounter include ...
-    parse(child_tokens)  ; full recursive descent
-    ... resume parent ...
-```
+1. The parser begins with `main.tac`.  
+2. It encounters `include "utils.tac"`.  
+3. The host computes the canonical path for `utils.tac`; the VM finds no corresponding global. It creates a smudged global named by that path.  
+4. The host constructs a tokenizer for `utils.tac`, and the parser recursively descends into that file.  
+5. Parsing runs to the end of `utils.tac`; helper definitions are added to the dictionary.  
+6. The last dictionary entry (for example, `utils-end`) is chosen as the entry point and its reference is stored in the canonical‑path global. The smudge bit is cleared.  
+7. Control returns to `main.tac`, and parsing resumes after the `include` directive.
 
-The recursive descent is purely syntactic—nothing related to runtime execution occurs.
+The net effect is a flattened program where all of `utils.tac`’s definitions live in the global dictionary as though they had been inlined into `main.tac`.
 
-**Key guarantee:**
-As every include is expanded in place and processed synchronously, the final output is a single flat stream of dictionary definitions.
+### 7.2 Multiple Includes of the Same File
 
----
+Now suppose `main.tac` includes `math.tac`, `math.tac` is also included by `vector.tac`, and `vector.tac` itself is included by `main.tac`. The first time `math.tac` is included, its canonical‑path global is created, smudged, and eventually unsmudged with its entry point. When `vector.tac` later includes `math.tac`, the lookup finds a complete (unsmudged) global and therefore skips inclusion. The parser does not recursively descend into `math.tac` a second time.
 
-## **9.4 End-of-File Completion and Entry-Point Selection**
+This produces a safe flattening of the inclusion graph. `math.tac` contributes its definitions once, and all subsequent includes are effectively no‑ops from the perspective of compilation work, while still honouring the “already included” information carried in the dictionary.
 
-When the child parser reaches EOF of the included file:
+### 7.3 Circular Inclusion (A → B → A)
 
-1. Inclusion is considered successful *only if*:
+Consider the cycle where `A.tac` includes `B.tac`, and `B.tac` includes `A.tac`. Parsing starts with `A.tac`, encounters `include "B.tac"`, and creates a smudged global for `B.tac` before descending into it. Inside `B.tac`, the parser encounters `include "A.tac"`. At this point, the canonical path for `A.tac` is looked up in the dictionary and found to be smudged, because `A.tac` is still being processed.
 
-   * All tokens were successfully consumed
-   * No compile-time errors occurred
-   * Dictionary emission was successful
-   * No out-of-memory or stack errors happened
+By design, this situation is treated as a circular include and handled as a no‑op: the nested include of `A.tac` does not descend further, and parsing of `B.tac` simply continues from the next token. When `B.tac` reaches EOF, its global is unsmudged and updated with its entry point, control returns to `A.tac`, and `A.tac` eventually completes and unsmudges its own global. The result is a consistent flattened program with both `A` and `B` included exactly once, and no infinite recursion.
 
-2. The system identifies the **most recently defined dictionary entry**.
-   This entry becomes the *entry-point ref* for the module.
+### 7.4 Shadowing Across Includes
 
-3. The include global is updated:
+Finally, consider shadowing behaviour. If `A.tac` includes `math.tac`, defines a word `sqrt`, and then includes `moremath.tac` which also defines `sqrt`, then the definition from `moremath.tac` will be the one visible to code compiled after that point. Definitions inside `A.tac` that were compiled before `moremath.tac` was included continue to see the earlier `sqrt`, because they already resolved to that dictionary entry.
 
-   * **Meta flag cleared** (unsmudged)
-   * **Value set** to the entry-point reference
-
-4. Control returns to the parent parser.
-
-This provides a simple, predictable guarantee:
-
-> The entry point of a module is the last definition produced by that file.
-
-It is not required to be a colon definition—any dictionary entry (colon definition, inline word, global variable, constant, capsule constructor, etc.) qualifies.
+This is exactly the same behaviour Tacit exhibits without includes: later definitions shadow earlier ones, and resolution within already‑compiled code remains stable. Inclusion does not introduce new rules here; it only affects how code is brought into the compile stream.
 
 ---
 
-## **9.5 Circular Inclusion Behaviour**
+## 8. Circularity and Error Semantics
 
-If during inclusion the parser encounters an `include` of a file whose canonical-path global is smudged:
+The include mechanism distinguishes between circular inclusion, which is benign and handled by the no‑op rule, and genuine errors, which must abort inclusion.
 
-* The nested include terminates immediately (no tokens read)
-* No modifications to the dictionary occur
-* No error is raised
+Circular inclusion arises when an `include` directive targets a file whose canonical‑path global is smudged. In that case the include is silently skipped: the implementation detects that inclusion is already in progress and returns immediately. This is not considered an error. It simply prevents redundant descent along cycles in the inclusion graph.
 
-This preserves the C-style “pragma-once” flattening and guarantees well-formedness of recursive descent.
+Other error conditions are treated as fatal for the current compilation:
 
----
+- **Tokenization errors**, such as malformed tokens or unterminated strings in the included file.  
+- **Parser errors**, such as undefined words or invalid syntactic forms during inclusion.  
+- **Resource errors**, such as dictionary overflow or stack exhaustion triggered while processing the included file.  
+- **Misuse of `include`**, such as providing a non‑string operand where a literal path is required.
 
-## **9.6 Interaction With Dictionary Shadowing**
+When any of these occur, the VM signals an error and leaves the include global in its smudged state. In batch mode, the process may simply terminate. In a REPL, the host should roll back the dictionary to the last checkpoint, removing any new entries (including smudged globals) created during the failed command, so that the user can correct the problem and retry.
 
-Because inclusion is pure flattening:
-
-* Definitions earlier in the flattened file remain visible to later ones
-* Later definitions may shadow earlier ones
-* The parser does not prohibit shadowing
-
-Entry-point assignment always refers to the *local* last definition of that file, not whatever shadowing may occur later.
-
-Shadowing is therefore safe and well-defined in a flattened model.
+Smudge lifetime is therefore tightly constrained: smudging happens immediately before parsing a file, unsmudging happens only after successful completion, and any premature termination leaves the smudged marker in place for diagnostic purposes until the host chooses to discard it.
 
 ---
 
-## **9.7 Interaction With Host-Level REPL Rollback**
+## 9. Implementation Appendix — Immediate Word Semantics
 
-If inclusion fails:
+This appendix ties together the behaviour of the `include` immediate at the level of parser operations and dictionary updates.
 
-* The global remains **smudged**
-* The dictionary contains all intermediate definitions
-* The VM does not attempt cleanup
+When the parser encounters the token `include`, it immediately reads the next token and requires it to be a literal string; this is the include target. The host resolves this string to a canonical path, and the VM checks the dictionary for a global with that name. Depending on the state of that global:
 
-The **host REPL** must unwind all changes by:
+1. If no global exists, the VM creates a smudged global, and the host constructs a tokenizer for the target file and recursively invokes the parser on it.  
+2. If a smudged global exists, the include is treated as a circular case and is skipped; no further action is taken.  
+3. If a complete global exists, the include is treated as redundant and skipped; the file is not re‑parsed.
 
-* Restoring dictionary size to the checkpoint
-* Removing all newly added globals
-* Discarding all smudged entries created during the failed command
+Unlike runtime words, `include` does not emit bytecode. It affects only parser state (token stream switching) and dictionary state (creation and smudging of globals, entry‑point assignment on completion). The runtime has no direct trace of the include directive; all of its effects are baked into the compiled dictionary.
 
-This ensures interactive editing behaves predictably.
+The smudging rule itself is implemented using the same metadata bit that is used for open colon definitions. There is no need for a separate payload or special value; the presence of the bit is enough to mark “in progress”.
 
 ---
 
-## **9.8 Summary of Required Behaviour**
+## 10. Full Worked Example
 
-For every include:
+To ground the specification, this section walks through a slightly larger inclusion scenario that combines multiple features: nested includes, circular avoidance, and shadowing.
 
-* Immediate word, compile-time only
-* Smudge before parsing
-* Recursively parse file token-stream
-* Assign entry-point as last definition
-* Unsmudge and store entry-point
-* Skip further includes of same file
-* Circular includes are no-ops
-* Runtime sees nothing — include has no emitted opcodes
+Suppose we have the following files:
 
----
+- `root.tac`  
+- `a.tac`  
+- `b.tac`  
+- `common.tac`
 
-If you'd like, I can now proceed with:
+with contents:
 
-**Section 10 — Full Worked Example (Two Files, Nested Includes, Shadowing, Circular Include)**
-
-or we can jump to another part of the spec.
-Here are the **last two sections**, written to the same tone and level as the earlier parts, and designed to bring the document to a clean close without drifting into unnecessary elaboration.
-
----
-
-# **10. Full Worked Example**
-
-This section illustrates the complete behaviour of Tacit’s inclusion mechanism using a minimal but representative dependency graph. It demonstrates recursive descent, smudging, entry-point assignment, shadowing, and circular-include avoidance.
-
-### **Example Files**
-
-#### `root.tac`
-
-```
+```tacit
+# root.tac
 include "a.tac"
 include "b.tac"
-```
 
-#### `a.tac`
-
-```
+# a.tac
 include "common.tac"
 :foo ... ;
-```
 
-#### `b.tac`
-
-```
+# b.tac
 include "common.tac"
 include "a.tac"
 :bar ... ;
-```
 
-#### `common.tac`
-
-```
+# common.tac
 :util ... ;
 ```
 
----
+Parsing begins with `root.tac`. The first `include "a.tac"` creates and smudges a global for `a.tac`, then recursively parses `a.tac`. Inside `a.tac`, the `include "common.tac"` creates and smudges a global for `common.tac`, then parses `common.tac`, defining `util`, assigning it as the entry point for `common.tac`, and unsmudging that global. Control returns to `a.tac`, which defines `foo`, assigns it as the entry point for `a.tac`, unsmudges the `a.tac` global, and returns to `root.tac`.
 
-### **Walkthrough**
+Back in `root.tac`, the second `include "b.tac"` creates and smudges a global for `b.tac`, then parses `b.tac`. The first include inside `b.tac` is `include "common.tac"`. The canonical path for `common.tac` now has a complete, unsmudged global, so inclusion is skipped. The second include inside `b.tac` is `include "a.tac"`. The canonical path for `a.tac` also has a complete, unsmudged global, so this inclusion is likewise skipped; the potential cycle `root → b → a` is avoided. `b.tac` then defines `bar`, assigns it as the entry point for `b.tac`, unsmudges that global, and returns to `root.tac`, which completes normally.
 
-1. **Start parsing `root.tac`**
-   Encounter `include "a.tac"` → canonicalise path → global `"a.tac"` is absent.
-   Create smudged `"a.tac"` → switch tokenizer to `a.tac`.
-
-2. **Parsing `a.tac`**
-   Encounter `include "common.tac"` → canonicalise `"common.tac"` → absent → smudge `"common.tac"` → switch tokenizer to `common.tac`.
-
-3. **Parsing `common.tac`**
-   Defines `:util`.
-   End of file → assign `"common.tac"` global the entry point of `util` (or last defined symbol).
-   Clear smudge → return to `a.tac`.
-
-4. **Back in `a.tac`**
-   Define `:foo`.
-   End of file → assign `"a.tac"` global entry point (here: `foo`).
-   Clear smudge → return to `root.tac`.
-
-5. **Back in `root.tac`**
-   Encounter `include "b.tac"` → canonicalise `"b.tac"` → absent → smudge `"b.tac"` → switch tokenizer to `b.tac`.
-
-6. **Parsing `b.tac`**
-   First inclusion: `include "common.tac"` → canonical path exists and is **not smudged** → skip inclusion.
-   (Common code is already present; safe and correct.)
-
-   Second inclusion: `include "a.tac"` → canonical path exists and is **not smudged** → skip inclusion.
-   (This avoids a circular include: `root → b → a → common` has already been resolved.)
-
-   Define `:bar`.
-   End of file → assign `"b.tac"` global entry point (`bar`) and clear smudge.
-   Return to `root.tac`.
+The flattened dictionary now contains, in order of definition, the words from `common.tac`, `a.tac`, and `b.tac`, with `bar` shadowing nothing and both `foo` and `util` available as ordinary global words. The canonical‑path globals for all four files are present, unsmudged, and point at their respective entry points.
 
 ---
 
-### **Final Result: Flattened Dictionary Order**
+## 11. Final Summary and Implementation Mandates
 
-The compiler ultimately sees the following colon definitions in this exact order:
+The include mechanism in Tacit is intentionally straightforward: it is a compile‑time recursive‑descent expansion of `include` directives into a single, flattened program. The critical features of the design are:
 
-1. From `common.tac`: `util`
-2. From `a.tac`: `foo`
-3. From `b.tac`: `bar`
+- **Canonical path identity**: each file is identified by a unique canonical path string.  
+- **Smudged include globals**: smudging marks files that are currently being included; unsmudging marks successful completion.  
+- **Depth‑first traversal**: inclusion follows a depth‑first order over the file graph.  
+- **Circular includes as no‑ops**: encountering a smudged global during inclusion simply skips the nested include.  
+- **Single inclusion per file**: complete globals prevent re‑parsing of the same file.  
+- **Dictionary persistence**: all definitions created during successful inclusion remain in the dictionary for the VM’s lifetime.  
+- **Host‑managed rollback**: interactive hosts can restore a checkpointed dictionary state to undo failed includes.
 
-No multiple includes occur, no definitions are duplicated, and no circular inclusion is followed. Each file contributes exactly once.
-
-The global variables:
-
-* `"common.tac"` → entry point `util`
-* `"a.tac"` → entry point `foo`
-* `"b.tac"` → entry point `bar`
-
-All are present and unsmudged.
-
----
-
-# **11. Final Summary and Implementation Mandates**
-
-This section crystallises what any correct Tacit implementation **must** do. These points close the document with explicit, normative requirements.
-
-### **11.1 Core Rules**
-
-1. **Inclusion is recursive-descent and inlined.**
-   When `include` is encountered, the tokenizer switches to the included file, parses it entirely, then returns.
-
-2. **Canonical paths define module identity.**
-   All inclusion logic is keyed on canonical absolute paths.
-
-3. **Smudging marks “in progress” files.**
-   A smudged global indicates an inclusion currently underway.
-   Encountering a smudged global **must skip inclusion immediately** (circular avoidance).
-
-4. **Each file is included at most once.**
-   If a global exists and is *not* smudged, further includes of that file are skipped.
-
-5. **Successful includes assign an entry point.**
-   At the end of parsing a file, its global is unsmudged and assigned the execution token of the last defined symbol.
-
-6. **Failed includes must not corrupt the dictionary (REPL).**
-   The host must provide rollback: record dictionary size before the user’s command; on failure, truncate to that point.
-
-7. **Compiler and runtime concerns remain cleanly separated.**
-   Include operates entirely at compile time; no runtime side effects occur unless user code explicitly dispatches or calls the entry point.
-
----
-
-### **11.2 What *Must Not* Be Added**
-
-To preserve Tacit’s minimalism:
-
-* No hierarchies of modules
-* No access control
-* No re-export constructs
-* No private/global distinctions beyond smudging
-* No separate code buffers or linkers
-* No header/implementation duality
-* No automatic namespacing
-
-Inclusion is simply: *parse this file once, inline it, assign its entry point, and never include it again.*
-
----
-
-### **11.3 Why This Design Works**
-
-It gives Tacit:
-
-* **Deterministic compilation**
-  The include graph always flattens to a single linear definition order.
-
-* **Simple circular safety**
-  Smudging avoids re-entry without needing dependency graphs or topological sorting.
-
-* **Zero runtime footprint**
-  All inclusion happens at compile time.
-
-* **Forth-like shadowing semantics**
-  Later definitions override earlier ones; earlier ones remain available to earlier code.
-
-* **Extremely small implementation surface**
-  Only one immediate word—`include`—and one key-value system—canonical globals.
-
----
-
-### **11.4 Closing Note**
-
-This document supersedes earlier drafts.
-It defines a complete, self-consistent inclusion model for Tacit, compatible with the VM’s existing architecture and the language’s design principles.
-
-If you want, I can now assemble all sections into a **single unified specification file**—or we can refine individual sections before merging.
+An implementation that honours these rules will behave predictably on both simple and complex inclusion graphs, will avoid infinite recursion in the presence of cycles, and will integrate cleanly with Tacit’s existing dictionary and colon‑definition machinery. The include system does not introduce new runtime concepts; it is purely a structured way of feeding more source into the compiler at the right times.***
