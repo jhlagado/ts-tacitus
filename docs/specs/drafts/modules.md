@@ -19,9 +19,14 @@ The rest of this document spells out how `import` behaves, what contracts a modu
 
 ## 2. Import Semantics
 
-The `import` word is an immediate macro. When the parser encounters it in source, it does not emit runtime bytecode; instead, it orchestrates a file-level inclusion at compile time.
+The `import` word is an immediate macro. When the parser encounters it in source, it has **two** responsibilities:
 
-Conceptually, `import "<relative-path>"` proceeds as follows:
+- at compile time, ensure that the target file has been located, compiled, and its module value stored in a global bound to its canonical path;
+- at the same time, emit runtime bytecode that, when executed, will **push that module value onto the data stack**.
+
+Import is therefore never a semantic no-op: even if a module has already been loaded, executing `import "<path>"` will still produce the cached value again at runtime so it can be bound to a local or global.
+
+Conceptually, `import "<relative-path>"` proceeds as follows at compile time:
 
 1. The host resolves the given relative path into a **canonical path**. Canonicalization is host-defined but must be stable: the same file, referenced through different relative paths, must reduce to the same canonical string. Typically this means resolving against the directory of the file currently being compiled (or the process working directory for top-level use), then normalizing `.`/`..`, symbolic links, and case rules as appropriate for the platform.
 
@@ -30,7 +35,7 @@ Conceptually, `import "<relative-path>"` proceeds as follows:
    - Present but **smudged** (module is currently being imported).
    - Present and complete (module has already been imported successfully).
 
-3. If a complete global is found, the import is trivially satisfied. No file is re-parsed or re-evaluated; the previously computed module value is reused. This is what makes imports idempotent.
+3. If a complete global is found, the inclusion side of the import is satisfied. No file is re-parsed or re-evaluated; the previously computed module value is reused. **However, the immediate still expands into runtime code that will load that global’s value onto the stack when executed.** This is what makes imports idempotent while still behaving like value-returning operations.
 
 4. If no global exists, a new global is created immediately with the canonical path as its name. This global is marked as **smudged** in the same way colon definitions are temporarily smudged while they are under construction. The smudge indicates that an import for this path is in progress and that its final value is not yet known.
 
@@ -41,6 +46,12 @@ Conceptually, `import "<relative-path>"` proceeds as follows:
 7. The value returned from `main` is stored into the previously smudged global. At this point, the smudge bit is cleared: the module is now fully resolved, and future imports will see the cached value.
 
 If, during step 5, another `import` is performed with the same canonical path, the dictionary lookup in step 2 will find the smudged global. Rather than recursing infinitely, the import mechanism detects this case and raises a circular import error. The partially constructed global is left smudged for diagnostics; it is not silently converted into a completed value.
+
+Separately from this inclusion work, the `import` immediate lowers to a small sequence of bytecode that, at runtime, fetches the module value from the canonical-path global and pushes it on the stack. In abstract terms, the lowering is equivalent to:
+
+- “look up the global bound to `<canonical-path>` and load its value”,
+
+using the same value-by-default semantics described in `variables-and-refs.md` and `globals.md`. This means `import` behaves like a constant expression whose value is the module’s capsule.
 
 ## 3. Idempotence, Smudging, and Circularity
 
@@ -98,16 +109,18 @@ In other words, all globals exist and are callable, but the module system encour
 
 ## 6. Recursive Imports and Evaluation Order
 
-Because `import` can appear inside any file, modules naturally form a directed graph: one module’s body can import another, which can import a third, and so on. The evaluation strategy is depth-first:
+Because `import` can appear inside any file, modules naturally form a directed graph: one module’s body can import another, which can import a third, and so on. The evaluation strategy for **inclusion** is depth-first:
 
-- When file A executes `import "B"`, the host resolves B’s canonical path, sees no prior import, smudges its global, and begins compiling B.
+- When file A is being compiled and its source executes `import "B"` as an immediate, the host resolves B’s canonical path, sees no prior import, smudges its global, and begins compiling B.
 - If B’s body imports C, the same process repeats: canonicalize, smudge, compile C, run C’s `main`, and complete C’s global.
 - Once C is complete, control returns to B, which continues compiling and eventually runs its own `main`.
-- Only when B is fully imported does A resume after its original `import "B"` call.
+- Only when B is fully imported does A’s compilation resume after the original `import "B"` immediate.
 
-Side effects in a file are executed in this depth-first order as well. If A contains code before the `import "B"` line, that code executes once when A is first imported. If some other file later imports A again, the completed A module is reused and the side effects are not repeated.
+At **runtime**, the bytecode emitted for each `import` behaves like any other expression: when the VM reaches that code, it loads the module value from the canonical global and pushes it. This can happen many times during execution even though the underlying module was compiled only once.
 
-The smudging rules ensure that cycles are caught: if A imports B and B (directly or indirectly) imports A again, the second attempt to import A will find a smudged global and raise an error instead of recursing.
+Side effects in a file occur only during its first inclusion, in this depth-first order. If A contains code before the `import "B"` immediate, that code executes once when A is first imported. If some other file later imports A again, the inclusion step sees the completed A module and does not re-execute that top-level code; only the runtime load emitted by `import` is performed.
+
+The smudging rules ensure that cycles are caught: if A imports B and B (directly or indirectly) imports A again during inclusion, the second attempt to import A will find a smudged global and raise an error instead of recursing.
 
 ## 7. Host and VM Responsibilities
 
@@ -143,13 +156,12 @@ Putting all of this together, a typical usage looks like this:
 From within Tacit code, a user might write:
 
 ```
-import "math/core.tac"   \ compile-time: ensure /lib/math/core.tac is loaded
-/lib/math/core.tac -> m  \ bind the module capsule to a shorter name
-...                       \ later
-m 'add dispatch          \ invoke a method on the module
+import "math/core.tac" var m   # ensure /lib/math/core.tac is loaded; compile code to bind its value to local m
+...                            # later
+m 'add dispatch                # invoke a method on the module
 ```
 
-The exact syntax for binding `/lib/math/core.tac` to a shorter name is outside the scope of this document, but the pattern illustrates the intent: import establishes a canonical global capsule, and ordinary language constructs are used to bind that value locally.
+Here `import` runs as an immediate: it ensures the `math/core.tac` file has been compiled and its module value stored in the canonical-path global, then emits code that will, at runtime, load that value and feed it directly into the `var m` declaration. Subsequent executions of this code will not recompile the module, but they will still re-bind `m` from the cached module value, as ordinary variable semantics require.
 
 ## 10. Summary
 
