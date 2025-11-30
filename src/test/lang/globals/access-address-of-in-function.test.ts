@@ -25,4 +25,3 @@ describe('Global Variable Access: Address-of Inside Function', () => {
     expect(refTag).toBe(Tag.REF);
   });
 });
-

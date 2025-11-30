@@ -23,12 +23,12 @@ function makeHost(map: Record<string, string>, counter: Record<string, number>):
 
 describe('include immediate', () => {
   test('throws without host', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     expect(() => parse(vm, createTokenizer('include "a"'))).toThrow('include requires a host resolver');
   });
 
   test('simple include defines canonical global with last definition payload', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     const counts: Record<string, number> = {};
     vm.compile.includeHost = makeHost(
       {
@@ -49,7 +49,7 @@ describe('include immediate', () => {
   });
 
   test('duplicate include is pragma-once', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     const counts: Record<string, number> = {};
     vm.compile.includeHost = makeHost(
       {
@@ -68,7 +68,7 @@ describe('include immediate', () => {
   });
 
   test('circular include skips smudged entry', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     const counts: Record<string, number> = {};
     vm.compile.includeHost = makeHost(
       {
@@ -94,7 +94,7 @@ describe('include immediate', () => {
   });
 
   test('includes real files via filesystem host', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     const baseDir = path.resolve(__dirname, '../fixtures/include');
     const includeHost = {
       resolveInclude: (target: string, from?: string | null) => {

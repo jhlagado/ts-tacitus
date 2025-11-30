@@ -188,7 +188,7 @@ export function parseChild(vm: VM, tokenizer: Tokenizer, sourceName?: string | n
   runParse(vm, tokenizer, { resetCompiler: false, emitAbort: false, sourceName });
 }
 
-// Backward compatibility: parse defaults to root behavior.
+// Backward compatibility: parse defaults to root behavior; prefer parseRoot/parseChild explicitly.
 export function parse(vm: VM, tokenizer: Tokenizer, sourceName?: string | null): void {
   parseRoot(vm, tokenizer, sourceName);
 }

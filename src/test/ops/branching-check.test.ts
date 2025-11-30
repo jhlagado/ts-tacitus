@@ -10,7 +10,7 @@ describe('Branching Behavior Check', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = createVM(false);
+    vm = createVM();
     vm.ip = 0;
   });
 

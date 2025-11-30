@@ -20,19 +20,19 @@ describe('Tacit compile loop feature flag', () => {
   });
 
   test('Tacit compile loop handles simple program', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     executeProgram(vm, '42');
     expect(getStackData(vm)).toEqual([42]);
   });
 
   test('Tacit compile loop handles arithmetic', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     executeProgram(vm, '1 2 add');
     expect(getStackData(vm)).toEqual([3]);
   });
 
   test('Tacit compile loop emits bytecode for literal', () => {
-    const vm = createVM(false);
+    const vm = createVM();
     parse(vm, createTokenizer('42'));
     expect(vm.compile.CP - vm.compile.BCP).toBeGreaterThan(0);
   });

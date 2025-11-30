@@ -14,7 +14,7 @@ describe('dictionary edge branches', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = createVM(false);
+    vm = createVM();
   });
 
   test('hide/unhide throw on empty dictionary and succeed when populated', () => {

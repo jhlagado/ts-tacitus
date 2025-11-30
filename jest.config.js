@@ -30,10 +30,10 @@ module.exports = {
     ? undefined
     : {
         global: {
-          branches: 40,
-          functions: 40,
-          lines: 40,
-          statements: 40,
+          branches: 75,
+          functions: 75,
+          lines: 75,
+          statements: 75,
         },
       },
   setupFilesAfterEnv: ['<rootDir>/src/test/setup-tests.ts'],
