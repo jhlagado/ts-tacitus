@@ -69,6 +69,12 @@ function getEntryPayload(vm: VM, entryCellIndex: number): number {
   return memoryReadCell(vm.memory, payloadCellIndex);
 }
 
+function setEntryPayload(vm: VM, entryCellIndex: number, payloadTagged: number): void {
+  const baseCell = getEntryBaseCell(entryCellIndex);
+  const payloadCellIndex = baseCell + ENTRY_PAYLOAD;
+  memoryWriteCell(vm.memory, payloadCellIndex, payloadTagged);
+}
+
 export function hideDictionaryHead(vm: VM): void {
   if (vm.compile.head === 0) {
     throw new Error('Cannot hide head: dictionary is empty');
@@ -81,6 +87,14 @@ export function unhideDictionaryHead(vm: VM): void {
     throw new Error('Cannot unhide head: dictionary is empty');
   }
   setEntryNameMeta(vm, vm.compile.head, 0);
+}
+
+export function hideDictionaryEntry(vm: VM, entryCellIndex: number): void {
+  setEntryNameMeta(vm, entryCellIndex, 1);
+}
+
+export function unhideDictionaryEntry(vm: VM, entryCellIndex: number): void {
+  setEntryNameMeta(vm, entryCellIndex, 0);
 }
 
 export function getDictionaryEntryInfo(
@@ -112,6 +126,14 @@ export function getDictionaryHeadInfo(
     return undefined;
   }
   return getDictionaryEntryInfo(vm, vm.compile.head);
+}
+
+export function getDictionaryEntryPayload(vm: VM, entryCellIndex: number): number {
+  return getEntryPayload(vm, entryCellIndex);
+}
+
+export function setDictionaryEntryPayload(vm: VM, entryCellIndex: number, payloadTagged: number): void {
+  setEntryPayload(vm, entryCellIndex, payloadTagged);
 }
 
 // Unified define: store a fully-formed tagged payload under an interned name
@@ -161,6 +183,44 @@ export function lookup(vm: VM, name: string): number {
   }
 
   return NIL;
+}
+
+export function findEntryByName(
+  vm: VM,
+  name: string,
+): { cellIndex: number; payload: number; hidden: boolean } | undefined {
+  const target = digestIntern(vm.compile.digest, name);
+  let cur = vm.compile.head;
+
+  while (cur !== 0) {
+    const hdr = memoryReadCell(vm.memory, cur);
+    if (!isList(hdr) || getListLength(hdr) !== ENTRY_SLOTS) {
+      break;
+    }
+
+    const baseCell = getEntryBaseCell(cur);
+    const nameCell = memoryReadCell(vm.memory, baseCell + ENTRY_NAME);
+    const ni = getTaggedInfo(nameCell);
+    if (ni.tag === Tag.STRING && ni.value === target) {
+      const payload = memoryReadCell(vm.memory, baseCell + ENTRY_PAYLOAD);
+      return { cellIndex: cur, payload, hidden: ni.meta === 1 };
+    }
+
+    const prevRefValue = memoryReadCell(vm.memory, baseCell + ENTRY_PREV);
+    if (isNIL(prevRefValue)) {
+      cur = 0;
+    } else {
+      const { tag } = getTaggedInfo(prevRefValue);
+      if (tag === Tag.REF) {
+        const cellIndex = getCellFromRef(prevRefValue);
+        cur = cellIndex - GLOBAL_BASE;
+      } else {
+        cur = 0;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 // Dictionary-scope checkpointing (cell-index based)

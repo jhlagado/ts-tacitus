@@ -16,6 +16,7 @@ import {
   memoryWriteFloat32,
 } from '@src/core';
 import type { Tokenizer } from './tokenizer';
+import type { IncludeHost } from './include-host';
 import { encodeX1516 } from '../core/code-ref';
 import { Op } from '../ops/opcodes';
 
@@ -33,6 +34,8 @@ export type CompilerState = {
   checkpoint: number;
   entryCell: number;
   tokenizer: Tokenizer | null;
+  includeHost: IncludeHost | null;
+  currentSource: string | null;
 }
 
 export function makeCompiler(digest: Digest): CompilerState {
@@ -41,15 +44,17 @@ export function makeCompiler(digest: Digest): CompilerState {
     BCP: 0,
     preserve: false,
     isInFunction: false,
-    reservePatchAddr: -1,
-    digest,
-    listDepth: 0,
-    head: 0,
-    localCount: 0,
-    branchPos: -1,
-    checkpoint: -1,
-    entryCell: -1,
-    tokenizer: null,
+  reservePatchAddr: -1,
+  digest,
+  listDepth: 0,
+  head: 0,
+  localCount: 0,
+  branchPos: -1,
+  checkpoint: -1,
+  entryCell: -1,
+  tokenizer: null,
+  includeHost: null,
+  currentSource: null,
   };
 }
 

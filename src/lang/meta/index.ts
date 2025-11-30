@@ -9,6 +9,7 @@ import {
   globalImmediateOp,
   incrementImmediateOp,
 } from './variables';
+import { includeImmediateOp } from './include';
 import {
   beginIfImmediateOp,
   beginElseImmediateOp,
@@ -41,6 +42,7 @@ export {
   assignImmediateOp,
   globalImmediateOp,
   incrementImmediateOp,
+  includeImmediateOp,
 };
 
 type ImmediateHandler = (vm: VM) => void;
@@ -62,6 +64,7 @@ const IMMEDIATE_HANDLERS: Partial<Record<number, ImmediateHandler>> = {
   [Op.IncrementImmediate]: incrementImmediateOp,
   [Op.DefaultImmediate]: defaultImmediateOp,
   [Op.NilImmediate]: nilImmediateOp,
+  [Op.IncludeImmediate]: includeImmediateOp,
 };
 
 export function isBuiltinImmediateOpcode(opcode: number): boolean {
