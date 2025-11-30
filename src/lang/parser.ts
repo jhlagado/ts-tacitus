@@ -51,7 +51,6 @@ import {
   NIL,
   MIN_USER_OPCODE,
   digestIntern,
-  digestAdd,
 } from '@src/core';
 import { ensureNoOpenDefinition } from './definition-system';
 import {
@@ -66,7 +65,7 @@ import { runTacitCompileLoop } from './compile-loop';
 import { compileBracketPathAsList } from './helpers/bracket-path';
 
 export function tokenNext(vm: VM): { type: TokenType; raw: number } {
-  const tokenizer = vm.compile.tokenizer;
+  const { tokenizer } = vm.compile;
   if (!tokenizer) {
     throw new Error('token-next: no active tokenizer');
   }
@@ -97,7 +96,7 @@ export function tokenNext(vm: VM): { type: TokenType; raw: number } {
   return { type: token.type, raw: payload };
 }
 
-function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
+function tryRunTacitCompileLoop(vm: VM): boolean {
   if (process.env['TACIT_COMPILE_LOOP'] !== '1') {
     return false;
   }
@@ -115,6 +114,7 @@ function tryRunTacitCompileLoop(vm: VM, tokenizer: Tokenizer): boolean {
     }
     return handledFlag !== 0;
   } finally {
+    /* empty */
   }
 }
 
@@ -136,7 +136,7 @@ export function parse(vm: VM, tokenizer: Tokenizer): void {
   const previousTokenizer = vm.compile.tokenizer;
   vm.compile.tokenizer = tokenizer;
   try {
-    const handledByTacit = tryRunTacitCompileLoop(vm, tokenizer);
+    const handledByTacit = tryRunTacitCompileLoop(vm);
     if (!handledByTacit) {
       parseProgram(vm, tokenizer);
 
