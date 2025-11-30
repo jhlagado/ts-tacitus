@@ -2,7 +2,7 @@
 
 ## Goal
 
-Gradually migrate Tacit's immediate words so they live in the dictionary as regular verbs (meta bit set), mirroring classic Forth semantics. Parser should perform a single lookup: if the payload has `meta=1`, execute the verb immediately; otherwise emit a call. Remove bespoke parser branches and handler maps.
+Gradually migrate Tacit's immediate words so they live in the dictionary as regular verbs (meta bit set), mirroring classic Forth semantics. Parser should perform a single lookup: if the payload has `meta=1`, execute the Tacit word immediately; otherwise emit a call. Remove bespoke parser branches and handler maps.
 
 ## Stage Breakdown
 
@@ -31,4 +31,5 @@ Gradually migrate Tacit's immediate words so they live in the dictionary as regu
 
 - Migration happens stage-by-stage; after each stage run full tests & lint.
 - Maintain backward compatibility while intermediate handlers coexist.
-***
+
+---

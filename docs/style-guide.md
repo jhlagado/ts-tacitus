@@ -12,7 +12,7 @@
 
 ### Public Functions
 
-- **Ops**: Imperative verb + `Op` suffix
+- **Ops**: Imperative Tacit word + `Op` suffix
   - ✅ `fetchOp`, `printOp`, `selectOp`, `loadOp`
   - ❌ `fetchValueOp`, `printValueOperation`, `selectElementOperation`
 

@@ -13,7 +13,7 @@
  * for implementing higher-level language constructs.
  */
 
-import type { VM, Verb } from '@src/core';
+import type { VM, TacitWord } from '@src/core';
 import { decodeX1516 } from '@src/core/code-ref';
 import {
   ReturnStackUnderflowError,
@@ -61,7 +61,7 @@ import {
  * literalNumberOp(vm)
  *
  */
-export const literalNumberOp: Verb = (vm: VM) => {
+export const literalNumberOp: TacitWord = (vm: VM) => {
   const num = nextFloat32(vm);
   push(vm, num);
 };
@@ -83,7 +83,7 @@ export const literalNumberOp: Verb = (vm: VM) => {
  * literalStringOp(vm)
  *
  */
-export const literalStringOp: Verb = (vm: VM) => {
+export const literalStringOp: TacitWord = (vm: VM) => {
   const address = nextInt16(vm);
   const taggedString = Tagged(address, Tag.STRING);
   push(vm, taggedString);
@@ -96,7 +96,7 @@ export const literalStringOp: Verb = (vm: VM) => {
  * instruction pointer. This is used for unconditional control-flow jumps (e.g. skipping
  * over colon definitions during normal execution).
  */
-export const branchOp: Verb = (vm: VM) => {
+export const branchOp: TacitWord = (vm: VM) => {
   const offset = nextInt16(vm);
   vm.ip += offset;
 };
@@ -125,7 +125,7 @@ export const branchOp: Verb = (vm: VM) => {
  * 3. Setting the new base pointer to the current return stack pointer
  * 4. Jumping to the function's address
  */
-export const callOp: Verb = (vm: VM) => {
+export const callOp: TacitWord = (vm: VM) => {
   const offset = nextInt16(vm);
   rpush(vm, vm.ip);
   // Save BP as relative cells on the return stack for compatibility
@@ -150,7 +150,7 @@ export const callOp: Verb = (vm: VM) => {
  * This operation is typically used for error handling or to terminate
  * execution in response to a user command.
  */
-export const abortOp: Verb = (vm: VM) => {
+export const abortOp: TacitWord = (vm: VM) => {
   vm.running = false;
 };
 
@@ -182,7 +182,7 @@ export const abortOp: Verb = (vm: VM) => {
  * @throws {Error} If an error occurs during the exit operation, the VM is stopped
  * and the error is propagated.
  */
-export const exitOp: Verb = (vm: VM) => {
+export const exitOp: TacitWord = (vm: VM) => {
   try {
     // Require at least [returnAddr, savedBP] on return stack (depth in cells)
     if (vm.rsp - RSTACK_BASE < 2) {
@@ -229,7 +229,7 @@ export const exitOp: Verb = (vm: VM) => {
  * This operation is used to implement higher-order functions and dynamic code execution.
  * It allows code blocks to be passed around as values and executed on demand.
  */
-export const evalOp: Verb = (vm: VM) => {
+export const evalOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'eval');
   const value = pop(vm);
   const { tag, value: addr, meta } = getTaggedInfo(value);
@@ -269,7 +269,7 @@ export const evalOp: Verb = (vm: VM) => {
  * At runtime this opcode should never be reached; it exists so that the generic
  * `;` immediate can call into the appropriate closer without dictionary lookups.
  */
-export const endDefinitionOp: Verb = vm => {
+export const endDefinitionOp: TacitWord = vm => {
   if (vm.compile.entryCell === -1) {
     throw new Error('End-definition handler not installed');
   }
@@ -283,7 +283,7 @@ export const endDefinitionOp: Verb = vm => {
  * immediate `if`/`else` words). Calculates the jump offset to the current compile
  * position and patches the placeholder before returning control to the parser.
  */
-export const endIfOp: Verb = (vm: VM) => {
+export const endIfOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'endif');
 
   const placeholder = pop(vm);
@@ -313,7 +313,7 @@ export const endIfOp: Verb = (vm: VM) => {
  * branch on the return stack, patches the predicate's skip to the current
  * compile pointer, and restores the stack to `[... savedRSP, EndMatch]`.
  */
-export const endWithOp: Verb = (vm: VM) => {
+export const endWithOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'endwith');
 
   const rawSkipPos = pop(vm);
@@ -347,7 +347,7 @@ export const endWithOp: Verb = (vm: VM) => {
  * branch location on the return stack, and patches the predicate skip so failed
  * comparisons fall through to the next clause.
  */
-export const endOfOp: Verb = (vm: VM) => {
+export const endOfOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'endof');
 
   const rawSkipPos = pop(vm);
@@ -392,7 +392,7 @@ export const endOfOp: Verb = (vm: VM) => {
  * recorded by clause terminators so they land at the common exit after the
  * construct.
  */
-export const endMatchOp: Verb = (vm: VM) => {
+export const endMatchOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'endmatch');
 
   const rawSavedRSP = pop(vm);
@@ -431,7 +431,7 @@ export const endMatchOp: Verb = (vm: VM) => {
  * patches every exit branch recorded by `endof` terminators so successful
  * clauses skip that drop.
  */
-export const endCaseOp: Verb = (vm: VM) => {
+export const endCaseOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'endcase');
 
   const rawSavedRSP = pop(vm);
@@ -484,7 +484,7 @@ export const endCaseOp: Verb = (vm: VM) => {
  * This operation is typically used in conjunction with groupRightOp to count
  * the number of items pushed onto the stack between the two operations.
  */
-export const groupLeftOp: Verb = (vm: VM) => {
+export const groupLeftOp: TacitWord = (vm: VM) => {
   // Save current data stack depth in cells (relative to STACK_BASE_BYTES)
   rpush(vm, depth(vm));
 };
@@ -512,7 +512,7 @@ export const groupLeftOp: Verb = (vm: VM) => {
  * which is useful for operations that need to know how many items were produced
  * by a preceding computation.
  */
-export const groupRightOp: Verb = (vm: VM) => {
+export const groupRightOp: TacitWord = (vm: VM) => {
   try {
     ensureRStackSize(vm, 1, 'group-right');
     const sp0 = rpop(vm);
@@ -548,7 +548,7 @@ export const groupRightOp: Verb = (vm: VM) => {
  * This operation uses the formatValue utility to properly format different types
  * of values, including lists and other complex data structures.
  */
-export const printOp: Verb = (vm: VM) => {
+export const printOp: TacitWord = (vm: VM) => {
   const d = pop(vm);
   // eslint-disable-next-line no-console
   console.log(formatValue(vm, d));
@@ -569,7 +569,7 @@ export const printOp: Verb = (vm: VM) => {
  *
  * @param {VM} vm - The virtual machine instance
  */
-export const pushSymbolRefOp: Verb = (vm: VM) => {
+export const pushSymbolRefOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'pushSymbolRef');
 
   const stringTaggedValue = pop(vm);

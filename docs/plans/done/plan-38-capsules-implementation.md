@@ -32,11 +32,11 @@
 
 **Objective:** Freeze assumptions and add safety rails before coding.
 
-| Item | Description                                                                                                  | Owner      | Tests                                           | Status      |
-| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | ------------------------------------------------ | ------------ |
-| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                               | ✅ Complete |
-| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite                 | ✅ Complete |
-| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests                | ✅ Complete |
+| Item | Description                                                                                                  | Owner      | Tests                            | Status      |
+| ---- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------------------------------- | ----------- |
+| 0.1  | Lock spec wording by syncing `docs/specs/capsules.md` with stakeholders (done this review).                  | Docs       | —                                | ✅ Complete |
+| 0.2  | Add reusable debug helpers (e.g., `assertCapsuleShape(vm, value)`) under `src/ops/capsules/assertions.ts`.   | Runtime    | `capsule assertions` unit suite  | ✅ Complete |
+| 0.3  | Extend test harness with helper to execute Tacit snippet and return raw stack/frames (see `src/test/utils`). | Test infra | `vm state snapshot` helper tests | ✅ Complete |
 
 _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted stack inspections.
 
@@ -46,10 +46,10 @@ _Exit criteria:_ Spec stable, assertion helpers ready, harness supports targeted
 
 **Objective:** Introduce opcodes and parser hooks without feature logic.
 
-| Step | Description                                                                                          | Tests                                                             |
-| ---- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1.1  | Register new opcodes in opcode → verb map (even if verb is stub throwing "Not implemented").         | Capsule opcode stub tests                                        |
-| 1.2  | Register the builtin word `does` as an immediate command (no opcode) pointing to the new handler. | Capsule word registration tests                                   |
+| Step | Description                                                                                              | Tests                           |
+| ---- | -------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 1.1  | Register new opcodes in opcode → Tacit word map (even if Tacit word is stub throwing "Not implemented"). | Capsule opcode stub tests       |
+| 1.2  | Register the builtin word `does` as an immediate command (no opcode) pointing to the new handler.        | Capsule word registration tests |
 
 _Exit criteria:_ Build succeeds; any use of the commands throws “Not implemented” gracefully.
 
@@ -66,17 +66,17 @@ Status: ✅ Complete
 
 ### Implementation (new)
 
-| Step | Description                                                                                          | Tests                                  |
-| ---- | ---------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 2.1  | Add `src/ops/capsules/layout.ts` with `readCapsuleLayoutFromHandle(vm, handle:RSTACK_REF)` that validates the LIST header lives on RSTACK, slot 0 is CODE, and returns payload bounds. | `capsule layout (handle)` unit suite   |
+| Step | Description                                                                                                                                                                            | Tests                                |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 2.1  | Add `src/ops/capsules/layout.ts` with `readCapsuleLayoutFromHandle(vm, handle:RSTACK_REF)` that validates the LIST header lives on RSTACK, slot 0 is CODE, and returns payload bounds. | `capsule layout (handle)` unit suite |
 
 ### Tests (new)
 
-| Case                       | Coverage                                            |
-| -------------------------- | --------------------------------------------------- |
-| Valid handle               | Resolves header on RSTACK; slot0 is CODE            |
-| Non‑capsule handle         | Errors (header not LIST or missing CODE slot0)      |
-| Non‑RSTACK_REF input       | Errors (type mismatch)                              |
+| Case                 | Coverage                                       |
+| -------------------- | ---------------------------------------------- |
+| Valid handle         | Resolves header on RSTACK; slot0 is CODE       |
+| Non‑capsule handle   | Errors (header not LIST or missing CODE slot0) |
+| Non‑RSTACK_REF input | Errors (type mismatch)                         |
 
 _Exit criteria:_ Utilities refer to handles (RSTACK_REF) rather than copying locals; all tests reflect revised calling convention.
 
@@ -98,7 +98,7 @@ Status: ✅ Complete
    - Swap closer: replace `Op.EndDef` with `createBuiltinRef(Op.EndCapsule)` so the shared terminator emits the dispatch epilogue.
    - Emit `Op.ExitConstructor` (single opcode that appends `[CODE_REF(vm.IP), LIST]` to the current frame, pushes an `RSTACK_REF`, and unwinds to the caller).
 
-2. **Closer verb (`endCapsuleOp`)**
+2. **Closer Tacit word (`endCapsuleOp`)**
    - Emit `Op.ExitDispatch` (pops the saved BP and return address pushed by the dispatch prologue).
 
 ### Tests
@@ -162,18 +162,21 @@ Status: ✅ Complete
 **Objective:** Build exhaustive test suite and wire into builtin registry.
 
 ### Unit Suites
+
 - `frame-utils.test.ts` (Phase 2)
 - `does.test.ts`
 - `dispatch.test.ts`
 - `exit-dispatch.test.ts` (ensures no locals cleaned up accidentally)
 
 ### Integration Suites
+
 1. **Counter Capsule** — multiple dispatches mutate state and return values correctly
 2. **Point Capsule** — nested `case`, list arguments
 3. **Degenerate Capsule** — no `case`, single routine
 4. **Failure Paths** — dispatch on non-capsule, methods without definition
 
 ### Builtin Wiring
+
 - Register `does` as immediate command in `src/ops/builtins-register.ts`
 - Register `dispatch` as regular operation in `src/ops/builtins-register.ts`
 - Integration test: execute full Tacit snippet using both words

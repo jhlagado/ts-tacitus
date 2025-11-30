@@ -12,10 +12,10 @@ import type { VM } from './vm';
  * A function that operates on the VM.
  *
  * This type represents the signature for all operations (verbs) in the Tacit VM.
- * Each verb takes a VM instance as its only parameter and returns void. Operations
+ * Each Tacit word takes a VM instance as its only parameter and returns void. Operations
  * interact with the VM by manipulating its stacks, memory, and other state variables.
  *
  * Verbs are the fundamental building blocks of the Tacit language, implementing
  * both built-in operations and user-defined words.
  */
-export type Verb = (vm: VM) => void;
+export type TacitWord = (vm: VM) => void;

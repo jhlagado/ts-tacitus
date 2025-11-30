@@ -2,7 +2,7 @@
  * Conditional control-flow helpers (branching primitives shared by immediates).
  */
 
-import type { VM, Verb } from '@src/core';
+import type { VM, TacitWord } from '@src/core';
 import { isNumber } from '@src/core';
 import { nextInt16, pop, ensureStackSize } from '../../core/vm';
 
@@ -13,7 +13,7 @@ import { nextInt16, pop, ensureStackSize } from '../../core/vm';
  * condition is falsy (zero or non-numeric). Truthy numbers leave `ip` untouched
  * so execution falls through into the guarded body.
  */
-export const ifFalseBranchOp: Verb = (vm: VM) => {
+export const ifFalseBranchOp: TacitWord = (vm: VM) => {
   const offset = nextInt16(vm);
   ensureStackSize(vm, 1, 'IF');
   const cond = pop(vm);

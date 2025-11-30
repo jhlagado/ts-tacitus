@@ -25,7 +25,7 @@ The sections below detail the infrastructure and each control construct.
 Each dictionary entry stores an `isImmediate` flag. When the parser encounters a word:
 
 1. Look up the dictionary entry.
-2. If immediate, execute the entry immediately (for builtins this calls the TypeScript verb; for CODE references the VM temporarily jumps to the bytecode and returns on completion).
+2. If immediate, execute the entry immediately (for builtins this calls the TypeScript Tacit word; for CODE references the VM temporarily jumps to the bytecode and returns on completion).
 3. Otherwise emit bytecode normally.
 
 Immediate words run inside the VM instance used for compilation—no shadow interpreter. They may push values, emit opcodes, or manipulate placeholders exactly as runtime code would.

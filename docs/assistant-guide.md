@@ -55,7 +55,7 @@ This document consolidates the repo guidelines, AI guardrails, and onboarding no
 
 ### Naming & Style Essentials
 
-- Ops: short verb + `Op` suffix (`fetchOp`, `printOp`).
+- Ops: short Tacit word + `Op` suffix (`fetchOp`, `printOp`).
 - Helpers: ≤3 syllable camelCase (`getListBounds`, `readRef`).
 - Files: lowercase with hyphens (`branching-check.test.ts`, `style-guide.md`).
 - No verbose suffixes like `FromCode` or `Pure`.

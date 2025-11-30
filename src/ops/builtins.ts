@@ -1,6 +1,6 @@
 import {
   type VM,
-  type Verb,
+  type TacitWord,
   Tagged,
   getTaggedInfo,
   Tag,
@@ -132,7 +132,7 @@ import {
 
 // Temp register and related opcodes have been removed.
 
-const nopOp: Verb = () => {
+const nopOp: TacitWord = () => {
   // No operation - intentionally empty
 };
 
@@ -179,7 +179,7 @@ export function executeOp(vm: VM, opcode: Op, isUserDefined = false): void {
     return;
   }
 
-  const OPCODE_TO_VERB: Partial<Record<Op, Verb>> = {
+  const OPCODE_TO_VERB: Partial<Record<Op, TacitWord>> = {
     [Op.LiteralNumber]: literalNumberOp,
     [Op.Branch]: branchOp,
     [Op.Call]: callOp,
