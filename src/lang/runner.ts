@@ -11,8 +11,9 @@ import { createTokenizer } from './tokenizer';
  *
  * @param {VM} vm - The VM instance to use
  * @param {string} code - The Tacit source code to execute
+ * @param {string} [sourceName] - Optional canonical source identifier (for include base)
  */
-export function executeProgram(vm: VM, code: string): void {
-  parse(vm, createTokenizer(code));
+export function executeProgram(vm: VM, code: string, sourceName?: string): void {
+  parse(vm, createTokenizer(code), { sourceName });
   execute(vm, vm.compile.BCP);
 }

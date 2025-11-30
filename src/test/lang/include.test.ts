@@ -1,4 +1,6 @@
 import { getTaggedInfo, Tag, isNIL } from '@src/core';
+import * as fs from 'fs';
+import * as path from 'path';
 import { createVM } from '../../core/vm';
 import { createTokenizer } from '../../lang/tokenizer';
 import { parse } from '../../lang/parser';
@@ -89,5 +91,37 @@ describe('include immediate', () => {
     // Canonical globals point at their last definitions
     expect(lookup(vm, '/A')).toBe(aDef);
     expect(lookup(vm, '/B')).toBe(bDef);
+  });
+
+  test('includes real files via filesystem host', () => {
+    const vm = createVM(false);
+    const baseDir = path.resolve(__dirname, '../fixtures/include');
+    const includeHost = {
+      resolveInclude: (target: string, from?: string | null) => {
+        const base = from ? path.dirname(from) : process.cwd();
+        const canonicalPath = path.resolve(base, target);
+        const source = fs.readFileSync(canonicalPath, 'utf8');
+        return { canonicalPath, source };
+      },
+    };
+    vm.compile.includeHost = includeHost as never;
+
+    const aPath = path.join(baseDir, 'a.tac');
+    const bPath = path.join(baseDir, 'b.tac');
+
+    parse(vm, createTokenizer(`include "${aPath}"`));
+
+    const aWord = lookup(vm, 'a-word');
+    const bWord = lookup(vm, 'b-word');
+    expect(getTaggedInfo(aWord).tag).toBe(Tag.CODE);
+    expect(getTaggedInfo(bWord).tag).toBe(Tag.CODE);
+    expect(lookup(vm, aPath)).toBe(aWord);
+    expect(lookup(vm, bPath)).toBe(bWord);
+
+    // Circular pair should short-circuit and still produce definitions
+    const c1Path = path.join(baseDir, 'c1.tac');
+    parse(vm, createTokenizer(`include "${c1Path}"`));
+    expect(getTaggedInfo(lookup(vm, 'c1-word')).tag).toBe(Tag.CODE);
+    expect(getTaggedInfo(lookup(vm, 'c2-word')).tag).toBe(Tag.CODE);
   });
 });

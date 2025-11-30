@@ -13,6 +13,7 @@ import * as path from 'path';
 
 import { type VM, createVM } from '../core/vm';
 import { executeProgram } from './runner';
+import { makeFsIncludeHost } from './include-host-fs';
 
 /** The standard file extension for Tacit source files */
 export const TACIT_FILE_EXTENSION = '.tacit';
@@ -55,26 +56,7 @@ export function processFile(vm: VM, filePath: string): boolean {
     }
 
     const content = fs.readFileSync(absolutePath, 'utf8');
-    const lines = content.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line === '' || line.startsWith('#')) {
-        continue;
-      }
-
-      try {
-        executeProgram(vm, line);
-      } catch (error) {
-        console.error(`Error in file ${filePathWithExt} at line ${i + 1}:`);
-        if (error instanceof Error) {
-          console.error(`  ${error.message}`);
-        } else {
-          console.error('  Unknown error occurred');
-        }
-
-        return false;
-      }
-    }
+    executeProgram(vm, content, absolutePath);
     return true;
   } catch (error) {
     console.error(`Failed to read file ${filePathWithExt}:`);
@@ -104,6 +86,8 @@ export function processFiles(
   processFileFn?: (vm: VM, filePath: string) => boolean,
 ): boolean {
   const vm = createVM();
+  const tacitHome = process.env['TACIT_HOME'] ?? process.cwd();
+  vm.compile.includeHost = makeFsIncludeHost(tacitHome);
   const fn = processFileFn ?? processFile;
   let allSucceeded = true;
   for (const file of files) {

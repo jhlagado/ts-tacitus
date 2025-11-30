@@ -83,6 +83,19 @@ Circular inclusion is therefore not considered an error in the include specifica
 
 ---
 
+## 4. Canonicalization and Identity
+
+Include identity is defined by a **canonical path** string chosen by the host. All includes that resolve to the same canonical string refer to the same module. A recommended policy:
+
+- Choose a Tacit home root: `$TACIT_HOME` if set, otherwise the engine/project root or process cwd.
+- Resolve `target` relative to the including file (if provided), otherwise relative to Tacit home.
+- Normalize `.`/`..` and symlinks.
+- Canonical key: if the resolved path is under Tacit home, store it as `/<relative/to/home>` with POSIX separators; otherwise, use the absolute path. The key must be stable and unique across includes.
+
+This keeps keys portable (no machine-specific absolute paths) while still allowing includes outside the home tree to work correctly.
+
+---
+
 ## 4. Recursive Descent and Input Stream Management
 
 Tacit’s parser operates as a **recursive‑descent driver** over token streams. When inclusion is involved, those token streams are nested: the current file may include a second file, which in turn includes a third, and so on.

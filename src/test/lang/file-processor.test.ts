@@ -74,25 +74,8 @@ describe('processFile', () => {
     (execute as jest.Mock).mockImplementation(() => {});
     const vm = createVM();
     processFile(vm, 'file.tacit');
-    expect(parse).toHaveBeenCalledTimes(2);
-    expect(execute).toHaveBeenCalledTimes(2);
-  });
-
-  test('should return false on execution error', () => {
-    const fileContent = 'line1\nline2\nline3';
-    (fs.readFileSync as jest.Mock).mockReturnValue(fileContent);
-    (path.extname as jest.Mock).mockReturnValue(TACIT_FILE_EXTENSION);
-    (parse as jest.Mock).mockImplementation(() => {});
-    (execute as jest.Mock)
-      .mockImplementationOnce(() => {})
-      .mockImplementationOnce(() => {
-        throw new Error('Execution error');
-      });
-    const vm = createVM();
-    const result = processFile(vm, 'file.tacit');
-    expect(result).toBe(false);
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Error in file'));
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('at line 2:'));
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 
   test('should return false on file read error', () => {
