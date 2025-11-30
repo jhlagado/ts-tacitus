@@ -15,7 +15,7 @@ import {
   getStackData,
 } from '../../core/vm';
 import { define, lookup } from '../../core/dictionary';
-import { TokenType, tokenizerNext } from '../tokenizer';
+import { TokenType, tokenizerNext, tokenizerPushBack } from '../tokenizer';
 import { Op } from '../../ops/opcodes';
 import { getCellFromRef } from '../../core/refs';
 import { GLOBAL_BASE, GLOBAL_SIZE } from '../../core/constants';
