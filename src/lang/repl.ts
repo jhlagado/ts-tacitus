@@ -14,6 +14,7 @@ import { createVM } from '../core/vm';
 import { executeProgram } from './runner';
 
 import { processFile } from './file-processor';
+import { makeFsIncludeHost } from './include-host-fs';
 
 /**
  * Starts an interactive REPL (Read-Eval-Print Loop) session.
@@ -33,9 +34,6 @@ import { processFile } from './file-processor';
 export function startREPL(files: string[] = [], interactiveAfterFiles = true): void {
   const vm = createVM();
   const tacitHome = process.env['TACIT_HOME'] ?? process.cwd();
-  // Lazy load to avoid circular deps
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { makeFsIncludeHost } = require('./include-host-fs') as typeof import('./include-host-fs');
   vm.compile.includeHost = makeFsIncludeHost(tacitHome);
   let allFilesProcessed = true;
   if (files.length > 0) {

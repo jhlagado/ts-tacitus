@@ -76,8 +76,8 @@ export function endDefinition(vm: VM): void {
 
   patchBranchOffset(vm, vm.compile.branchPos);
 
-  const checkpoint = vm.compile.checkpoint;
-  const entryCell = vm.compile.entryCell;
+  const { checkpoint } = vm.compile;
+  const { entryCell } = vm.compile;
 
   forget(vm, checkpoint);
 

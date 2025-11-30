@@ -11,12 +11,11 @@ import {
   type VM,
   emitOpcode,
   emitUint16,
-  emitFloat32,
   ensureReserveEmitted,
   getStackData,
 } from '../../core/vm';
 import { define, lookup } from '../../core/dictionary';
-import { TokenType, type Tokenizer, tokenizerNext, tokenizerPushBack } from '../tokenizer';
+import { TokenType, tokenizerNext } from '../tokenizer';
 import { Op } from '../../ops/opcodes';
 import { getCellFromRef } from '../../core/refs';
 import { GLOBAL_BASE, GLOBAL_SIZE } from '../../core/constants';
