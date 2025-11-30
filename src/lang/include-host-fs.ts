@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { IncludeHost, IncludeResolveResult } from './include-host';
+import type { VM } from '../core/vm';
 
 /**
  * Filesystem-backed include host.
@@ -27,4 +28,12 @@ export function makeFsIncludeHost(tacitHome: string): IncludeHost {
       return { canonicalPath, source };
     },
   };
+}
+
+/**
+ * Attach a filesystem include host to a VM. Tacit home defaults to process cwd.
+ */
+export function attachFsIncludeHost(vm: VM, tacitHome?: string): void {
+  const home = tacitHome ?? process.env['TACIT_HOME'] ?? process.cwd();
+  vm.compile.includeHost = makeFsIncludeHost(home);
 }

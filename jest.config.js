@@ -2,6 +2,9 @@
 const { pathsToModuleNameMapper } = require('ts-jest');
 const { compilerOptions } = require('./tsconfig.json');
 
+const ignoreCoverageThresholds =
+  process.env.JEST_IGNORE_THRESHOLDS === '1' || process.env.JEST_COVERAGE === '0';
+
 module.exports = {
   testEnvironment: 'node',
   transform: {
@@ -23,14 +26,16 @@ module.exports = {
     '!**/node_modules/**',
   ],
   coverageDirectory: 'coverage',
-  coverageThreshold: {
-    global: {
-      branches: 40,
-      functions: 40,
-      lines: 40,
-      statements: 40,
-    },
-  },
+  coverageThreshold: ignoreCoverageThresholds
+    ? undefined
+    : {
+        global: {
+          branches: 40,
+          functions: 40,
+          lines: 40,
+          statements: 40,
+        },
+      },
   setupFilesAfterEnv: ['<rootDir>/src/test/setup-tests.ts'],
   moduleDirectories: ['node_modules', 'src'],
 };

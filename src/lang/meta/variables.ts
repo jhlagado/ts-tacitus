@@ -19,7 +19,7 @@ import { TokenType, tokenizerNext, tokenizerPushBack } from '../tokenizer';
 import { Op } from '../../ops/opcodes';
 import { getCellFromRef } from '../../core/refs';
 import { GLOBAL_BASE, GLOBAL_SIZE } from '../../core/constants';
-import { compileBracketPathAsList } from '../helpers/bracket-path';
+import { compilePathList } from '../helpers/bracket-path';
 import { ensureTokenizer, readNameAfter } from '../helpers/tokenizer-utils';
 
 export function varImmediateOp(vm: VM): void {
@@ -73,7 +73,7 @@ export function assignImmediateOp(vm: VM): void {
     emitUint16(vm, info.value);
     if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       emitOpcode(vm, Op.Fetch);
-      compileBracketPathAsList(vm, tokenizer);
+      compilePathList(vm, tokenizer);
       emitOpcode(vm, Op.Select);
       emitOpcode(vm, Op.Nip);
       emitOpcode(vm, Op.Store);
@@ -91,7 +91,7 @@ export function assignImmediateOp(vm: VM): void {
     emitUint16(vm, offset);
     if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
       emitOpcode(vm, Op.Fetch);
-      compileBracketPathAsList(vm, tokenizer);
+      compilePathList(vm, tokenizer);
       emitOpcode(vm, Op.Select);
       emitOpcode(vm, Op.Nip);
       emitOpcode(vm, Op.Store);
@@ -130,7 +130,7 @@ export function incrementImmediateOp(vm: VM): void {
   emitUint16(vm, info.value);
   if (maybeBracket.type === TokenType.SPECIAL && maybeBracket.value === '[') {
     emitOpcode(vm, Op.Fetch);
-    compileBracketPathAsList(vm, tokenizer);
+    compilePathList(vm, tokenizer);
     emitOpcode(vm, Op.Select);
     emitOpcode(vm, Op.Nip);
     emitOpcode(vm, Op.Swap);
