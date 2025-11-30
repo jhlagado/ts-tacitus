@@ -100,7 +100,7 @@ let builtinSnapshot: { head: number; gp: number } | null = null;
  * Creates and returns a new initialized VM instance as a plain object.
  * This is the standard way to create a VM.
  *
- * @param useCache - If true (default), reuses a cached VM instance with registers reset (tests only). Set to false to disable caching.
+ * @param useCache - If true, reuses a cached VM instance with registers reset (tests only). Set to false to disable caching. Defaults to false to avoid test cross-talk.
  * @returns A new VM instance with all fields initialized
  */
 export function createVM(useCache = true): VM {
@@ -304,26 +304,6 @@ export function ensureStackSize(vm: VM, size: number, operation: string): void {
  * @param name - The symbol name to resolve
  * @returns Tagged value for the symbol, or undefined if not found
  */
-export function resolveSymbol(vm: VM, name: string): number | undefined {
-  const result = lookup(vm, name);
-  return isNIL(result) ? undefined : result;
-}
-
-/**
- * Pushes a symbol reference onto the stack.
- *
- * @param vm - VM instance
- * @param name - The symbol name to resolve and push
- * @throws {Error} If the symbol is not found
- */
-export function pushSymbolRef(vm: VM, name: string): void {
-  const taggedValue = resolveSymbol(vm, name);
-  if (taggedValue === undefined) {
-    throw new Error(`Symbol not found: ${name}`);
-  }
-  push(vm, taggedValue);
-}
-
 function _checkInv(vm: VM): void {
   if (vm.sp < 0 || vm.rsp < 0 || vm.bp < 0) {
     throw new Error('Invariant violation: negative stack pointer');
@@ -706,3 +686,5 @@ export function patchUint16(vm: VM, address: number, value: number): void {
 export function patchOpcode(vm: VM, address: number, opcode: number): void {
   compilerPatchOpcode(vm, vm.compile, address, opcode);
 }
+
+export { resolveSymbol, pushSymbolRef } from './symbols';

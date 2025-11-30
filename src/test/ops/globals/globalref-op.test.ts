@@ -27,7 +27,7 @@ describe('GlobalRef opcode', () => {
       expect(stack.length).toBe(1);
       const ref = stack[0];
       expect(isRef(ref)).toBe(true);
-      
+
       const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_BASE);
     });
@@ -41,7 +41,7 @@ describe('GlobalRef opcode', () => {
       expect(stack.length).toBe(1);
       const ref = stack[0];
       expect(isRef(ref)).toBe(true);
-      
+
       const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_BASE + offset);
     });
@@ -55,7 +55,7 @@ describe('GlobalRef opcode', () => {
       expect(stack.length).toBe(1);
       const ref = stack[0];
       expect(isRef(ref)).toBe(true);
-      
+
       const absCellIndex = getCellFromRef(ref);
       expect(absCellIndex).toBe(GLOBAL_BASE + maxOffset);
       expect(absCellIndex).toBeLessThan(GLOBAL_TOP);
@@ -105,4 +105,3 @@ describe('GlobalRef opcode', () => {
     });
   });
 });
-

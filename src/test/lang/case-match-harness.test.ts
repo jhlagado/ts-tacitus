@@ -6,7 +6,7 @@ describe('Tacit case/match harness', () => {
   let vm: VM;
 
   beforeEach(() => {
-    vm = createVM(false);
+    vm = createVM();
   });
 
   test('case dispatch selects matching clause and drops discriminant once', () => {

@@ -20,10 +20,10 @@ const emitRefSigilMock = jest.spyOn(parser, 'emitRefSigil'); // kept for asserti
 const validateFinalStateMock = jest.spyOn(parser, 'validateFinalState');
 
 describe('compile loop unit coverage', () => {
-  let vm = vmCore.createVM(false);
+  let vm = vmCore.createVM();
 
   beforeEach(() => {
-    vm = vmCore.createVM(false);
+    vm = vmCore.createVM();
     jest.clearAllMocks();
   });
 
