@@ -309,4 +309,5 @@ export enum Op {
   IncrementImmediate,
   DefaultImmediate,
   NilImmediate,
+  IncludeImmediate,
 }

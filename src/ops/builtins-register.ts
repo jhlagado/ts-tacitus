@@ -64,6 +64,7 @@ export function registerBuiltins(vm: VM): void {
   reg('+>', Op.IncrementImmediate, 1);
   reg('DEFAULT', Op.DefaultImmediate, 1);
   reg('NIL', Op.NilImmediate, 1);
+  reg('include', Op.IncludeImmediate, 1);
 
   reg('eval', Op.Eval);
   reg('dispatch', Op.Dispatch);

@@ -118,37 +118,55 @@ function tryRunTacitCompileLoop(vm: VM): boolean {
   }
 }
 
+export type ParseOptions = {
+  resetCompiler?: boolean;
+  emitAbort?: boolean;
+  sourceName?: string | null;
+};
+
 /**
  * Main parse function - entry point for parsing Tacit code.
  *
- * This function initializes the parser state, processes the entire program,
- * validates the final state, and adds an abort instruction at the end.
- *
- * @param {VM} vm - The VM instance to use for compilation
- * @param {Tokenizer} tokenizer - The tokenizer that provides the stream of tokens to parse
+ * By default, this resets the compiler state, parses the entire program,
+ * validates final state, and appends an Abort instruction. Callers can opt
+ * out of reset/Abort (e.g., for nested include expansion) via options.
  */
-export function parse(vm: VM, tokenizer: Tokenizer): void {
-  resetCompiler(vm);
+export function parse(vm: VM, tokenizer: Tokenizer, options?: ParseOptions): void {
+  const { resetCompiler: doReset = true, emitAbort = true, sourceName } = options ?? {};
+  if (doReset) {
+    resetCompiler(vm);
+  }
+
+  const previousTokenizer = vm.compile.tokenizer;
+  const previousBranchPos = vm.compile.branchPos;
+  const previousCheckpoint = vm.compile.checkpoint;
+  const previousEntryCell = vm.compile.entryCell;
+  const previousSourceName = vm.compile.currentSource;
 
   vm.compile.branchPos = -1;
   vm.compile.checkpoint = -1;
   vm.compile.entryCell = -1;
-  const previousTokenizer = vm.compile.tokenizer;
+  if (sourceName !== undefined) {
+    vm.compile.currentSource = sourceName;
+  }
   vm.compile.tokenizer = tokenizer;
   try {
     const handledByTacit = tryRunTacitCompileLoop(vm);
     if (!handledByTacit) {
       parseProgram(vm, tokenizer);
-
       validateFinalState(vm);
-
-      emitOpcode(vm, Op.Abort);
+      if (emitAbort) {
+        emitOpcode(vm, Op.Abort);
+      }
     }
   } finally {
-    vm.compile.branchPos = -1;
-    vm.compile.checkpoint = -1;
-    vm.compile.entryCell = -1;
+    vm.compile.branchPos = previousBranchPos;
+    vm.compile.checkpoint = previousCheckpoint;
+    vm.compile.entryCell = previousEntryCell;
     vm.compile.tokenizer = previousTokenizer ?? null;
+    if (sourceName !== undefined) {
+      vm.compile.currentSource = previousSourceName ?? null;
+    }
   }
 }
 
