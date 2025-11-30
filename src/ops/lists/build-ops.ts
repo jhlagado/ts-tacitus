@@ -5,7 +5,7 @@
 
 import {
   type VM,
-  type Verb,
+  type TacitWord,
   getTaggedInfo,
   Tagged,
   Tag,
@@ -170,7 +170,7 @@ export function unpackOp(vm: VM): void {
  * Converts a single value into a single-element list.
  * Stack effect: ( value — LIST:1 )
  */
-export const enlistOp: Verb = (vm: VM) => {
+export const enlistOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 1, 'enlist');
   const a = pop(vm);
   push(vm, a);

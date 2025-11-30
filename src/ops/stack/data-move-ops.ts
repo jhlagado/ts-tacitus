@@ -5,7 +5,7 @@
 
 import {
   type VM,
-  type Verb,
+  type TacitWord,
   getTaggedInfo,
   Tag,
   StackUnderflowError,
@@ -207,7 +207,7 @@ function safeStackOperation(vm: VM, operation: () => void, operationName: string
  * Stack effect: ( a — a a )
  * Duplicates the top element of the stack, handling both simple values and complex data structures.
  */
-export const dupOp: Verb = (vm: VM) => {
+export const dupOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 1, 'dup');
 
   const [tosStartSlot, tosSize] = findElementAtIndex(vm, 0);
@@ -219,7 +219,7 @@ export const dupOp: Verb = (vm: VM) => {
  * Stack effect: ( a b — a b a )
  * Copies the second element on the stack to the top, preserving the original.
  */
-export const overOp: Verb = (vm: VM) => {
+export const overOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 2, 'over');
 
   const originalSP = vm.sp;
@@ -245,7 +245,7 @@ export const overOp: Verb = (vm: VM) => {
  * Stack effect: ( ... n — ... copy_of_nth )
  * Copies an element from a specific depth in the stack to the top.
  */
-export const pickOp: Verb = (vm: VM) => {
+export const pickOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 1, 'pick');
 
   const index = pop(vm);
@@ -267,7 +267,7 @@ export const pickOp: Verb = (vm: VM) => {
  * Stack effect: ( a — )
  * Removes the top element from the stack. If the top element is a list, removes the entire list structure.
  */
-export const dropOp: Verb = (vm: VM) => {
+export const dropOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 1, 'drop');
   const topValue = peek(vm);
   const { tag, value } = getTaggedInfo(topValue);
@@ -284,7 +284,7 @@ export const dropOp: Verb = (vm: VM) => {
  * Stack effect: ( a b — b a )
  * Exchanges the top two elements on the stack.
  */
-export const swapOp: Verb = (vm: VM) => {
+export const swapOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 2, 'swap');
 
   const originalSP = vm.sp;
@@ -315,7 +315,7 @@ export const swapOp: Verb = (vm: VM) => {
  * Stack effect: ( a b c — b c a )
  * Rotates the top three elements on the stack, moving the third element to the top.
  */
-export const rotOp: Verb = (vm: VM) => {
+export const rotOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 3, 'rot');
 
   const originalSP = vm.sp;
@@ -348,7 +348,7 @@ export const rotOp: Verb = (vm: VM) => {
  * Stack effect: ( a b c — c a b )
  * Performs a reverse rotation of the top three elements on the stack.
  */
-export const revrotOp: Verb = (vm: VM) => {
+export const revrotOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 3, 'revrot');
 
   const originalSP = vm.sp;
@@ -380,7 +380,7 @@ export const revrotOp: Verb = (vm: VM) => {
  * Stack effect: ( a b — b )
  * Removes the second element from the top of the stack (NOS - Next On Stack).
  */
-export const nipOp: Verb = (vm: VM) => {
+export const nipOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 2, 'nip');
 
   safeStackOperation(
@@ -408,7 +408,7 @@ export const nipOp: Verb = (vm: VM) => {
  * Stack effect: ( a b — b a b )
  * Duplicates the top element and inserts the copy under the second element.
  */
-export const tuckOp: Verb = (vm: VM) => {
+export const tuckOp: TacitWord = (vm: VM) => {
   validateStackDepth(vm, 2, 'tuck');
 
   safeStackOperation(

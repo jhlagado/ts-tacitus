@@ -3,7 +3,19 @@
  * Path-based address selection operations for the Tacit VM.
  */
 
-import { type VM, type Verb, Tag, getTaggedInfo, isNIL, NIL, getListLength, isList, isRef, createRef, memoryReadCell } from '@src/core';
+import {
+  type VM,
+  type TacitWord,
+  Tag,
+  getTaggedInfo,
+  isNIL,
+  NIL,
+  getListLength,
+  isList,
+  isRef,
+  createRef,
+  memoryReadCell,
+} from '@src/core';
 import { enlistOp, elemOp, findOp } from '../lists';
 import { nipOp, dropOp, findElement } from '../stack';
 import { push, pop, peek, ensureStackSize } from '../../core/vm';
@@ -105,7 +117,7 @@ export function traverseMultiPath(vm: VM): void {
  * Select operation: path-based address access.
  * Stack: ( target path -- target address|NIL )
  */
-export const selectOp: Verb = (vm: VM) => {
+export const selectOp: TacitWord = (vm: VM) => {
   ensureStackSize(vm, 2, 'select');
 
   const path = peek(vm);

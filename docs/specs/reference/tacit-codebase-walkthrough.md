@@ -28,7 +28,7 @@ The journey begins in the Read–Eval–Print Loop. `startREPL()` is the front-d
 - **Literal emission** – `emitOpcode()` + `emitFloat32()` or `emitUint16()` output `LiteralNumber` / `LiteralString` sequences for constants. Tagged values (e.g., strings) are allocated via the VM’s `Digest`.
 - **Word resolution** (`emitWord`) – Lookups go through `core/dictionary.lookup()`. Immediate words are detected by reading the tagged payload’s metadata bit:
   - Builtin immediate opcodes call `executeImmediateOpcode`.
-  - User immediates either execute their builtin verb (`executeOp`) or jump into user-defined code via `runImmediateCode`.
+  - User immediates either execute their builtin Tacit word (`executeOp`) or jump into user-defined code via `runImmediateCode`.
 - **Variable references** – Locals are compiled using `Op.VarRef` + `Op.Load`; globals emit `Op.GlobalRef` with offsets relative to `GLOBAL_BASE`.
 - **Special forms** – `handleSpecial()` interprets parser-level punctuation (e.g., `:`, `;`, `[`, `]`, control forms) by calling helpers in `definition-system.ts`, `meta/definition-ops.ts`, and related modules.
 - **Lists & selectors** – Encountering `word[` triggers `compileBracketPathAsList()` which compiles the selector list, then `Op.Select`/`Op.Load` pairs to access nested data.
@@ -49,7 +49,7 @@ The parser has a programmable “compile loop” that can be toggled with `TACIT
 `execute(vm, start)` is the interpreter’s main loop.
 
 - **Instruction fetch** – The interpreter reads the next raw byte from `SEG_CODE`. If the high bit is set (`0x80`), it decodes a user-defined opcode using Tacit’s X1516 format; otherwise it uses the byte as a builtin opcode.
-- **Dispatch** – `nextOpcode()` hands the decoded value to `executeOp()`. For user words, `executeOp()` pushes the caller’s `IP` and `BP` onto the return stack and jumps directly to the target address. For builtins, it looks up the registered verb (see §7) and executes it.
+- **Dispatch** – `nextOpcode()` hands the decoded value to `executeOp()`. For user words, `executeOp()` pushes the caller’s `IP` and `BP` onto the return stack and jumps directly to the target address. For builtins, it looks up the registered Tacit word (see §7) and executes it.
 - **Execution bounds** – The loop continues while `vm.running` is true and `vm.IP < vm.compiler.CP`, ensuring it only executes the bytecode produced during the current compilation cycle.
 - **Error handling** – Any exception captures `getStackData(vm)` for diagnostics, resets compiler state, clears `compiler.preserve`, and rethrows with augmented context.
 - **Embedding calls** – `callTacit()` exposes a re-entrant API for calling Tacit code from JS. It saves the current frame on the return stack, sets `vm.IP` to the callee’s address, runs `execute()`, and restores state afterward.
@@ -84,10 +84,10 @@ The `ops` directory contains the actual verbs that the interpreter dispatches.
 - **Opcode registry** – `src/ops/opcodes.ts` enumerates every builtin opcode. Opcodes `< 128` are builtins; any value `>= 128` refers to user-defined code.
 - **`executeOp()`** (`src/ops/builtins.ts`) – Routes execution:
   - **User-defined** – Pushes the caller frame onto the return stack and jumps to the encoded address (mirroring `callOp`).
-  - **Builtins** – Looks up the opcode in a `Partial<Record<Op, Verb>>` map and invokes the implementation (math, stack, list, buffer, capsule, heap, dictionary, etc.). Missing opcodes throw `InvalidOpcodeError`.
+  - **Builtins** – Looks up the opcode in a `Partial<Record<Op, TacitWord>>` map and invokes the implementation (math, stack, list, buffer, capsule, heap, dictionary, etc.). Missing opcodes throw `InvalidOpcodeError`.
 - **Core control ops** – `src/ops/core/core-ops.ts` implements foundational instructions: `literalNumberOp`, `literalStringOp`, `branchOp`, `callOp`, `abortOp`, `exitOp`, `evalOp`, list delimiters, and compiler sentinels (`endDefinitionOp`, etc.).
 - **Standard library** – Files like `math.ts`, `stack.ts`, `lists.ts`, `buffers.ts`, `heap.ts`, `capsules/*`, and `meta/*` supply the rest of the runtime behaviors. `builtins-register.ts` binds word names to opcodes and registers them in the dictionary during VM creation.
-- **Immediate & meta words** – Many parser-time behaviors live under `src/lang/meta/` (conditionals, `with`, `match`, variable declarations). Their opcodes are flagged as immediates (dictionary payload meta bit set) so that encountering them during `emitWord()` runs the compile-time verb instead of emitting executable bytecode.
+- **Immediate & meta words** – Many parser-time behaviors live under `src/lang/meta/` (conditionals, `with`, `match`, variable declarations). Their opcodes are flagged as immediates (dictionary payload meta bit set) so that encountering them during `emitWord()` runs the compile-time Tacit word instead of emitting executable bytecode.
 
 ## 9. Putting It Together
 
