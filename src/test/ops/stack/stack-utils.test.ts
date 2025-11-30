@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { VM, createVM } from '../../../core/vm';
 import { Tagged, Tag } from '../../../core/tagged';

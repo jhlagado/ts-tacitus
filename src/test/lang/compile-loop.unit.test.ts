@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, expect, test, jest, beforeEach, afterEach } from '@jest/globals';
 
 import {
@@ -14,8 +15,8 @@ import * as parser from '../../lang/parser';
 
 const tokenNextMock = jest.spyOn(parser, 'tokenNext');
 const handleSpecialMock = jest.spyOn(parser, 'handleSpecial');
-const emitWordMock = jest.spyOn(parser, 'emitWord');
-const emitRefSigilMock = jest.spyOn(parser, 'emitRefSigil');
+const emitWordMock = jest.spyOn(parser, 'emitWord'); // kept for assertion count
+const emitRefSigilMock = jest.spyOn(parser, 'emitRefSigil'); // kept for assertion count
 const validateFinalStateMock = jest.spyOn(parser, 'validateFinalState');
 
 describe('compile loop unit coverage', () => {

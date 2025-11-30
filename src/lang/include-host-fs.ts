@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { IncludeHost } from './include-host';
+import type { IncludeHost, IncludeResolveResult } from './include-host';
 
 /**
  * Filesystem-backed include host.
@@ -13,14 +13,14 @@ import type { IncludeHost } from './include-host';
 export function makeFsIncludeHost(tacitHome: string): IncludeHost {
   const home = path.resolve(tacitHome);
   return {
-    resolveInclude(target: string, from?: string | null) {
+    resolveInclude(target: string, from?: string | null): IncludeResolveResult {
       const base = from ? path.dirname(from) : home;
       const absPath = path.resolve(base, target);
       const source = fs.readFileSync(absPath, 'utf8');
       let canonicalPath: string;
       if (absPath.startsWith(home)) {
         const rel = path.relative(home, absPath);
-        canonicalPath = '/' + rel.split(path.sep).join('/');
+        canonicalPath = `/${rel.split(path.sep).join('/')}`;
       } else {
         canonicalPath = absPath;
       }

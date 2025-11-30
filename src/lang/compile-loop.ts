@@ -32,7 +32,7 @@ export function runTacitCompileLoop(vm: VM): void {
       }
       case TokenType.SPECIAL: {
         const text = getStringFromToken(vm, raw, 'handle-special');
-        const tokenizer = vm.compile.tokenizer;
+        const { tokenizer } = vm.compile;
         if (!tokenizer) {
           throw new Error('handle-special: no active tokenizer');
         }
@@ -41,7 +41,7 @@ export function runTacitCompileLoop(vm: VM): void {
       }
       case TokenType.WORD: {
         const text = getStringFromToken(vm, raw, 'emit-word');
-        const tokenizer = vm.compile.tokenizer;
+        const { tokenizer } = vm.compile;
         if (!tokenizer) {
           throw new Error('emit-word: no active tokenizer');
         }
@@ -50,7 +50,7 @@ export function runTacitCompileLoop(vm: VM): void {
       }
       case TokenType.REF_SIGIL: {
         getStringFromToken(vm, raw, 'emit-ref-sigil');
-        const tokenizer = vm.compile.tokenizer;
+        const { tokenizer } = vm.compile;
         if (!tokenizer) {
           throw new Error('emit-ref-sigil: no active tokenizer');
         }

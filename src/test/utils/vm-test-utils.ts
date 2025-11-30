@@ -189,7 +189,9 @@ export function pushNumber(vm: VM, value: number): void {
  * Push a LIST literal built from raw slot values.
  */
 export function pushListLiteral(vm: VM, ...values: number[]): void {
-  values.forEach(value => pushNumber(vm, value));
+  values.forEach(value => {
+ pushNumber(vm, value);
+});
   pushTaggedValue(vm, values.length, Tag.LIST);
 }
 

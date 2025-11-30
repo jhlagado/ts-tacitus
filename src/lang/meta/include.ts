@@ -28,9 +28,6 @@ export function includeImmediateOp(vm: VM): void {
 
   const currentSource = vm.compile.currentSource ?? null;
   const { canonicalPath, source } = host.resolveInclude(target, currentSource);
-  if (!canonicalPath || source === undefined) {
-    throw new SyntaxError('include host returned invalid data', getStackData(vm));
-  }
 
   const existing = findEntryByName(vm, canonicalPath);
   if (existing) {

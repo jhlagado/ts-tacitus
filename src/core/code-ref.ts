@@ -21,7 +21,7 @@ import {
  * @throws {Error} If address is out of range
  */
 export function encodeX1516(bytecodeAddr: number): number {
-  if (CODE_ALIGN_BYTES <= 0 || (CODE_ALIGN_BYTES & (CODE_ALIGN_BYTES - 1)) !== 0) {
+  if ((CODE_ALIGN_BYTES & (CODE_ALIGN_BYTES - 1)) !== 0) {
     throw new Error(`CODE_ALIGN_BYTES must be power-of-two, got ${CODE_ALIGN_BYTES}`);
   }
   if (bytecodeAddr < 0 || bytecodeAddr > CODE_MAX_BYTE_ADDRESS) {
