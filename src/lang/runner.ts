@@ -14,6 +14,6 @@ import { createTokenizer } from './tokenizer';
  * @param {string} [sourceName] - Optional canonical source identifier (for include base)
  */
 export function executeProgram(vm: VM, code: string, sourceName?: string): void {
-  parse(vm, createTokenizer(code), { sourceName });
+  parse(vm, createTokenizer(code), sourceName);
   execute(vm, vm.compile.BCP);
 }

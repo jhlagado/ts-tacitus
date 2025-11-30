@@ -13,7 +13,7 @@ import * as path from 'path';
 
 import { type VM, createVM } from '../core/vm';
 import { executeProgram } from './runner';
-import { makeFsIncludeHost } from './include-host-fs';
+import { attachFsIncludeHost } from './include-host-fs';
 
 /** The standard file extension for Tacit source files */
 export const TACIT_FILE_EXTENSION = '.tacit';
@@ -38,9 +38,8 @@ function ensureFileExtension(filePath: string): string {
 /**
  * Processes a single Tacit file.
  *
- * This function reads a Tacit source file, processes it line by line, and executes each line.
- * It skips empty lines and comments (lines starting with #). If an error occurs during
- * execution, it reports the error with the line number and returns false.
+ * This function reads a Tacit source file and executes it as a single program. If an error
+ * occurs during execution, it reports the error and returns false.
  *
  * @param {VM} vm - The VM instance to use for execution
  * @param {string} filePath - The path to the Tacit file to process
@@ -86,8 +85,7 @@ export function processFiles(
   processFileFn?: (vm: VM, filePath: string) => boolean,
 ): boolean {
   const vm = createVM();
-  const tacitHome = process.env['TACIT_HOME'] ?? process.cwd();
-  vm.compile.includeHost = makeFsIncludeHost(tacitHome);
+  attachFsIncludeHost(vm);
   const fn = processFileFn ?? processFile;
   let allSucceeded = true;
   for (const file of files) {

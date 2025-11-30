@@ -23,7 +23,7 @@ Systematically simplify the Tacit runtime (core, lang, ops, meta) by removing re
 3. **`src/lang/meta/case.ts` + `src/lang/meta/match-with.ts`**
    - Merge into a single `case-match.ts` module; both exports are tightly coupled and only used together.
 4. **`src/lang/meta/variables.ts`**
-   - Inline `compileBracketPathAsList` into `assignImmediateOp` / `incrementImmediateOp` (only two call sites) if it keeps the logic readable.
+   - Inline `compilePathList` into `assignImmediateOp` / `incrementImmediateOp` (only two call sites) if it keeps the logic readable.
 
 ### Stage 2 – Core Helpers
 

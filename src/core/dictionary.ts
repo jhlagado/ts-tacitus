@@ -148,6 +148,8 @@ export function define(vm: VM, name: string, payloadTagged: number): void {
   gpush(vm, Tagged(3, Tag.LIST));
   // head is now the cell index of the header (gp - 1 is relative to GLOBAL_BASE)
   vm.compile.head = vm.gp - 1;
+  // Track last definition for include entry-point assignment
+  vm.compile.lastDefinitionCell = vm.compile.head;
 }
 
 export function lookup(vm: VM, name: string): number {

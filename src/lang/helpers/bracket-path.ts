@@ -3,7 +3,7 @@ import { emitOpcode, emitFloat32, emitUint16, getStackData } from '../../core/vm
 import { Op } from '../../ops/opcodes';
 import { tokenizerNext, TokenType, type Tokenizer } from '../tokenizer';
 
-export function compileBracketPathAsList(vm: VM, tokenizer: Tokenizer): void {
+export function compilePathList(vm: VM, tokenizer: Tokenizer): void {
   emitOpcode(vm, Op.OpenList);
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {

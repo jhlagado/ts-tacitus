@@ -42,7 +42,7 @@ import {
 import { Op } from '../ops/opcodes';
 import { getTaggedInfo, isNIL, Tag } from './tagged';
 import { decodeX1516 } from './code-ref';
-import { createDigest } from '../strings/digest';
+import { createDigest, type Digest } from '../strings/digest';
 import { registerBuiltins } from '../ops/builtins-register';
 import {
   StackUnderflowError,
@@ -77,6 +77,17 @@ export type VM = {
   compile: CompilerState;
   /** Debug mode flag (enables invariant checks) */
   debug: boolean;
+}
+
+function resetCompileState(vm: VM, digest: Digest, head: number, includeHost: CompilerState['includeHost'], currentSource: string | null): CompilerState {
+  const base = makeCompiler(digest);
+  return {
+    ...base,
+    head,
+    includeHost,
+    currentSource,
+    lastDefinitionCell: -1,
+  };
 }
 
 /**
@@ -131,10 +142,16 @@ export function createVM(useCache = true): VM {
       cachedTestVM.bp = RSTACK_BASE;
       cachedTestVM.debug = false;
       cachedTestVM.gp = builtinSnapshot.gp;
-      cachedTestVM.compile = {
-        ...makeCompiler(cachedTestVM.compile.digest),
-        head: builtinSnapshot.head,
-      };
+      const includeHost = cachedTestVM.compile.includeHost;
+      const currentSource = cachedTestVM.compile.currentSource;
+      const digest = cachedTestVM.compile.digest;
+      cachedTestVM.compile = resetCompileState(
+        cachedTestVM,
+        digest,
+        builtinSnapshot.head,
+        includeHost,
+        currentSource,
+      );
     }
     return cachedTestVM;
   }

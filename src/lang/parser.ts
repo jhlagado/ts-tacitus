@@ -62,7 +62,7 @@ import {
 import { lookup } from '../core/dictionary';
 import { decodeX1516 } from '../core/code-ref';
 import { runTacitCompileLoop } from './compile-loop';
-import { compileBracketPathAsList } from './helpers/bracket-path';
+import { compilePathList } from './helpers/bracket-path';
 
 export function tokenNext(vm: VM): { type: TokenType; raw: number } {
   const { tokenizer } = vm.compile;
@@ -118,12 +118,6 @@ function tryRunTacitCompileLoop(vm: VM): boolean {
   }
 }
 
-export type ParseOptions = {
-  resetCompiler?: boolean;
-  emitAbort?: boolean;
-  sourceName?: string | null;
-};
-
 /**
  * Main parse function - entry point for parsing Tacit code.
  *
@@ -131,8 +125,14 @@ export type ParseOptions = {
  * validates final state, and appends an Abort instruction. Callers can opt
  * out of reset/Abort (e.g., for nested include expansion) via options.
  */
-export function parse(vm: VM, tokenizer: Tokenizer, options?: ParseOptions): void {
-  const { resetCompiler: doReset = true, emitAbort = true, sourceName } = options ?? {};
+type InternalParseOptions = {
+  resetCompiler: boolean;
+  emitAbort: boolean;
+  sourceName?: string | null;
+};
+
+function runParse(vm: VM, tokenizer: Tokenizer, options: InternalParseOptions): void {
+  const { resetCompiler: doReset, emitAbort, sourceName } = options;
   if (doReset) {
     resetCompiler(vm);
   }
@@ -168,6 +168,29 @@ export function parse(vm: VM, tokenizer: Tokenizer, options?: ParseOptions): voi
       vm.compile.currentSource = previousSourceName ?? null;
     }
   }
+}
+
+/**
+ * Parse a root program: resets compiler state, validates, and appends Abort.
+ * Saves/restores branch/checkpoint/entry/tokenizer/currentSource and leaves
+ * lastDefinitionCell reflecting the last entry emitted during this parse.
+ */
+export function parseRoot(vm: VM, tokenizer: Tokenizer, sourceName?: string | null): void {
+  runParse(vm, tokenizer, { resetCompiler: true, emitAbort: true, sourceName });
+}
+
+/**
+ * Parse a child stream (e.g., include): no reset, no Abort, preserves compiler context.
+ * Saves/restores branch/checkpoint/entry/tokenizer/currentSource and updates
+ * lastDefinitionCell to reflect any new definitions emitted while parsing.
+ */
+export function parseChild(vm: VM, tokenizer: Tokenizer, sourceName?: string | null): void {
+  runParse(vm, tokenizer, { resetCompiler: false, emitAbort: false, sourceName });
+}
+
+// Backward compatibility: parse defaults to root behavior.
+export function parse(vm: VM, tokenizer: Tokenizer, sourceName?: string | null): void {
+  parseRoot(vm, tokenizer, sourceName);
 }
 
 /**
@@ -318,7 +341,7 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
 
     const nextToken = tokenizerNext(tokenizer);
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
-      compileBracketPathAsList(vm, tokenizer);
+      compilePathList(vm, tokenizer);
       emitOpcode(vm, Op.Select);
       emitOpcode(vm, Op.Load);
       emitOpcode(vm, Op.Nip);
@@ -343,7 +366,7 @@ export function emitWord(vm: VM, value: string, tokenizer: Tokenizer): void {
 
     const nextToken = tokenizerNext(tokenizer);
     if (nextToken.type === TokenType.SPECIAL && nextToken.value === '[') {
-      compileBracketPathAsList(vm, tokenizer);
+      compilePathList(vm, tokenizer);
       emitOpcode(vm, Op.Select);
       emitOpcode(vm, Op.Load);
       emitOpcode(vm, Op.Nip);
@@ -466,7 +489,7 @@ export function handleSpecial(vm: VM, value: string, tokenizer: Tokenizer): void
   } else if (value === '[') {
     // General postfix bracket path for any expression on stack: expr[ ... ]
     // Compile path list and then value-by-default retrieval via select→load→nip
-    compileBracketPathAsList(vm, tokenizer);
+    compilePathList(vm, tokenizer);
     emitOpcode(vm, Op.Select);
     emitOpcode(vm, Op.Load);
     emitOpcode(vm, Op.Nip);

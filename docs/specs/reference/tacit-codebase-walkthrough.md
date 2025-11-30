@@ -31,7 +31,7 @@ The journey begins in the Read–Eval–Print Loop. `startREPL()` is the front-d
   - User immediates either execute their builtin Tacit word (`executeOp`) or jump into user-defined code via `runImmediateCode`.
 - **Variable references** – Locals are compiled using `Op.VarRef` + `Op.Load`; globals emit `Op.GlobalRef` with offsets relative to `GLOBAL_BASE`.
 - **Special forms** – `handleSpecial()` interprets parser-level punctuation (e.g., `:`, `;`, `[`, `]`, control forms) by calling helpers in `definition-system.ts`, `meta/definition-ops.ts`, and related modules.
-- **Lists & selectors** – Encountering `word[` triggers `compileBracketPathAsList()` which compiles the selector list, then `Op.Select`/`Op.Load` pairs to access nested data.
+- **Lists & selectors** – Encountering `word[` triggers `compilePathList()` which compiles the selector list, then `Op.Select`/`Op.Load` pairs to access nested data.
 - **`definition-system.ts`** – `beginDefinition()` (triggered by `:`) emits a `Branch` placeholder to skip the function body at runtime, registers the word in the dictionary, and enables `compiler.preserve` so code survives after execution. `endDefinition()` inserts `Op.Exit`, patches the branch offset, and restores dictionary metadata.
 - **Final validation** – `validateFinalState()` ensures there are no unterminated definitions, conditionals, or lists, then appends an `Op.Abort` so stray execution halts cleanly.
 

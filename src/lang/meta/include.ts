@@ -10,7 +10,7 @@ import {
   unhideDictionaryEntry,
 } from '../../core/dictionary';
 import { createTokenizer, TokenType, tokenizerNext } from '../tokenizer';
-import { parse } from '../parser';
+import { parseChild } from '../parser';
 import { ensureTokenizer } from '../helpers/tokenizer-utils';
 
 export function includeImmediateOp(vm: VM): void {
@@ -46,13 +46,14 @@ export function includeImmediateOp(vm: VM): void {
 
   // Parse the child file in-place without resetting compiler or emitting Abort.
   const childTokenizer = createTokenizer(source);
-  parse(vm, childTokenizer, { resetCompiler: false, emitAbort: false, sourceName: canonicalPath });
+  parseChild(vm, childTokenizer, canonicalPath);
 
   // Entry point is the payload of the most recent dictionary entry.
-  if (vm.compile.head === includeEntry) {
+  const lastCell = vm.compile.lastDefinitionCell;
+  if (lastCell === includeEntry) {
     throw new SyntaxError('include produced no definitions', getStackData(vm));
   }
-  const entryPointPayload = getDictionaryEntryInfo(vm, vm.compile.head).payload;
+  const entryPointPayload = getDictionaryEntryInfo(vm, lastCell).payload;
   setDictionaryEntryPayload(vm, includeEntry, entryPointPayload);
   unhideDictionaryEntry(vm, includeEntry);
 }

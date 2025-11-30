@@ -273,7 +273,7 @@ This hybrid approach ensures globals work correctly while maintaining flexibilit
 
 - **Read:** `name[path]` → `GlobalRef <offset>; <path>; Select; Load; Nip` (matches locals pattern)
 - **Write:** `value -> name[path]` → `GlobalRef <offset>; Fetch; <path>; Select; Nip; Store` (matches locals pattern)
-- Uses same `compileBracketPathAsList` helper as locals
+- Uses same `compilePathList` helper as locals
 - `Select` works with any REF (global, stack, or rstack)
 
 **Tests:**
@@ -284,7 +284,7 @@ This hybrid approach ensures globals work correctly while maintaining flexibilit
 
 - ✅ `name[path]` reads work (implemented in `emitWord`)
 - ✅ `value -> name[path]` writes work (implemented in `emitAssignment`)
-- ✅ Nested paths supported (via `compileBracketPathAsList`)
+- ✅ Nested paths supported (via `compilePathList`)
 - ⏳ Bounds checking tests needed
 
 ---
@@ -438,4 +438,3 @@ This hybrid approach ensures globals work correctly while maintaining flexibilit
 - All existing variable machinery (Load, Fetch, Store) should work with globals via `GlobalRef`
 - No new tags needed - `Tag.REF` with absolute index is sufficient
 - Address range discrimination (`getRefRegion`) is key to distinguishing globals from locals
-

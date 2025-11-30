@@ -36,6 +36,7 @@ export type CompilerState = {
   tokenizer: Tokenizer | null;
   includeHost: IncludeHost | null;
   currentSource: string | null;
+  lastDefinitionCell: number;
 }
 
 export function makeCompiler(digest: Digest): CompilerState {
@@ -55,6 +56,7 @@ export function makeCompiler(digest: Digest): CompilerState {
   tokenizer: null,
   includeHost: null,
   currentSource: null,
+  lastDefinitionCell: -1,
   };
 }
 
